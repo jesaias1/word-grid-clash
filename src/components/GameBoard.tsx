@@ -144,24 +144,28 @@ const GameBoard = () => {
         isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
       }`}>
         {grid.map((row, rowIndex) =>
-          row.map((cell, colIndex) => (
-            <div
-              key={`${rowIndex}-${colIndex}`}
-              className={`
-                w-12 h-12 grid-cell rounded-md cursor-pointer flex items-center justify-center
-                ${cell ? 'letter-tile' : ''}
-                ${isCurrentPlayer && selectedLetter && !cell ? 'hover:scale-105 hover:shadow-lg' : ''}
-                ${!isCurrentPlayer ? 'opacity-75' : ''}
-              `}
-              onClick={() => isCurrentPlayer && placeLetter(rowIndex, colIndex)}
-            >
-              {cell && (
-                <span className="font-bold text-lg text-white drop-shadow-lg">
-                  {cell}
-                </span>
-              )}
-            </div>
-          ))
+          row.map((cell, colIndex) => {
+            const isLightSquare = (rowIndex + colIndex) % 2 === 0;
+            return (
+              <div
+                key={`${rowIndex}-${colIndex}`}
+                className={`
+                  w-12 h-12 cursor-pointer flex items-center justify-center transition-all duration-200
+                  ${isLightSquare ? 'bg-muted' : 'bg-muted-foreground/20'}
+                  ${cell ? 'letter-tile' : ''}
+                  ${isCurrentPlayer && selectedLetter && !cell ? 'hover:scale-105 hover:shadow-lg' : ''}
+                  ${!isCurrentPlayer ? 'opacity-75' : ''}
+                `}
+                onClick={() => isCurrentPlayer && placeLetter(rowIndex, colIndex)}
+              >
+                {cell && (
+                  <span className="font-bold text-lg text-white drop-shadow-lg">
+                    {cell}
+                  </span>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     );
