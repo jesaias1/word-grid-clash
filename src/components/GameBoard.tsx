@@ -63,14 +63,9 @@ const GameBoard = () => {
   const placeLetter = (row: number, col: number, targetPlayerIndex: number) => {
     if (!selectedLetter || gameState.gameEnded) return;
     
-    const playerIndex = gameState.currentPlayer - 1;
+    const targetGrid = gameState.grids[targetPlayerIndex];
     
-    // Ensure player can only place letters on their own grid
-    if (targetPlayerIndex !== playerIndex) return;
-    
-    const grid = gameState.grids[playerIndex];
-    
-    if (grid[row][col] !== null) return; // Cell already occupied
+    if (targetGrid[row][col] !== null) return; // Cell already occupied
     if (isLetterOnCooldown(selectedLetter)) return; // Letter on shared cooldown
 
     setGameState(prev => {
@@ -79,12 +74,13 @@ const GameBoard = () => {
         prev.grids[1].map(row => [...row])
       ];
       
-      // Place the letter
-      newGrids[playerIndex][row][col] = selectedLetter;
+      // Place the letter on the target grid
+      newGrids[targetPlayerIndex][row][col] = selectedLetter;
       
-      // Update scores
+      // Update scores (only current player gets points)
+      const currentPlayerIndex = prev.currentPlayer - 1;
       const newScores: [number, number] = [...prev.scores];
-      newScores[playerIndex]++;
+      newScores[currentPlayerIndex]++;
       
       // Update shared cooldowns
       const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
@@ -102,15 +98,15 @@ const GameBoard = () => {
       // Set cooldown for used letter (affects both players) AFTER decrement so it starts at full duration
       newSharedCooldowns[selectedLetter] = COOLDOWN_TURNS;
 
-      // Check if grid is full
-      const isGridFull = newGrids[playerIndex].every(row => 
-        row.every(cell => cell !== null)
+      // Check if any grid is full (game ends when any grid is full)
+      const isAnyGridFull = newGrids.some(grid => 
+        grid.every(row => row.every(cell => cell !== null))
       );
       
       let gameEnded = false;
       let winner: Player | null = null;
       
-      if (isGridFull) {
+      if (isAnyGridFull) {
         gameEnded = true;
         winner = newScores[0] > newScores[1] ? 1 : newScores[1] > newScores[0] ? 2 : null;
       }
@@ -175,6 +171,7 @@ const GameBoard = () => {
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
+            const canPlaceLetter = !gameState.gameEnded && selectedLetter && !cell;
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
@@ -182,10 +179,10 @@ const GameBoard = () => {
                   w-full aspect-square cursor-pointer flex items-center justify-center transition-all duration-200
                   ${isLightSquare ? 'bg-muted' : 'bg-muted-foreground/20'}
                   ${cell ? 'letter-tile' : ''}
-                  ${isCurrentPlayer && selectedLetter && !cell ? 'hover:scale-105 hover:shadow-lg' : ''}
+                  ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg' : ''}
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
                 `}
-                onClick={() => isCurrentPlayer && placeLetter(rowIndex, colIndex, playerIndex)}
+                onClick={() => !gameState.gameEnded && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
                   <span className="font-bold text-lg text-white drop-shadow-lg">
