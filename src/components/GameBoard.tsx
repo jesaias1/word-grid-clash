@@ -26,7 +26,7 @@ interface GameState {
 
 const GRID_ROWS = 5;
 const GRID_COLS = 5;
-const COOLDOWN_TURNS = 3;
+const COOLDOWN_TURNS = 4;
 
 const GameBoard = () => {
   const [gameState, setGameState] = useState<GameState>({
@@ -85,10 +85,7 @@ const GameBoard = () => {
       // Update shared cooldowns
       const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
       
-      // Set cooldown for used letter (affects both players)
-      newSharedCooldowns[selectedLetter] = COOLDOWN_TURNS;
-      
-      // Decrease all shared cooldowns each turn
+      // Decrease existing shared cooldowns each turn
       Object.keys(newSharedCooldowns).forEach(letter => {
         if (newSharedCooldowns[letter] > 0) {
           newSharedCooldowns[letter]--;
@@ -97,6 +94,9 @@ const GameBoard = () => {
           }
         }
       });
+      
+      // Set cooldown for used letter (affects both players) AFTER decrement so it starts at full duration
+      newSharedCooldowns[selectedLetter] = COOLDOWN_TURNS;
 
       // Check if grid is full
       const isGridFull = newGrids[playerIndex].every(row => 
@@ -316,7 +316,7 @@ const GameBoard = () => {
           <div>
             • Only valid words (from the official list) count
             • Final score = total letters across all valid words
-            • Shared cooldown: when any player uses a letter, both can't use it for 3 turns
+            • Shared cooldown: when any player uses a letter, both can't use it for 4 turns
             • Scoring happens at the end when a grid is full
           </div>
         </div>
