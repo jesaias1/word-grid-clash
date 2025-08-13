@@ -17,7 +17,7 @@ interface GameState {
   currentPlayer: Player;
   turn: number;
   scores: [number, number];
-  cooldowns: [CooldownState, CooldownState];
+  sharedCooldowns: CooldownState; // Shared cooldowns for both players
   gameEnded: boolean;
   winner: Player | null;
 }
@@ -35,7 +35,7 @@ const GameBoard = () => {
     currentPlayer: 1,
     turn: 1,
     scores: [0, 0],
-    cooldowns: [{}, {}],
+    sharedCooldowns: {}, // Single shared cooldown object
     gameEnded: false,
     winner: null
   });
@@ -44,15 +44,13 @@ const GameBoard = () => {
 
   const availableLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-  const isLetterOnCooldown = (letter: Letter, player: Player): boolean => {
-    const playerIndex = player - 1;
-    const cooldown = gameState.cooldowns[playerIndex][letter];
+  const isLetterOnCooldown = (letter: Letter): boolean => {
+    const cooldown = gameState.sharedCooldowns[letter];
     return cooldown !== undefined && cooldown > 0;
   };
 
-  const getLetterCooldown = (letter: Letter, player: Player): number => {
-    const playerIndex = player - 1;
-    return gameState.cooldowns[playerIndex][letter] || 0;
+  const getLetterCooldown = (letter: Letter): number => {
+    return gameState.sharedCooldowns[letter] || 0;
   };
 
   const placeLetter = (row: number, col: number) => {
@@ -62,7 +60,7 @@ const GameBoard = () => {
     const grid = gameState.grids[playerIndex];
     
     if (grid[row][col] !== null) return; // Cell already occupied
-    if (isLetterOnCooldown(selectedLetter, gameState.currentPlayer)) return;
+    if (isLetterOnCooldown(selectedLetter)) return; // Letter on shared cooldown
 
     setGameState(prev => {
       const newGrids: [Grid, Grid] = [
@@ -77,21 +75,18 @@ const GameBoard = () => {
       const newScores: [number, number] = [...prev.scores];
       newScores[playerIndex]++;
       
-      // Update cooldowns
-      const newCooldowns: [CooldownState, CooldownState] = [
-        { ...prev.cooldowns[0] },
-        { ...prev.cooldowns[1] }
-      ];
+      // Update shared cooldowns
+      const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
       
-      // Set cooldown for used letter
-      newCooldowns[playerIndex][selectedLetter] = COOLDOWN_TURNS;
+      // Set cooldown for used letter (affects both players)
+      newSharedCooldowns[selectedLetter] = COOLDOWN_TURNS;
       
-      // Decrease all cooldowns for current player
-      Object.keys(newCooldowns[playerIndex]).forEach(letter => {
-        if (newCooldowns[playerIndex][letter] > 0) {
-          newCooldowns[playerIndex][letter]--;
-          if (newCooldowns[playerIndex][letter] === 0) {
-            delete newCooldowns[playerIndex][letter];
+      // Decrease all shared cooldowns each turn
+      Object.keys(newSharedCooldowns).forEach(letter => {
+        if (newSharedCooldowns[letter] > 0) {
+          newSharedCooldowns[letter]--;
+          if (newSharedCooldowns[letter] === 0) {
+            delete newSharedCooldowns[letter];
           }
         }
       });
@@ -115,7 +110,7 @@ const GameBoard = () => {
         currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
         turn: prev.turn + 1,
         scores: newScores,
-        cooldowns: newCooldowns,
+        sharedCooldowns: newSharedCooldowns,
         gameEnded,
         winner
       };
@@ -133,7 +128,7 @@ const GameBoard = () => {
       currentPlayer: 1,
       turn: 1,
       scores: [0, 0],
-      cooldowns: [{}, {}],
+      sharedCooldowns: {}, // Reset shared cooldowns
       gameEnded: false,
       winner: null
     });
@@ -173,8 +168,6 @@ const GameBoard = () => {
   };
 
   const renderLetterSelector = () => {
-    const playerIndex = gameState.currentPlayer - 1;
-    
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-center">
@@ -182,8 +175,8 @@ const GameBoard = () => {
         </h3>
         <div className="grid grid-cols-6 gap-2">
           {availableLetters.map(letter => {
-            const onCooldown = isLetterOnCooldown(letter, gameState.currentPlayer);
-            const cooldownTurns = getLetterCooldown(letter, gameState.currentPlayer);
+            const onCooldown = isLetterOnCooldown(letter);
+            const cooldownTurns = getLetterCooldown(letter);
             
             return (
               <Button
@@ -293,7 +286,7 @@ const GameBoard = () => {
             • Each letter placed = 1 point
           </div>
           <div>
-            • Letters have a 3-turn cooldown after use
+            • When ANY player uses a letter, BOTH players can't use it for 3 turns
             • Game ends when one grid is full
             • Highest score wins the duel!
           </div>
