@@ -60,10 +60,14 @@ const GameBoard = () => {
     return gameState.sharedCooldowns[letter] || 0;
   };
 
-  const placeLetter = (row: number, col: number) => {
+  const placeLetter = (row: number, col: number, targetPlayerIndex: number) => {
     if (!selectedLetter || gameState.gameEnded) return;
     
     const playerIndex = gameState.currentPlayer - 1;
+    
+    // Ensure player can only place letters on their own grid
+    if (targetPlayerIndex !== playerIndex) return;
+    
     const grid = gameState.grids[playerIndex];
     
     if (grid[row][col] !== null) return; // Cell already occupied
@@ -181,7 +185,7 @@ const GameBoard = () => {
                   ${isCurrentPlayer && selectedLetter && !cell ? 'hover:scale-105 hover:shadow-lg' : ''}
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
                 `}
-                onClick={() => isCurrentPlayer && placeLetter(rowIndex, colIndex)}
+                onClick={() => isCurrentPlayer && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
                   <span className="font-bold text-lg text-white drop-shadow-lg">
