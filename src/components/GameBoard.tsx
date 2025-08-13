@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { loadDictionary } from '@/lib/dictionary';
+import { scoreGrid } from '@/lib/scoring';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -41,6 +43,11 @@ const GameBoard = () => {
   });
 
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
+
+  // Preload dictionary in the background
+  useEffect(() => {
+    loadDictionary();
+  }, []);
 
   const availableLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -134,6 +141,24 @@ const GameBoard = () => {
     });
     setSelectedLetter('');
   };
+
+  // When the game ends, compute final scores based on valid words
+  useEffect(() => {
+    if (!gameState.gameEnded) return;
+    let cancelled = false;
+    (async () => {
+      const dict = await loadDictionary();
+      if (cancelled) return;
+      const s1 = scoreGrid(gameState.grids[0], dict, 2);
+      const s2 = scoreGrid(gameState.grids[1], dict, 2);
+      setGameState(prev => ({
+        ...prev,
+        scores: [s1, s2],
+        winner: s1 > s2 ? 1 : s2 > s1 ? 2 : null,
+      }));
+    })();
+    return () => { cancelled = true; };
+  }, [gameState.gameEnded]);
 
   const renderGrid = (playerIndex: number) => {
     const grid = gameState.grids[playerIndex];
@@ -286,12 +311,13 @@ const GameBoard = () => {
           <div>
             • Each player has a 5×5 grid (25 spaces)
             • Place 1 letter per turn in any empty space
-            • Each letter placed = 1 point
+            • Words can form horizontally or vertically
           </div>
           <div>
-            • When ANY player uses a letter, BOTH players can't use it for 3 turns
-            • Game ends when one grid is full
-            • Highest score wins the duel!
+            • Only valid words (from the official list) count
+            • Final score = total letters across all valid words
+            • Shared cooldown: when any player uses a letter, both can't use it for 3 turns
+            • Scoring happens at the end when a grid is full
           </div>
         </div>
       </Card>
