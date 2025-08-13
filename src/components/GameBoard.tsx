@@ -22,8 +22,8 @@ interface GameState {
   winner: Player | null;
 }
 
-const GRID_ROWS = 10;
-const GRID_COLS = 8;
+const GRID_ROWS = 5;
+const GRID_COLS = 5;
 const COOLDOWN_TURNS = 3;
 
 const GameBoard = () => {
@@ -140,7 +140,7 @@ const GameBoard = () => {
     const isCurrentPlayer = gameState.currentPlayer === (playerIndex + 1);
     
     return (
-      <div className={`grid grid-cols-8 gap-1 p-4 rounded-lg ${
+      <div className={`grid grid-cols-5 gap-1 p-4 rounded-lg ${
         isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
       }`}>
         {grid.map((row, rowIndex) =>
@@ -281,7 +281,7 @@ const GameBoard = () => {
         <h3 className="text-lg font-semibold mb-4">Game Rules</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
           <div>
-            • Each player has a 10×8 grid (80 spaces)
+            • Each player has a 5×5 grid (25 spaces)
             • Place 1 letter per turn in any empty space
             • Each letter placed = 1 point
           </div>
