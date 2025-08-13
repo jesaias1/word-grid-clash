@@ -177,7 +177,7 @@ const GameBoard = () => {
         <h3 className="text-lg font-semibold text-center">
           Player {gameState.currentPlayer} - Choose a Letter
         </h3>
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-6 gap-0">
           {availableLetters.map(letter => {
             const onCooldown = isLetterOnCooldown(letter);
             const cooldownTurns = getLetterCooldown(letter);
