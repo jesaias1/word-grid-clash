@@ -150,7 +150,7 @@ const GameBoard = () => {
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  w-12 h-12 aspect-square cursor-pointer flex items-center justify-center transition-all duration-200
+                  w-full aspect-square cursor-pointer flex items-center justify-center transition-all duration-200
                   ${isLightSquare ? 'bg-muted' : 'bg-muted-foreground/20'}
                   ${cell ? 'letter-tile' : ''}
                   ${isCurrentPlayer && selectedLetter && !cell ? 'hover:scale-105 hover:shadow-lg' : ''}
