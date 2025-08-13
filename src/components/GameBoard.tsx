@@ -177,7 +177,7 @@ const GameBoard = () => {
         <h3 className="text-lg font-semibold text-center">
           Player {gameState.currentPlayer} - Choose a Letter
         </h3>
-        <div className="grid grid-cols-6 gap-0">
+        <div className="grid grid-cols-6 gap-0 overflow-hidden rounded-md border border-border">
           {availableLetters.map(letter => {
             const onCooldown = isLetterOnCooldown(letter);
             const cooldownTurns = getLetterCooldown(letter);
@@ -186,11 +186,10 @@ const GameBoard = () => {
               <Button
                 key={letter}
                 variant={selectedLetter === letter ? "default" : "outline"}
-                size="sm"
                 disabled={onCooldown || gameState.gameEnded}
                 onClick={() => setSelectedLetter(letter)}
                 className={`
-                  relative h-12 
+                  relative w-full aspect-square rounded-none p-0 flex items-center justify-center
                   ${onCooldown ? 'opacity-50 cursor-not-allowed' : ''}
                   ${selectedLetter === letter ? 'ring-2 ring-primary' : ''}
                 `}
