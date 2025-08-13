@@ -140,7 +140,7 @@ const GameBoard = () => {
     const isCurrentPlayer = gameState.currentPlayer === (playerIndex + 1);
     
     return (
-      <div className={`grid grid-cols-5 gap-1 p-4 rounded-lg ${
+      <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
         isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
       }`}>
         {grid.map((row, rowIndex) =>
