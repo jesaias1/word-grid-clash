@@ -47,6 +47,39 @@ const MultiplayerGameBoard = () => {
     
     loadGame();
     
+    // Auto-join if game is waiting and user isn't assigned
+    const autoJoinIfNeeded = async () => {
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        const { data: game } = await supabase
+          .from('games')
+          .select('*')
+          .eq('id', gameId)
+          .single();
+
+        if (game && game.game_status === 'waiting' && !game.player1_id && !game.player2_id) {
+          // Assign current user as player 1 if no players
+          await supabase
+            .from('games')
+            .update({ player1_id: user.user?.id || null })
+            .eq('id', gameId);
+        } else if (game && game.game_status === 'waiting' && game.player1_id && !game.player2_id && game.player1_id !== user.user?.id) {
+          // Assign current user as player 2 and start game
+          await supabase
+            .from('games')
+            .update({ 
+              player2_id: user.user?.id || null,
+              game_status: 'active'
+            })
+            .eq('id', gameId);
+        }
+      } catch (error) {
+        console.error('Error auto-joining game:', error);
+      }
+    };
+
+    autoJoinIfNeeded();
+    
     // Set up realtime subscription
     const channel = supabase
       .channel(`game-${gameId}`)
@@ -476,7 +509,7 @@ const MultiplayerGameBoard = () => {
       </div>
 
       {/* Available Letters */}
-      {gameState.game_status === 'active' && renderAvailableLetters()}
+      {(gameState.game_status === 'active' || gameState.game_status === 'waiting') && renderAvailableLetters()}
 
       {/* Game Grids */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1">
