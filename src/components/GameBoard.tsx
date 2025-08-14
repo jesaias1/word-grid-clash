@@ -106,13 +106,20 @@ const GameBoard = () => {
     const timer = setInterval(() => {
       setGameState(prev => {
         if (prev.timeLeft <= 1) {
-          // Time's up - automatically pass turn
-          return {
-            ...prev,
-            currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
-            turn: prev.turn + 1,
-            timeLeft: TURN_TIME
-          };
+          // Time's up - automatically pass turn or trigger AI move
+          if (prev.currentPlayer === 2) {
+            // AI turn - make a move
+            makeAIMove(prev);
+            return prev;
+          } else {
+            // Player turn timeout - pass to AI
+            return {
+              ...prev,
+              currentPlayer: 2,
+              turn: prev.turn + 1,
+              timeLeft: TURN_TIME
+            };
+          }
         }
         return { ...prev, timeLeft: prev.timeLeft - 1 };
       });
@@ -120,6 +127,138 @@ const GameBoard = () => {
 
     return () => clearInterval(timer);
   }, [gameState.currentPlayer, gameState.gameEnded, gameState.timeLeft]);
+
+  // AI move trigger
+  useEffect(() => {
+    if (gameState.currentPlayer === 2 && !gameState.gameEnded) {
+      const aiDelay = Math.random() * 3000 + 2000; // 2-5 seconds thinking time
+      const timer = setTimeout(() => {
+        makeAIMove(gameState);
+      }, aiDelay);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameState.currentPlayer, gameState.turn]);
+
+  const makeAIMove = async (currentState: GameState) => {
+    const dict = await loadDictionary();
+    const aiGrid = currentState.grids[1]; // AI is player 2
+    const availableCells: Array<{row: number, col: number}> = [];
+    
+    // Find empty cells in AI grid
+    for (let row = 0; row < GRID_ROWS; row++) {
+      for (let col = 0; col < GRID_COLS; col++) {
+        if (aiGrid[row][col] === null) {
+          availableCells.push({row, col});
+        }
+      }
+    }
+    
+    if (availableCells.length === 0) return;
+    
+    // Get available letters (not on cooldown)
+    const availableAILetters = availableLetters.filter(letter => !isLetterOnCooldown(letter));
+    if (availableAILetters.length === 0) {
+      // No letters available, pass turn
+      setGameState(prev => ({
+        ...prev,
+        currentPlayer: 1,
+        turn: prev.turn + 1,
+        timeLeft: TURN_TIME
+      }));
+      return;
+    }
+    
+    let bestMove: {letter: string, row: number, col: number} | null = null;
+    let bestScore = -1;
+    
+    // Try each available letter at each position and score the resulting grid
+    for (const letter of availableAILetters) {
+      for (const cell of availableCells) {
+        // Create test grid
+        const testGrid = aiGrid.map(row => [...row]);
+        testGrid[cell.row][cell.col] = letter;
+        
+        // Score the test grid
+        const result = scoreGrid(testGrid, dict, currentState.usedWords[1], 3);
+        
+        // Add some randomness to make AI beatable (30% chance to not pick optimal move)
+        const isOptimal = Math.random() > 0.3;
+        const adjustedScore = isOptimal ? result.score : result.score * (0.7 + Math.random() * 0.3);
+        
+        if (adjustedScore > bestScore) {
+          bestScore = adjustedScore;
+          bestMove = {letter, row: cell.row, col: cell.col};
+        }
+      }
+    }
+    
+    // Make the AI move
+    if (bestMove) {
+      setGameState(prev => {
+        const newGrids: [Grid, Grid] = [
+          prev.grids[0].map(row => [...row]),
+          prev.grids[1].map(row => [...row])
+        ];
+        
+        // Place AI letter
+        newGrids[1][bestMove.row][bestMove.col] = bestMove.letter;
+        
+        // Update scores  
+        const newScores: [number, number] = [...prev.scores];
+        newScores[1]++; // AI gets a point for placing
+        
+        // Update shared cooldowns
+        const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
+        
+        // Decrease existing shared cooldowns
+        Object.keys(newSharedCooldowns).forEach(letter => {
+          if (newSharedCooldowns[letter] > 0) {
+            newSharedCooldowns[letter]--;
+            if (newSharedCooldowns[letter] === 0) {
+              delete newSharedCooldowns[letter];
+            }
+          }
+        });
+        
+        // Set cooldown for AI's used letter
+        newSharedCooldowns[bestMove.letter] = COOLDOWN_TURNS;
+
+        // Check if game should end
+        const areAllGridsFull = newGrids.every(grid => 
+          grid.every(row => row.every(cell => cell !== null))
+        );
+        
+        let gameEnded = false;
+        let winner: Player | null = null;
+        
+        if (areAllGridsFull) {
+          gameEnded = true;
+          winner = newScores[0] > newScores[1] ? 1 : newScores[1] > newScores[0] ? 2 : null;
+        }
+
+        return {
+          ...prev,
+          grids: newGrids,
+          currentPlayer: 1, // Back to player
+          turn: prev.turn + 1,
+          scores: newScores,
+          sharedCooldowns: newSharedCooldowns,
+          gameEnded,
+          winner,
+          timeLeft: TURN_TIME
+        };
+      });
+    } else {
+      // No valid move, pass turn
+      setGameState(prev => ({
+        ...prev,
+        currentPlayer: 1,
+        turn: prev.turn + 1,
+        timeLeft: TURN_TIME
+      }));
+    }
+  };
 
   // Keyboard input effect
   useEffect(() => {
@@ -148,7 +287,7 @@ const GameBoard = () => {
   };
 
   const placeLetter = (row: number, col: number, targetPlayerIndex: number) => {
-    if (!selectedLetter || gameState.gameEnded) return;
+    if (!selectedLetter || gameState.gameEnded || gameState.currentPlayer !== 1) return;
     
     const targetGrid = gameState.grids[targetPlayerIndex];
     
@@ -201,7 +340,7 @@ const GameBoard = () => {
       return {
         ...prev,
         grids: newGrids,
-        currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
+        currentPlayer: 2, // Pass to AI
         turn: prev.turn + 1,
         scores: newScores,
         sharedCooldowns: newSharedCooldowns,
@@ -255,7 +394,7 @@ const GameBoard = () => {
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-            const canPlaceLetter = !gameState.gameEnded && selectedLetter && !cell;
+            const canPlaceLetter = !gameState.gameEnded && selectedLetter && !cell && gameState.currentPlayer === 1;
             const isScored = scoredCells.has(`${rowIndex}-${colIndex}`);
             
             // Winner highlight effect - bright gold/yellow for winner, green for others
@@ -274,7 +413,7 @@ const GameBoard = () => {
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
                   ${winnerHighlight}
                 `}
-                onClick={() => !gameState.gameEnded && placeLetter(rowIndex, colIndex, playerIndex)}
+                onClick={() => !gameState.gameEnded && gameState.currentPlayer === 1 && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
                   <span className={`font-bold text-lg drop-shadow-lg ${isScored ? 'text-white' : 'text-white'}`}>
@@ -330,11 +469,11 @@ const GameBoard = () => {
         <Card className="p-3 bg-gradient-card">
           <div className="flex justify-center items-center gap-8">
             <div className={`text-center ${gameState.currentPlayer === 1 ? 'score-glow' : ''}`}>
-              <div className="text-sm font-bold text-player-1">Player 1</div>
+              <div className="text-sm font-bold text-player-1">You</div>
               <div className="text-xl font-bold">{gameState.scores[0]}</div>
             </div>
             <div className={`text-center ${gameState.currentPlayer === 2 ? 'score-glow' : ''}`}>
-              <div className="text-sm font-bold text-player-2">Player 2</div>
+              <div className="text-sm font-bold text-player-2">AI Bot</div>
               <div className="text-xl font-bold">{gameState.scores[1]}</div>
             </div>
           </div>
@@ -356,9 +495,11 @@ const GameBoard = () => {
               <>
                 <div className="text-xs text-muted-foreground">Turn {gameState.turn}</div>
                 <div className="text-sm font-semibold">
-                  <span className={gameState.currentPlayer === 1 ? 'text-player-1' : 'text-player-2'}>
-                    Player {gameState.currentPlayer}
-                  </span>
+                  {gameState.currentPlayer === 1 ? (
+                    <span className="text-player-1">Your Turn</span>
+                  ) : (
+                    <span className="text-player-2">AI Thinking...</span>
+                  )}
                 </div>
                 <div className={`text-lg font-bold ${gameState.timeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
                   {gameState.timeLeft}s
@@ -388,12 +529,12 @@ const GameBoard = () => {
       {/* Game Grids */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1">
         <div className="space-y-1">
-          <h2 className="text-sm font-bold text-player-1 text-center">Player 1 Grid</h2>
+          <h2 className="text-sm font-bold text-player-1 text-center">Your Grid</h2>
           {renderGrid(0)}
         </div>
         
         <div className="space-y-1">
-          <h2 className="text-sm font-bold text-player-2 text-center">Player 2 Grid</h2>
+          <h2 className="text-sm font-bold text-player-2 text-center">AI Bot Grid</h2>
           {renderGrid(1)}
         </div>
       </div>
