@@ -101,7 +101,7 @@ export type Database = {
     }
     Functions: {
       create_empty_grid: {
-        Args: Record<PropertyKey, never> | { grid_size?: number }
+        Args: { grid_size?: number }
         Returns: Json
       }
       generate_invite_code: {
