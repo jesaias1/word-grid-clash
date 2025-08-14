@@ -204,9 +204,9 @@ const GameBoard = () => {
         // Place AI letter
         newGrids[1][bestMove.row][bestMove.col] = bestMove.letter;
         
-        // Update scores  
-        const newScores: [number, number] = [...prev.scores];
-        newScores[1]++; // AI gets a point for placing
+        // Calculate new scores for both players
+        const result1 = scoreGrid(newGrids[0], dict, prev.usedWords[0], 3);
+        const result2 = scoreGrid(newGrids[1], dict, prev.usedWords[1], 3);
         
         // Update shared cooldowns
         const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
@@ -234,7 +234,7 @@ const GameBoard = () => {
         
         if (areAllGridsFull) {
           gameEnded = true;
-          winner = newScores[0] > newScores[1] ? 1 : newScores[1] > newScores[0] ? 2 : null;
+          winner = result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null;
         }
 
         return {
@@ -242,7 +242,9 @@ const GameBoard = () => {
           grids: newGrids,
           currentPlayer: 1, // Back to player
           turn: prev.turn + 1,
-          scores: newScores,
+          scores: [result1.score, result2.score],
+          usedWords: [result1.newUsedWords, result2.newUsedWords],
+          scoredCells: [result1.scoredCells, result2.scoredCells],
           sharedCooldowns: newSharedCooldowns,
           gameEnded,
           winner,
@@ -286,13 +288,15 @@ const GameBoard = () => {
     return gameState.sharedCooldowns[letter] || 0;
   };
 
-  const placeLetter = (row: number, col: number, targetPlayerIndex: number) => {
+  const placeLetter = async (row: number, col: number, targetPlayerIndex: number) => {
     if (!selectedLetter || gameState.gameEnded || gameState.currentPlayer !== 1) return;
     
     const targetGrid = gameState.grids[targetPlayerIndex];
     
     if (targetGrid[row][col] !== null) return; // Cell already occupied
     if (isLetterOnCooldown(selectedLetter)) return; // Letter on shared cooldown
+
+    const dict = await loadDictionary();
 
     setGameState(prev => {
       const newGrids: [Grid, Grid] = [
@@ -303,10 +307,9 @@ const GameBoard = () => {
       // Place the letter on the target grid
       newGrids[targetPlayerIndex][row][col] = selectedLetter;
       
-      // Update scores (only current player gets points)
-      const currentPlayerIndex = prev.currentPlayer - 1;
-      const newScores: [number, number] = [...prev.scores];
-      newScores[currentPlayerIndex]++;
+      // Calculate new scores for both players
+      const result1 = scoreGrid(newGrids[0], dict, prev.usedWords[0], 3);
+      const result2 = scoreGrid(newGrids[1], dict, prev.usedWords[1], 3);
       
       // Update shared cooldowns
       const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
@@ -334,7 +337,7 @@ const GameBoard = () => {
       
       if (areAllGridsFull) {
         gameEnded = true;
-        winner = newScores[0] > newScores[1] ? 1 : newScores[1] > newScores[0] ? 2 : null;
+        winner = result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null;
       }
 
       return {
@@ -342,12 +345,12 @@ const GameBoard = () => {
         grids: newGrids,
         currentPlayer: 2, // Pass to AI
         turn: prev.turn + 1,
-        scores: newScores,
+        scores: [result1.score, result2.score],
+        usedWords: [result1.newUsedWords, result2.newUsedWords],
+        scoredCells: [result1.scoredCells, result2.scoredCells],
         sharedCooldowns: newSharedCooldowns,
         gameEnded,
         winner,
-        usedWords: prev.usedWords,
-        scoredCells: prev.scoredCells,
         timeLeft: TURN_TIME // Reset timer for next player
       };
     });
@@ -360,40 +363,6 @@ const GameBoard = () => {
     setSelectedLetter('');
   };
 
-  // Compute scores based on valid words whenever grids change
-  const updateScores = useCallback(async (grids: [Grid, Grid], usedWords: [Set<string>, Set<string>], gameEnded: boolean) => {
-    const dict = await loadDictionary();
-    const result1 = scoreGrid(grids[0], dict, usedWords[0], 3);
-    const result2 = scoreGrid(grids[1], dict, usedWords[1], 3);
-    
-    return {
-      scores: [result1.score, result2.score] as [number, number],
-      usedWords: [result1.newUsedWords, result2.newUsedWords] as [Set<string>, Set<string>],
-      scoredCells: [result1.scoredCells, result2.scoredCells] as [Set<string>, Set<string>],
-      winner: gameEnded ? (result1.score > result2.score ? (1 as Player) : result2.score > result1.score ? (2 as Player) : null) : null
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    updateScores(gameState.grids, gameState.usedWords, gameState.gameEnded).then(results => {
-      if (cancelled) return;
-      setGameState(prev => {
-        // Only update if scores actually changed to prevent unnecessary re-renders
-        if (prev.scores[0] === results.scores[0] && prev.scores[1] === results.scores[1]) {
-          return prev;
-        }
-        return {
-          ...prev,
-          scores: results.scores,
-          usedWords: results.usedWords,
-          scoredCells: results.scoredCells,
-          winner: results.winner
-        };
-      });
-    });
-    return () => { cancelled = true; };
-  }, [gameState.grids, updateScores]); // Only watch grids, not the values we're updating
 
   const renderGrid = (playerIndex: number) => {
     const grid = gameState.grids[playerIndex];
