@@ -311,7 +311,7 @@ const GameBoard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-2">
         {/* Player Scores */}
         <Card className="p-3 bg-gradient-card">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-center items-center gap-8">
             <div className={`text-center ${gameState.currentPlayer === 1 ? 'score-glow' : ''}`}>
               <div className="text-sm font-bold text-player-1">Player 1</div>
               <div className="text-xl font-bold">{gameState.scores[0]}</div>
