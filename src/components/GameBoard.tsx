@@ -179,15 +179,18 @@ const GameBoard = () => {
     let bestMove: {letter: string, row: number, col: number, score: number} | null = null;
     let bestScore = -10;
     
-    // Competitive but beatable AI strategy
-    const maxMovesToEvaluate = Math.min(availableCells.length * availableAILetters.length, 50);
+    // Competitive but beatable AI strategy - focus on common letters
+    const commonLetters = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'D', 'L', 'U', 'C', 'M', 'W', 'F', 'G', 'Y', 'P', 'B', 'V', 'K', 'J', 'X', 'Q', 'Z'];
+    const availableCommonLetters = commonLetters.filter(letter => availableAILetters.includes(letter));
+    const lettersToUse = availableCommonLetters.length > 0 ? availableCommonLetters : availableAILetters;
+    
+    const maxMovesToEvaluate = Math.min(availableCells.length * lettersToUse.length, 40);
     let movesEvaluated = 0;
     
-    // Shuffle letters and cells for variety
-    const shuffledLetters = [...availableAILetters].sort(() => Math.random() - 0.5);
+    // Shuffle cells for variety, but keep common letters prioritized
     const shuffledCells = [...availableCells].sort(() => Math.random() - 0.5);
     
-    for (const letter of shuffledLetters.slice(0, 8)) { // Limit letters to evaluate
+    for (const letter of lettersToUse.slice(0, 6)) { // Focus on fewer, better letters
       for (const cell of shuffledCells) {
         if (movesEvaluated >= maxMovesToEvaluate) break;
         movesEvaluated++;
@@ -272,9 +275,9 @@ const GameBoard = () => {
         // Place AI letter
         newGrids[1][bestMove.row][bestMove.col] = bestMove.letter;
         
-        // Calculate new scores for both players
-        const result1 = scoreGrid(newGrids[0], dict, prev.usedWords[0], 3);
-        const result2 = scoreGrid(newGrids[1], dict, prev.usedWords[1], 3);
+        // Calculate new scores for both players (cumulative from all previous turns)
+        const result1 = scoreGrid(newGrids[0], dict, new Set(), 3); // Reset used words to get total current score
+        const result2 = scoreGrid(newGrids[1], dict, new Set(), 3); // Reset used words to get total current score
         
         // Update shared cooldowns
         const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
@@ -387,9 +390,9 @@ const GameBoard = () => {
       // Place the letter on the target grid
       newGrids[targetPlayerIndex][row][col] = selectedLetter;
       
-      // Calculate new scores for both players
-      const result1 = scoreGrid(newGrids[0], dict, prev.usedWords[0], 3);
-      const result2 = scoreGrid(newGrids[1], dict, prev.usedWords[1], 3);
+      // Calculate new scores for both players (cumulative from all previous turns)
+      const result1 = scoreGrid(newGrids[0], dict, new Set(), 3); // Reset used words to get total current score
+      const result2 = scoreGrid(newGrids[1], dict, new Set(), 3); // Reset used words to get total current score
       
       // Update shared cooldowns
       const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
