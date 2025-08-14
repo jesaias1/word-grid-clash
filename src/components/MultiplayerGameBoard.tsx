@@ -179,8 +179,8 @@ const MultiplayerGameBoard = ({ gameId, onBackToLobby }: MultiplayerGameBoardPro
       ];
 
       // Set available letters from database or generate if not set
-      const gameLetters = data.available_letters ? 
-        (Array.isArray(data.available_letters) ? data.available_letters : JSON.parse(data.available_letters)) :
+      const gameLetters = (data as any).available_letters ? 
+        (Array.isArray((data as any).available_letters) ? (data as any).available_letters : JSON.parse((data as any).available_letters)) :
         generateLetterPool();
       setAvailableLetters(gameLetters);
 
