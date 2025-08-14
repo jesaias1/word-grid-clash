@@ -1,15 +1,18 @@
+
 import { useState } from 'react';
 import GameBoard from '@/components/GameBoard';
 import GameLobby from '@/components/GameLobby';
 import MultiplayerGameBoard from '@/components/MultiplayerGameBoard';
+import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import AuthWrapper from '@/components/AuthWrapper';
 import { Button } from '@/components/ui/button';
 
-type GameMode = 'menu' | 'local' | 'lobby' | 'multiplayer';
+type GameMode = 'menu' | 'local' | 'local-multiplayer' | 'lobby' | 'multiplayer';
 
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
   const [currentGameId, setCurrentGameId] = useState<string>('');
+  const [isGuest, setIsGuest] = useState(false);
 
   const handleJoinGame = (gameId: string) => {
     setCurrentGameId(gameId);
@@ -31,10 +34,14 @@ const Index = () => {
     setGameMode('menu');
   };
 
+  const handleGuestLogin = () => {
+    setIsGuest(true);
+  };
+
   // Menu screen
   if (gameMode === 'menu') {
     return (
-      <AuthWrapper>
+      <AuthWrapper allowGuest onGuestLogin={handleGuestLogin}>
         <div className="h-screen flex items-center justify-center">
           <div className="text-center space-y-6">
             <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
@@ -47,24 +54,39 @@ const Index = () => {
                 size="lg" 
                 className="w-48"
               >
-                Local Game
+                Solo Game
               </Button>
               <Button 
-                onClick={() => setGameMode('lobby')} 
+                onClick={() => setGameMode('local-multiplayer')} 
                 size="lg" 
                 className="w-48"
                 variant="secondary"
               >
-                Online Multiplayer
+                Local Multiplayer
               </Button>
+              {!isGuest && (
+                <Button 
+                  onClick={() => setGameMode('lobby')} 
+                  size="lg" 
+                  className="w-48"
+                  variant="outline"
+                >
+                  Online Multiplayer
+                </Button>
+              )}
             </div>
+            {isGuest && (
+              <p className="text-sm text-muted-foreground">
+                Sign up for online multiplayer features
+              </p>
+            )}
           </div>
         </div>
       </AuthWrapper>
     );
   }
 
-  // Local game
+  // Local solo game
   if (gameMode === 'local') {
     return (
       <div>
@@ -74,6 +96,20 @@ const Index = () => {
           </Button>
         </div>
         <GameBoard />
+      </div>
+    );
+  }
+
+  // Local multiplayer game
+  if (gameMode === 'local-multiplayer') {
+    return (
+      <div>
+        <div className="absolute top-4 left-4">
+          <Button onClick={handleBackToMenu} variant="outline" size="sm">
+            Back to Menu
+          </Button>
+        </div>
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} />
       </div>
     );
   }

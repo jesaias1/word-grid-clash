@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,15 +10,18 @@ import { useToast } from '@/hooks/use-toast';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
+  allowGuest?: boolean;
+  onGuestLogin?: () => void;
 }
 
-const AuthWrapper = ({ children }: AuthWrapperProps) => {
+const AuthWrapper = ({ children, allowGuest = false, onGuestLogin }: AuthWrapperProps) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [isGuest, setIsGuest] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -118,11 +122,30 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (isGuest) {
+      setIsGuest(false);
+      setUser(null);
+      toast({
+        title: "Guest session ended",
+        description: "See you next time!",
+      });
+    } else {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out",
+        description: "See you next time!",
+      });
+    }
+  };
+
+  const handleGuestLogin = () => {
+    setIsGuest(true);
+    setUser({ id: 'guest', email: 'guest@lettus.game' });
     toast({
-      title: "Signed out",
-      description: "See you next time!",
+      title: "Guest mode",
+      description: "Playing as guest - limited features available",
     });
+    onGuestLogin?.();
   };
 
   if (loading) {
@@ -133,7 +156,7 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md p-6 bg-gradient-card">
@@ -219,6 +242,21 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
               </Button>
             </TabsContent>
           </Tabs>
+
+          {allowGuest && (
+            <div className="mt-6 pt-4 border-t border-border">
+              <Button 
+                onClick={handleGuestLogin}
+                variant="outline"
+                className="w-full"
+              >
+                Continue as Guest
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Limited features - no online multiplayer
+              </p>
+            </div>
+          )}
         </Card>
       </div>
     );
@@ -228,7 +266,7 @@ const AuthWrapper = ({ children }: AuthWrapperProps) => {
     <div>
       <div className="absolute top-4 right-4">
         <Button onClick={signOut} variant="outline" size="sm">
-          Sign Out
+          {isGuest ? 'Exit Guest Mode' : 'Sign Out'}
         </Button>
       </div>
       {children}
