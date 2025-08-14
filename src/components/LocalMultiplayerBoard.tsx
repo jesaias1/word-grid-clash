@@ -257,10 +257,15 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
             const canPlaceLetter = !gameEnded && selectedLetter && !cell;
             const isScored = scoredCells.has(`${rowIndex}-${colIndex}`);
             
-            // Winner highlight effect
+            // Winner highlight effect - use darker green for better visibility
             const winnerHighlight = gameEnded && isScored 
-              ? (isWinner ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : 'ring-2 ring-green-500')
-              : (isScored ? 'ring-2 ring-green-500' : '');
+              ? (isWinner ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : 'ring-2')
+              : (isScored ? 'ring-2' : '');
+            
+            const highlightStyle = isScored ? { 
+              borderColor: 'hsl(var(--highlight-cell))',
+              boxShadow: '0 0 8px hsl(var(--highlight-cell) / 0.4)'
+            } : {};
             
             return (
               <div
@@ -273,6 +278,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
                   ${winnerHighlight}
                 `}
+                style={highlightStyle}
                 onClick={() => canPlaceLetter && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (

@@ -509,10 +509,15 @@ const GameBoard = () => {
             const canPlaceLetter = !gameState.gameEnded && selectedLetter && !cell && gameState.currentPlayer === 1;
             const isScored = scoredCells.has(`${rowIndex}-${colIndex}`);
             
-            // Winner highlight effect - bright gold/yellow for winner, green for others
+            // Winner highlight effect - bright gold/yellow for winner, darker green for others
             const winnerHighlight = gameState.gameEnded && isScored 
-              ? (isWinner ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : 'ring-2 ring-green-500')
-              : (isScored ? 'ring-2 ring-green-500' : '');
+              ? (isWinner ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : 'ring-2')
+              : (isScored ? 'ring-2' : '');
+            
+            const highlightStyle = isScored ? { 
+              borderColor: 'hsl(var(--highlight-cell))',
+              boxShadow: '0 0 8px hsl(var(--highlight-cell) / 0.4)'
+            } : {};
             
             return (
               <div
@@ -525,6 +530,7 @@ const GameBoard = () => {
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
                   ${winnerHighlight}
                 `}
+                style={highlightStyle}
                 onClick={() => !gameState.gameEnded && gameState.currentPlayer === 1 && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (

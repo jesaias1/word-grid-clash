@@ -47,6 +47,7 @@ All colors MUST be HSL.
     --player-1-secondary: 195 100% 65%;
     --player-2-secondary: 120 100% 50%;
     --score-glow: 120 100% 70%;
+    --highlight-cell: 120 60% 35%;
 
     /* Player-specific gradients */
     --gradient-primary: linear-gradient(135deg, hsl(280 100% 70%), hsl(195 100% 65%));
