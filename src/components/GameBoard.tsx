@@ -33,12 +33,21 @@ const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30; // 30 seconds per turn
 
-// Generate a random pool of letters for each game (12-15 letters)
+// Generate a random pool of letters for each game (18-22 letters to ensure variety)
 const generateLetterPool = (): string[] => {
   const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  const poolSize = Math.floor(Math.random() * 4) + 12; // 12-15 letters
+  const poolSize = Math.floor(Math.random() * 5) + 18; // 18-22 letters
   const pool: string[] = [];
   
+  // Ensure common letters are included
+  const commonLetters = ['A', 'E', 'I', 'O', 'U', 'R', 'S', 'T', 'L', 'N'];
+  commonLetters.forEach(letter => {
+    if (pool.length < poolSize) {
+      pool.push(letter);
+    }
+  });
+  
+  // Fill remaining slots with random letters
   while (pool.length < poolSize) {
     const randomLetter = allLetters[Math.floor(Math.random() * allLetters.length)];
     if (!pool.includes(randomLetter)) {
@@ -46,7 +55,7 @@ const generateLetterPool = (): string[] => {
     }
   }
   
-  return pool;
+  return pool.sort(); // Sort alphabetically for better display
 };
 
 // Generate starting tiles - 5 predetermined letters, same for both players
@@ -183,7 +192,7 @@ const GameBoard = () => {
       return;
     }
     
-    let bestMove: {letter: string, row: number, col: number} | null = null;
+    let bestMove: {letter: string, row: number, col: number, score: number} | null = null;
     let bestScore = -1;
     
     // Try each available letter at each position and score the resulting grid
@@ -196,13 +205,65 @@ const GameBoard = () => {
         // Score the test grid
         const result = scoreGrid(testGrid, dict, currentState.usedWords[1], 3);
         
-        // Add some randomness to make AI beatable (30% chance to not pick optimal move)
-        const isOptimal = Math.random() > 0.3;
-        const adjustedScore = isOptimal ? result.score : result.score * (0.7 + Math.random() * 0.3);
+        // Calculate move value: new score - current score
+        const currentResult = scoreGrid(aiGrid, dict, currentState.usedWords[1], 3);
+        const moveValue = result.score - currentResult.score;
         
-        if (adjustedScore > bestScore) {
-          bestScore = adjustedScore;
-          bestMove = {letter, row: cell.row, col: cell.col};
+        // Bonus for placing letters that could form multiple words
+        let strategicBonus = 0;
+        
+        // Check adjacent cells for potential word formation
+        const adjacentPositions = [
+          [-1, 0], [1, 0], [0, -1], [0, 1], // cardinal directions
+        ];
+        
+        for (const [dx, dy] of adjacentPositions) {
+          const newRow = cell.row + dx;
+          const newCol = cell.col + dy;
+          if (newRow >= 0 && newRow < GRID_ROWS && newCol >= 0 && newCol < GRID_COLS) {
+            if (testGrid[newRow][newCol] !== null) {
+              strategicBonus += 2; // Bonus for connecting to existing letters
+            }
+          }
+        }
+        
+        const totalScore = moveValue + strategicBonus;
+        
+        if (totalScore > bestScore || (totalScore === bestScore && Math.random() > 0.5)) {
+          bestScore = totalScore;
+          bestMove = {letter, row: cell.row, col: cell.col, score: totalScore};
+        }
+      }
+    }
+    
+    // If no good scoring move found, try to place strategically
+    if (!bestMove || bestScore <= 0) {
+      // Look for positions that could set up future words
+      for (const letter of availableAILetters) {
+        for (const cell of availableCells) {
+          // Prefer center positions and positions near existing letters
+          let positionScore = 0;
+          
+          // Center bias
+          const centerDistance = Math.abs(cell.row - 2) + Math.abs(cell.col - 2);
+          positionScore += (4 - centerDistance);
+          
+          // Adjacent letter bonus
+          const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+          for (const [dx, dy] of adjacentPositions) {
+            const newRow = cell.row + dx;
+            const newCol = cell.col + dy;
+            if (newRow >= 0 && newRow < GRID_ROWS && newCol >= 0 && newCol < GRID_COLS) {
+              if (aiGrid[newRow][newCol] !== null) {
+                positionScore += 3;
+              }
+            }
+          }
+          
+          if (positionScore > bestScore) {
+            bestScore = positionScore;
+            bestMove = {letter, row: cell.row, col: cell.col, score: positionScore};
+          }
         }
       }
     }
@@ -279,7 +340,7 @@ const GameBoard = () => {
   // Keyboard input effect
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (gameState.gameEnded) return;
+      if (gameState.gameEnded || gameState.currentPlayer !== 1) return;
       
       const letter = event.key.toUpperCase();
       if (availableLetters.includes(letter) && !isLetterOnCooldown(letter)) {
@@ -289,7 +350,7 @@ const GameBoard = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState.gameEnded, gameState.sharedCooldowns]);
+  }, [availableLetters, gameState.gameEnded, gameState.currentPlayer, gameState.sharedCooldowns]);
 
   
 
