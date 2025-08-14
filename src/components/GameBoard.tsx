@@ -233,7 +233,9 @@ const GameBoard = () => {
     
     return (
       <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
-        isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
+        isCurrentPlayer 
+          ? `${playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2'} shadow-lg ring-2 ${playerIndex === 0 ? 'ring-player-1-secondary/20' : 'ring-player-2-secondary/20'}` 
+          : 'bg-card'
       }`}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
