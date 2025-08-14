@@ -138,7 +138,7 @@ const GameBoard = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [gameState.currentPlayer, gameState.turn]);
+  }, [gameState.currentPlayer, gameState.gameEnded]); // Removed gameState.turn from dependencies
 
   const makeAIMove = async (currentState: GameState) => {
     const dict = await loadDictionary();
