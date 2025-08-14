@@ -24,11 +24,13 @@ interface GameState {
   winner: Player | null;
   usedWords: [Set<string>, Set<string>]; // Track used words per player
   scoredCells: [Set<string>, Set<string>]; // Track which cells contribute to score per player
+  timeLeft: number; // Time left in current turn (seconds)
 }
 
 const GRID_ROWS = 5;
 const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
+const TURN_TIME = 30; // 30 seconds per turn
 
 // High-playability letters for starting tiles
 const HIGH_PLAYABILITY_LETTERS = ['A', 'E', 'S', 'T', 'N', 'R', 'L'];
@@ -66,7 +68,8 @@ const GameBoard = () => {
       gameEnded: false,
       winner: null as Player | null,
       usedWords: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
-      scoredCells: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>]
+      scoredCells: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
+      timeLeft: TURN_TIME
     };
   };
 
@@ -78,6 +81,28 @@ const GameBoard = () => {
   useEffect(() => {
     loadDictionary();
   }, []);
+
+  // Timer effect
+  useEffect(() => {
+    if (gameState.gameEnded || gameState.timeLeft <= 0) return;
+    
+    const timer = setInterval(() => {
+      setGameState(prev => {
+        if (prev.timeLeft <= 1) {
+          // Time's up - automatically pass turn
+          return {
+            ...prev,
+            currentPlayer: prev.currentPlayer === 1 ? 2 : 1,
+            turn: prev.turn + 1,
+            timeLeft: TURN_TIME
+          };
+        }
+        return { ...prev, timeLeft: prev.timeLeft - 1 };
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gameState.currentPlayer, gameState.gameEnded, gameState.timeLeft]);
 
   const availableLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -151,7 +176,8 @@ const GameBoard = () => {
         gameEnded,
         winner,
         usedWords: prev.usedWords,
-        scoredCells: prev.scoredCells
+        scoredCells: prev.scoredCells,
+        timeLeft: TURN_TIME // Reset timer for next player
       };
     });
 
@@ -265,90 +291,124 @@ const GameBoard = () => {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6">
+    <div className="min-h-screen p-2 space-y-3 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS
         </h1>
-        <p className="text-muted-foreground">The Ultimate Duel of Wits and Words</p>
+        <p className="text-sm text-muted-foreground">The Ultimate Duel of Wits and Words</p>
       </div>
 
-      {/* Game Stats */}
-      <Card className="p-6 bg-gradient-card">
-        <div className="flex justify-between items-center">
-          <div className="space-y-2">
-            <div className="flex gap-8">
-              <div className={`text-center ${gameState.currentPlayer === 1 ? 'score-glow' : ''}`}>
-                <div className="text-2xl font-bold text-player-1">Player 1</div>
-                <div className="text-3xl font-bold">{gameState.scores[0]}</div>
-              </div>
-              <div className={`text-center ${gameState.currentPlayer === 2 ? 'score-glow' : ''}`}>
-                <div className="text-2xl font-bold text-player-2">Player 2</div>
-                <div className="text-3xl font-bold">{gameState.scores[1]}</div>
-              </div>
+      {/* Game Stats and Controls */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Player Scores */}
+        <Card className="p-4 bg-gradient-card">
+          <div className="flex justify-between items-center">
+            <div className={`text-center ${gameState.currentPlayer === 1 ? 'score-glow' : ''}`}>
+              <div className="text-lg font-bold text-player-1">Player 1</div>
+              <div className="text-2xl font-bold">{gameState.scores[0]}</div>
+            </div>
+            <div className={`text-center ${gameState.currentPlayer === 2 ? 'score-glow' : ''}`}>
+              <div className="text-lg font-bold text-player-2">Player 2</div>
+              <div className="text-2xl font-bold">{gameState.scores[1]}</div>
             </div>
           </div>
-          
+        </Card>
+
+        {/* Timer and Turn Info */}
+        <Card className="p-4 bg-gradient-card">
           <div className="text-center space-y-2">
-            <div className="text-sm text-muted-foreground">Turn {gameState.turn}</div>
             {gameState.gameEnded ? (
               <div className="space-y-2">
-                <div className="text-xl font-bold text-accent">
+                <div className="text-lg font-bold text-accent">
                   {gameState.winner ? `Player ${gameState.winner} Wins!` : "It's a Tie!"}
                 </div>
-                <Button onClick={resetGame} variant="default">
+                <Button onClick={resetGame} variant="default" size="sm">
                   New Game
                 </Button>
               </div>
             ) : (
-              <div className="text-lg font-semibold">
-                Current Player: <span className={gameState.currentPlayer === 1 ? 'text-player-1' : 'text-player-2'}>
-                  Player {gameState.currentPlayer}
-                </span>
-              </div>
+              <>
+                <div className="text-sm text-muted-foreground">Turn {gameState.turn}</div>
+                <div className="text-lg font-semibold">
+                  <span className={gameState.currentPlayer === 1 ? 'text-player-1' : 'text-player-2'}>
+                    Player {gameState.currentPlayer}
+                  </span>
+                </div>
+                <div className={`text-2xl font-bold ${gameState.timeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
+                  {gameState.timeLeft}s
+                </div>
+              </>
             )}
           </div>
-        </div>
-      </Card>
+        </Card>
+
+        {/* Game Rules */}
+        <Card className="p-4 bg-gradient-card">
+          <h3 className="text-sm font-semibold mb-2">Rules</h3>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <div>• 30s per turn to place a letter</div>
+            <div>• 3+ letter words only</div>
+            <div>• Each word usable once per player</div>
+            <div>• Score = letters in valid words</div>
+          </div>
+        </Card>
+      </div>
 
       {/* Game Grids */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-player-1 text-center">Player 1 Grid</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <h2 className="text-lg font-bold text-player-1 text-center">Player 1 Grid</h2>
           {renderGrid(0)}
         </div>
         
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-player-2 text-center">Player 2 Grid</h2>
+        <div className="space-y-2">
+          <h2 className="text-lg font-bold text-player-2 text-center">Player 2 Grid</h2>
           {renderGrid(1)}
         </div>
       </div>
 
       {/* Letter Selector */}
       {!gameState.gameEnded && (
-        <Card className="p-6 bg-gradient-card">
-          {renderLetterSelector()}
+        <Card className="p-4 bg-gradient-card">
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-center">
+              Player {gameState.currentPlayer} - Choose a Letter
+            </h3>
+            <div className="grid grid-cols-13 gap-1 max-w-4xl mx-auto">
+              {availableLetters.map(letter => {
+                const onCooldown = isLetterOnCooldown(letter);
+                const cooldownTurns = getLetterCooldown(letter);
+                
+                return (
+                  <Button
+                    key={letter}
+                    variant={selectedLetter === letter ? "default" : "outline"}
+                    disabled={onCooldown || gameState.gameEnded}
+                    onClick={() => setSelectedLetter(letter)}
+                    className={`
+                      relative w-full aspect-square rounded-none p-0 flex items-center justify-center text-xs
+                      ${onCooldown ? 'opacity-50 cursor-not-allowed' : ''}
+                      ${selectedLetter === letter ? 'ring-2 ring-primary' : ''}
+                    `}
+                  >
+                    <span className="font-bold">{letter}</span>
+                    {onCooldown && (
+                      <Badge 
+                        variant="secondary" 
+                        className="absolute -top-1 -right-1 w-4 h-4 text-xs p-0 flex items-center justify-center cooldown-indicator"
+                      >
+                        {cooldownTurns}
+                      </Badge>
+                    )}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
         </Card>
       )}
-
-      {/* Game Rules */}
-      <Card className="p-6 bg-gradient-card">
-        <h3 className="text-lg font-semibold mb-4">Game Rules</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-muted-foreground">
-          <div>
-            • Each player has a 5×5 grid (25 spaces)
-            • Place 1 letter per turn in any empty space
-            • Words can form horizontally or vertically
-          </div>
-          <div>
-            • Only valid words (3+ letters from dictionary) count
-            • Each word can only be used once per player
-            • Score = unique letters that are part of valid words
-            • Game ends when both grids are completely full
-          </div>
-        </div>
-      </Card>
     </div>
   );
 };
