@@ -160,8 +160,9 @@ const GameBoard = () => {
     
     if (availableCells.length === 0) return;
     
-    // Get available letters (not on cooldown)
-    const availableAILetters = availableLetters.filter(letter => !isLetterOnCooldown(letter));
+    // Get available letters (not on cooldown) - ALL 26 letters are available
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const availableAILetters = allLetters.filter(letter => !isLetterOnCooldown(letter));
     if (availableAILetters.length === 0) {
       // No letters available, pass turn
       setGameState(prev => ({
@@ -174,77 +175,74 @@ const GameBoard = () => {
     }
     
     let bestMove: {letter: string, row: number, col: number, score: number} | null = null;
-    let bestScore = -1;
+    let bestScore = -100; // Allow negative scores for defensive play
     
-    // Try each available letter at each position and score the resulting grid
+    // Advanced AI strategy: Try each available letter at each position
     for (const letter of availableAILetters) {
       for (const cell of availableCells) {
         // Create test grid
         const testGrid = aiGrid.map(row => [...row]);
         testGrid[cell.row][cell.col] = letter;
         
-        // Score the test grid
-        const result = scoreGrid(testGrid, dict, currentState.usedWords[1], 3);
+        // Calculate AI's score improvement
+        const currentAIResult = scoreGrid(aiGrid, dict, currentState.usedWords[1], 3);
+        const newAIResult = scoreGrid(testGrid, dict, currentState.usedWords[1], 3);
+        const aiScoreGain = newAIResult.score - currentAIResult.score;
         
-        // Calculate move value: new score - current score
-        const currentResult = scoreGrid(aiGrid, dict, currentState.usedWords[1], 3);
-        const moveValue = result.score - currentResult.score;
+        // Calculate player's potential score to block them
+        const playerGrid = currentState.grids[0];
+        const playerResult = scoreGrid(playerGrid, dict, currentState.usedWords[0], 3);
         
-        // Bonus for placing letters that could form multiple words
-        let strategicBonus = 0;
+        // Check how this letter placement might affect player's future moves
+        let blockingValue = 0;
         
-        // Check adjacent cells for potential word formation
-        const adjacentPositions = [
-          [-1, 0], [1, 0], [0, -1], [0, 1], // cardinal directions
-        ];
+        // If player could use this letter for a high-scoring word, blocking it has value
+        for (let pRow = 0; pRow < GRID_ROWS; pRow++) {
+          for (let pCol = 0; pCol < GRID_COLS; pCol++) {
+            if (playerGrid[pRow][pCol] === null) {
+              const testPlayerGrid = playerGrid.map(row => [...row]);
+              testPlayerGrid[pRow][pCol] = letter;
+              const potentialPlayerResult = scoreGrid(testPlayerGrid, dict, currentState.usedWords[0], 3);
+              const playerPotentialGain = potentialPlayerResult.score - playerResult.score;
+              
+              if (playerPotentialGain > 5) { // If player could gain significant points
+                blockingValue += Math.min(playerPotentialGain * 0.3, 8); // Cap blocking value
+              }
+            }
+          }
+        }
         
+        // Strategic positioning bonuses
+        let positionBonus = 0;
+        
+        // Center squares are more valuable
+        const centerDistance = Math.abs(cell.row - 2) + Math.abs(cell.col - 2);
+        positionBonus += (4 - centerDistance) * 0.5;
+        
+        // Adjacent to existing letters is valuable
+        const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
+        let adjacentCount = 0;
         for (const [dx, dy] of adjacentPositions) {
           const newRow = cell.row + dx;
           const newCol = cell.col + dy;
           if (newRow >= 0 && newRow < GRID_ROWS && newCol >= 0 && newCol < GRID_COLS) {
             if (testGrid[newRow][newCol] !== null) {
-              strategicBonus += 2; // Bonus for connecting to existing letters
+              adjacentCount++;
             }
           }
         }
+        positionBonus += adjacentCount * 1.5;
         
-        const totalScore = moveValue + strategicBonus;
+        // Calculate total move value
+        const totalScore = aiScoreGain + blockingValue + positionBonus;
         
-        if (totalScore > bestScore || (totalScore === bestScore && Math.random() > 0.5)) {
-          bestScore = totalScore;
-          bestMove = {letter, row: cell.row, col: cell.col, score: totalScore};
-        }
-      }
-    }
-    
-    // If no good scoring move found, try to place strategically
-    if (!bestMove || bestScore <= 0) {
-      // Look for positions that could set up future words
-      for (const letter of availableAILetters) {
-        for (const cell of availableCells) {
-          // Prefer center positions and positions near existing letters
-          let positionScore = 0;
-          
-          // Center bias
-          const centerDistance = Math.abs(cell.row - 2) + Math.abs(cell.col - 2);
-          positionScore += (4 - centerDistance);
-          
-          // Adjacent letter bonus
-          const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-          for (const [dx, dy] of adjacentPositions) {
-            const newRow = cell.row + dx;
-            const newCol = cell.col + dy;
-            if (newRow >= 0 && newRow < GRID_ROWS && newCol >= 0 && newCol < GRID_COLS) {
-              if (aiGrid[newRow][newCol] !== null) {
-                positionScore += 3;
-              }
-            }
-          }
-          
-          if (positionScore > bestScore) {
-            bestScore = positionScore;
-            bestMove = {letter, row: cell.row, col: cell.col, score: positionScore};
-          }
+        // Add slight randomness (±10%) to make AI less predictable
+        const randomFactor = 0.9 + Math.random() * 0.2;
+        const finalScore = totalScore * randomFactor;
+        
+        if (finalScore > bestScore) {
+          bestScore = finalScore;
+          bestMove = {letter, row: cell.row, col: cell.col, score: finalScore};
         }
       }
     }
@@ -324,14 +322,15 @@ const GameBoard = () => {
       if (gameState.gameEnded || gameState.currentPlayer !== 1) return;
       
       const letter = event.key.toUpperCase();
-      if (availableLetters.includes(letter) && !isLetterOnCooldown(letter)) {
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      if (allLetters.includes(letter) && !isLetterOnCooldown(letter)) {
         setSelectedLetter(letter);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [availableLetters, gameState.gameEnded, gameState.currentPlayer, gameState.sharedCooldowns]);
+  }, [gameState.gameEnded, gameState.currentPlayer, gameState.sharedCooldowns]);
 
   
 
@@ -470,8 +469,8 @@ const GameBoard = () => {
   };
 
   const renderAvailableLetters = () => {
-    const availableToSelect = availableLetters.filter(letter => !isLetterOnCooldown(letter));
-    const onCooldownLetters = availableLetters.filter(letter => isLetterOnCooldown(letter));
+    // Show ALL 26 letters of the alphabet
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
     return (
       <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-6xl">
@@ -479,7 +478,7 @@ const GameBoard = () => {
           <span className="text-sm font-semibold text-muted-foreground">All Letters (Click to Select)</span>
         </div>
         <div className="grid grid-cols-13 gap-1 justify-center max-w-4xl mx-auto">
-          {availableLetters.map(letter => {
+          {allLetters.map(letter => {
             const isOnCooldown = isLetterOnCooldown(letter);
             const isSelected = selectedLetter === letter;
             const cooldownTurns = getLetterCooldown(letter);
@@ -508,10 +507,10 @@ const GameBoard = () => {
             );
           })}
         </div>
-        {availableToSelect.length > 0 && (
+        {!gameState.gameEnded && gameState.currentPlayer === 1 && (
           <div className="text-center mt-2">
             <span className="text-xs text-muted-foreground">
-              {availableToSelect.length} letters available • Press any key to select
+              {allLetters.filter(l => !isLetterOnCooldown(l)).length} letters available • Press any key to select
             </span>
           </div>
         )}
@@ -520,7 +519,8 @@ const GameBoard = () => {
   };
 
   const renderLetterCooldowns = () => {
-    const onCooldownLetters = availableLetters.filter(letter => isLetterOnCooldown(letter));
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const onCooldownLetters = allLetters.filter(letter => isLetterOnCooldown(letter));
     if (onCooldownLetters.length === 0) return null;
     
     return (
