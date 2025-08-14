@@ -33,39 +33,20 @@ const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30; // 30 seconds per turn
 
-// Generate a random pool of letters for each game (18-22 letters to ensure variety)
+// All 26 letters are available - cooldown is the only restriction
 const generateLetterPool = (): string[] => {
-  const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  const poolSize = Math.floor(Math.random() * 5) + 18; // 18-22 letters
-  const pool: string[] = [];
-  
-  // Ensure common letters are included
-  const commonLetters = ['A', 'E', 'I', 'O', 'U', 'R', 'S', 'T', 'L', 'N'];
-  commonLetters.forEach(letter => {
-    if (pool.length < poolSize) {
-      pool.push(letter);
-    }
-  });
-  
-  // Fill remaining slots with random letters
-  while (pool.length < poolSize) {
-    const randomLetter = allLetters[Math.floor(Math.random() * allLetters.length)];
-    if (!pool.includes(randomLetter)) {
-      pool.push(randomLetter);
-    }
-  }
-  
-  return pool.sort(); // Sort alphabetically for better display
+  return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 };
 
 // Generate starting tiles - 5 predetermined letters, same for both players
 const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: number; letter: string }> => {
   const tiles: Array<{ row: number; col: number; letter: string }> = [];
   
-  // Pick 5 random letters from the pool for starting tiles
+  // Pick 5 random letters from common letters for starting tiles
+  const commonLetters = ['A', 'E', 'I', 'O', 'U', 'R', 'S', 'T', 'L', 'N'];
   const startingLetters = [];
   for (let i = 0; i < 5; i++) {
-    const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
+    const letter = commonLetters[Math.floor(Math.random() * commonLetters.length)];
     startingLetters.push(letter);
   }
   
@@ -490,37 +471,50 @@ const GameBoard = () => {
 
   const renderAvailableLetters = () => {
     const availableToSelect = availableLetters.filter(letter => !isLetterOnCooldown(letter));
+    const onCooldownLetters = availableLetters.filter(letter => isLetterOnCooldown(letter));
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-4xl">
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-6xl">
         <div className="text-center mb-3">
-          <span className="text-sm font-semibold text-muted-foreground">Available Letters</span>
+          <span className="text-sm font-semibold text-muted-foreground">All Letters (Click to Select)</span>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="grid grid-cols-13 gap-1 justify-center max-w-4xl mx-auto">
           {availableLetters.map(letter => {
             const isOnCooldown = isLetterOnCooldown(letter);
             const isSelected = selectedLetter === letter;
+            const cooldownTurns = getLetterCooldown(letter);
+            
             return (
               <button
                 key={letter}
                 onClick={() => !isOnCooldown && !gameState.gameEnded && gameState.currentPlayer === 1 && setSelectedLetter(letter)}
                 disabled={isOnCooldown || gameState.gameEnded || gameState.currentPlayer !== 1}
                 className={`
-                  w-12 h-12 rounded-lg font-bold text-lg transition-all duration-200
-                  ${isSelected ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
-                  ${isOnCooldown ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed' : 
-                    'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105'}
-                  ${!isOnCooldown && !isSelected ? 'border-2 border-border' : ''}
+                  relative rounded-lg font-bold transition-all duration-200 flex flex-col items-center justify-center
+                  ${isOnCooldown ? 
+                    'w-16 h-16 bg-destructive/20 text-destructive border-2 border-destructive/50 cursor-not-allowed' : 
+                    'w-12 h-12'}
+                  ${isSelected && !isOnCooldown ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
+                  ${!isOnCooldown && !isSelected ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border-2 border-border' : ''}
                 `}
               >
-                {letter}
+                <span className={`${isOnCooldown ? 'text-lg' : 'text-sm'}`}>
+                  {letter}
+                </span>
                 {isOnCooldown && (
-                  <div className="text-xs mt-1">{getLetterCooldown(letter)}</div>
+                  <span className="text-xs font-normal">{cooldownTurns}</span>
                 )}
               </button>
             );
           })}
         </div>
+        {availableToSelect.length > 0 && (
+          <div className="text-center mt-2">
+            <span className="text-xs text-muted-foreground">
+              {availableToSelect.length} letters available • Press any key to select
+            </span>
+          </div>
+        )}
       </div>
     );
   };
@@ -530,18 +524,24 @@ const GameBoard = () => {
     if (onCooldownLetters.length === 0) return null;
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2 max-w-2xl">
+      <div className="bg-destructive/10 border-2 border-destructive/30 rounded-lg p-3 mx-auto mb-2 max-w-4xl">
         <div className="text-center mb-2">
-          <span className="text-xs font-semibold text-muted-foreground">On Cooldown</span>
+          <span className="text-sm font-bold text-destructive">⚠️ Letters on Cooldown ({onCooldownLetters.length})</span>
         </div>
         <div className="flex flex-wrap gap-2 justify-center">
           {onCooldownLetters.map(letter => (
-            <div key={letter} className="bg-muted/50 rounded p-2 border border-muted-foreground/20">
-              <div className="text-sm font-bold text-muted-foreground/60 text-center">
-                {letter} ({getLetterCooldown(letter)})
+            <div key={letter} className="bg-destructive/20 border border-destructive/50 rounded-lg p-2 min-w-[3rem]">
+              <div className="text-lg font-bold text-destructive text-center">
+                {letter}
+              </div>
+              <div className="text-xs text-center text-destructive font-medium">
+                {getLetterCooldown(letter)} turns
               </div>
             </div>
           ))}
+        </div>
+        <div className="text-center mt-2">
+          <span className="text-xs text-destructive/80">These letters cannot be used until their cooldown expires</span>
         </div>
       </div>
     );
@@ -617,10 +617,10 @@ const GameBoard = () => {
         <div></div>
       </div>
 
-      {/* Available Letters */}
+      {/* All Letters Display */}
       {renderAvailableLetters()}
 
-      {/* Cooldown Letters Display */}
+      {/* Prominent Cooldown Warning */}
       {renderLetterCooldowns()}
 
       {/* Game Grids */}

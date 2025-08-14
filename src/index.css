@@ -135,4 +135,9 @@ All colors MUST be HSL.
   .score-glow {
     text-shadow: 0 0 10px hsl(var(--score-glow) / 0.5);
   }
+
+  /* Grid for 26 letters (13 columns) */
+  .grid-cols-13 {
+    grid-template-columns: repeat(13, minmax(0, 1fr));
+  }
 }
