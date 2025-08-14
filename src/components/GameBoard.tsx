@@ -378,13 +378,22 @@ const GameBoard = () => {
     let cancelled = false;
     updateScores(gameState.grids, gameState.usedWords, gameState.gameEnded).then(results => {
       if (cancelled) return;
-      setGameState(prev => ({
-        ...prev,
-        ...results
-      }));
+      setGameState(prev => {
+        // Only update if scores actually changed to prevent unnecessary re-renders
+        if (prev.scores[0] === results.scores[0] && prev.scores[1] === results.scores[1]) {
+          return prev;
+        }
+        return {
+          ...prev,
+          scores: results.scores,
+          usedWords: results.usedWords,
+          scoredCells: results.scoredCells,
+          winner: results.winner
+        };
+      });
     });
     return () => { cancelled = true; };
-  }, [gameState.grids, gameState.usedWords, gameState.gameEnded, updateScores]);
+  }, [gameState.grids, updateScores]); // Only watch grids, not the values we're updating
 
   const renderGrid = (playerIndex: number) => {
     const grid = gameState.grids[playerIndex];
