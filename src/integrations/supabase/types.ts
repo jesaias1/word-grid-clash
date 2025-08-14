@@ -23,7 +23,7 @@ export type Database = {
           invite_code: string
           player1_cooldowns: Json
           player1_grid: Json
-          player1_id: string
+          player1_id: string | null
           player1_score: number
           player2_cooldowns: Json
           player2_grid: Json
@@ -41,7 +41,7 @@ export type Database = {
           invite_code: string
           player1_cooldowns?: Json
           player1_grid?: Json
-          player1_id: string
+          player1_id?: string | null
           player1_score?: number
           player2_cooldowns?: Json
           player2_grid?: Json
@@ -59,7 +59,7 @@ export type Database = {
           invite_code?: string
           player1_cooldowns?: Json
           player1_grid?: Json
-          player1_id?: string
+          player1_id?: string | null
           player1_score?: number
           player2_cooldowns?: Json
           player2_grid?: Json

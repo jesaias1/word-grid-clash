@@ -77,7 +77,7 @@ const MultiplayerLobby = () => {
       const { data, error } = await supabase
         .from('games')
         .insert({
-          player1_id: user.user?.id || '',
+          player1_id: user.user?.id || null,
           invite_code: '',
           game_status: 'waiting'
         })
@@ -148,7 +148,7 @@ const MultiplayerLobby = () => {
       const { error: updateError } = await supabase
         .from('games')
         .update({
-          player2_id: user.user?.id || '',
+          player2_id: user.user?.id || null,
           game_status: 'active'
         })
         .eq('id', game.id);
