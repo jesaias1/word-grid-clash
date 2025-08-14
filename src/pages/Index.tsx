@@ -1,14 +1,15 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameBoard from '@/components/GameBoard';
 import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer';
 
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
+  const [boardSize, setBoardSize] = useState(5);
   const navigate = useNavigate();
 
   const handleBackToMenu = () => {
@@ -18,12 +19,40 @@ const Index = () => {
   // Menu screen
   if (gameMode === 'menu') {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center space-y-6">
+      <div className="h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-6 max-w-md">
           <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             LETTUS
           </h1>
           <p className="text-lg text-muted-foreground">Choose your game mode</p>
+          
+          {/* Board Size Selection */}
+          <Card className="p-6">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-center">Choose Board Size</h2>
+              <div className="grid grid-cols-3 gap-3">
+                {[5, 7, 10].map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setBoardSize(size)}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      boardSize === size
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">{size}×{size}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {size === 5 ? 'Classic' : size === 7 ? 'Medium' : 'Large'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Card>
+
           <div className="space-y-4">
             <Button 
               onClick={() => setGameMode('local')} 
@@ -63,7 +92,7 @@ const Index = () => {
             Back to Menu
           </Button>
         </div>
-        <GameBoard />
+        <GameBoard boardSize={boardSize} />
       </div>
     );
   }
@@ -77,12 +106,12 @@ const Index = () => {
             Back to Menu
           </Button>
         </div>
-        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} />
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} />
       </div>
     );
   }
 
-  return <GameBoard />;
+  return <GameBoard boardSize={boardSize} />;
 };
 
 export default Index;

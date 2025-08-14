@@ -16,6 +16,7 @@ const MultiplayerLobby = () => {
   const [inviteCode, setInviteCode] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [username, setUsername] = useState('');
+  const [selectedBoardSize, setSelectedBoardSize] = useState(5);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -79,7 +80,8 @@ const MultiplayerLobby = () => {
         .insert({
           player1_id: user.user?.id || null,
           invite_code: '',
-          game_status: 'waiting'
+          game_status: 'waiting',
+          board_size: selectedBoardSize
         })
         .select()
         .single();
@@ -242,6 +244,33 @@ const MultiplayerLobby = () => {
         </div>
       </Card>
 
+      {/* Board Size Selection */}
+      <Card className="p-4">
+        <div className="space-y-3">
+          <label className="text-sm font-medium">Board Size</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[5, 7, 10].map(size => (
+              <button
+                key={size}
+                onClick={() => setSelectedBoardSize(size)}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  selectedBoardSize === size
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="font-semibold">{size}×{size}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {size === 5 ? 'Classic' : size === 7 ? 'Medium' : 'Large'}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+
       {/* Game Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Create Game */}
@@ -311,8 +340,11 @@ const MultiplayerLobby = () => {
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
                 >
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="secondary">Code: {game.invite_code}</Badge>
+                      <Badge variant="outline">
+                        {game.board_size}×{game.board_size}
+                      </Badge>
                       <Button
                         variant="ghost"
                         size="sm"

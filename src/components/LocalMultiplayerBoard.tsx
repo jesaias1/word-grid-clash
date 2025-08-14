@@ -17,10 +17,9 @@ interface CooldownState {
 
 interface LocalMultiplayerBoardProps {
   onBackToMenu: () => void;
+  boardSize?: number;
 }
 
-const GRID_ROWS = 5;
-const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30;
 
@@ -41,26 +40,26 @@ const generateLetterPool = (): string[] => {
 };
 
 // Generate starting tiles - 5 predetermined letters, same for both players
-const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: number; letter: string }> => {
+const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{ row: number; col: number; letter: string }> => {
   const tiles: Array<{ row: number; col: number; letter: string }> = [];
   
   // Pick 5 random letters from the pool for starting tiles
   const startingLetters = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < Math.min(5, boardSize); i++) {
     const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
     startingLetters.push(letter);
   }
   
   // Place one letter in each row at random column
-  for (let row = 0; row < GRID_ROWS; row++) {
-    const col = Math.floor(Math.random() * GRID_COLS);
+  for (let row = 0; row < Math.min(5, boardSize); row++) {
+    const col = Math.floor(Math.random() * boardSize);
     tiles.push({ row, col, letter: startingLetters[row] });
   }
   
   return tiles;
 };
 
-const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => {
+const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayerBoardProps) => {
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
     if (!cell) return '';
@@ -74,9 +73,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
   // Initialize game with starting tiles
   const initializeGame = () => {
     const letterPool = generateLetterPool();
-    const startingTiles = generateStartingTiles(letterPool);
-    const grid1: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
-    const grid2: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+    const startingTiles = generateStartingTiles(letterPool, boardSize);
+    const grid1: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+    const grid2: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
     
     // Place starting tiles on both grids
     startingTiles.forEach(({ row, col, letter }) => {
@@ -256,9 +255,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
     const isWinner = gameEnded && winner === (playerIndex + 1);
     
     return (
-      <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
+      <div className={`grid gap-0 p-4 rounded-lg ${
         isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
-      }`}>
+      }`} style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;

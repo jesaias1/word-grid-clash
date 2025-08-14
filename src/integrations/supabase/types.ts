@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       games: {
         Row: {
+          board_size: number
           created_at: string
           current_player: number
           game_status: string
@@ -34,6 +35,7 @@ export type Database = {
           winner_id: string | null
         }
         Insert: {
+          board_size?: number
           created_at?: string
           current_player?: number
           game_status?: string
@@ -52,6 +54,7 @@ export type Database = {
           winner_id?: string | null
         }
         Update: {
+          board_size?: number
           created_at?: string
           current_player?: number
           game_status?: string
@@ -98,7 +101,7 @@ export type Database = {
     }
     Functions: {
       create_empty_grid: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { grid_size?: number }
         Returns: Json
       }
       generate_invite_code: {

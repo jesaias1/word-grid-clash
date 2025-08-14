@@ -34,7 +34,6 @@ const GRID_ROWS = 5;
 const GRID_COLS = 5;
 const COOLDOWN_TURNS = 5;
 const TURN_TIME = 30; // 30 seconds per turn
-const WINNING_SCORE = 25; // Game ends when someone reaches this score
 
 type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
@@ -44,7 +43,7 @@ const generateLetterPool = (): string[] => {
 };
 
 // Generate starting tiles - 5 predetermined letters, same for both players
-const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: number; letter: string }> => {
+const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{ row: number; col: number; letter: string }> => {
   const tiles: Array<{ row: number; col: number; letter: string }> = [];
   
   // Pick 5 random letters from common letters for starting tiles
@@ -55,16 +54,20 @@ const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: 
     startingLetters.push(letter);
   }
   
-  // Place one letter in each row at random column
-  for (let row = 0; row < GRID_ROWS; row++) {
-    const col = Math.floor(Math.random() * GRID_COLS);
+  // Place one letter in each row at random column (adjust for board size)
+  for (let row = 0; row < Math.min(5, boardSize); row++) {
+    const col = Math.floor(Math.random() * boardSize);
     tiles.push({ row, col, letter: startingLetters[row] });
   }
   
   return tiles;
 };
 
-const GameBoard = () => {
+interface GameBoardProps {
+  boardSize?: number;
+}
+
+const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
     if (!cell) return '';
@@ -73,12 +76,14 @@ const GameBoard = () => {
     }
     return cell;
   };
+
+  const WINNING_SCORE = boardSize * boardSize; // Adjust winning score based on board size
   // Initialize game with starting tiles
   const initializeGame = () => {
     const letterPool = generateLetterPool();
-    const startingTiles = generateStartingTiles(letterPool);
-    const grid1: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
-    const grid2: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+    const startingTiles = generateStartingTiles(letterPool, boardSize);
+    const grid1: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+    const grid2: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
     
     // Place starting tiles on both grids
     startingTiles.forEach(({ row, col, letter }) => {
@@ -165,8 +170,8 @@ const GameBoard = () => {
     const availableCells: Array<{row: number, col: number}> = [];
     
     // Find empty cells in AI grid
-    for (let row = 0; row < GRID_ROWS; row++) {
-      for (let col = 0; col < GRID_COLS; col++) {
+    for (let row = 0; row < boardSize; row++) {
+      for (let col = 0; col < boardSize; col++) {
         if (aiGrid[row][col] === null) {
           availableCells.push({row, col});
         }
@@ -261,7 +266,7 @@ const GameBoard = () => {
         for (const [dx, dy] of adjacentPositions) {
           const newRow = cell.row + dx;
           const newCol = cell.col + dy;
-          if (newRow >= 0 && newRow < GRID_ROWS && newCol >= 0 && newCol < GRID_COLS) {
+          if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize) {
             if (testGrid[newRow][newCol] !== null) {
               adjacentCount++;
             }
@@ -508,9 +513,9 @@ const GameBoard = () => {
     const isWinner = gameState.gameEnded && gameState.winner === (playerIndex + 1);
     
     return (
-      <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
+      <div className={`grid gap-0 p-4 rounded-lg ${
         isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
-      }`}>
+      }`} style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;

@@ -26,11 +26,6 @@ type GameState = Tables<'games'> & {
   player2_cooldowns: Record<string, number>;
 };
 
-const GRID_ROWS = 5;
-const GRID_COLS = 5;
-const COOLDOWN_TURNS = 5;
-const WINNING_SCORE = 25;
-
 const MultiplayerGameBoard = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const [searchParams] = useSearchParams();
@@ -89,8 +84,8 @@ const MultiplayerGameBoard = () => {
       if (data) {
         setGameState({
           ...data,
-          player1_grid: Array.isArray(data.player1_grid) ? data.player1_grid as Grid : createEmptyGrid(),
-          player2_grid: Array.isArray(data.player2_grid) ? data.player2_grid as Grid : createEmptyGrid(),
+          player1_grid: Array.isArray(data.player1_grid) ? data.player1_grid as Grid : createEmptyGrid(data.board_size || 5),
+          player2_grid: Array.isArray(data.player2_grid) ? data.player2_grid as Grid : createEmptyGrid(data.board_size || 5),
           player1_cooldowns: typeof data.player1_cooldowns === 'object' && data.player1_cooldowns ? data.player1_cooldowns as Record<string, number> : {},
           player2_cooldowns: typeof data.player2_cooldowns === 'object' && data.player2_cooldowns ? data.player2_cooldowns as Record<string, number> : {},
         });
@@ -111,9 +106,14 @@ const MultiplayerGameBoard = () => {
     }
   };
 
-  const createEmptyGrid = (): Grid => {
-    return Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+  const createEmptyGrid = (size: number = 5): Grid => {
+    return Array(size).fill(null).map(() => Array(size).fill(null));
   };
+
+  // Get board size and game constants based on game state
+  const boardSize = gameState?.board_size || 5;
+  const COOLDOWN_TURNS = 5;
+  const WINNING_SCORE = boardSize * boardSize; // Adjust winning score based on board size
 
   const isMyTurn = gameState?.current_player === playerNumber;
   const myGrid = playerNumber === 1 ? gameState?.player1_grid : gameState?.player2_grid;
@@ -224,9 +224,9 @@ const MultiplayerGameBoard = () => {
     if (!grid) return null;
 
     return (
-      <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
+      <div className={`grid gap-0 p-4 rounded-lg ${
         isMyGrid && isMyTurn ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
-      }`}>
+      }`} style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
@@ -382,6 +382,9 @@ const MultiplayerGameBoard = () => {
             <Button variant="ghost" size="sm" onClick={copyInviteLink}>
               <Copy className="w-4 h-4" />
             </Button>
+            <Badge variant="secondary">
+              {boardSize}×{boardSize} {boardSize === 5 ? 'Classic' : boardSize === 7 ? 'Medium' : 'Large'}
+            </Badge>
           </div>
         </div>
         
