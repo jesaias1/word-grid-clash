@@ -48,14 +48,23 @@ const generateLetterPool = (): string[] => {
   return pool;
 };
 
-// Generate starting tiles - one per row, same for both players
+// Generate starting tiles - 5 predetermined letters, same for both players
 const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: number; letter: string }> => {
   const tiles: Array<{ row: number; col: number; letter: string }> = [];
+  
+  // Pick 5 random letters from the pool for starting tiles
+  const startingLetters = [];
+  for (let i = 0; i < 5; i++) {
+    const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
+    startingLetters.push(letter);
+  }
+  
+  // Place one letter in each row at random column
   for (let row = 0; row < GRID_ROWS; row++) {
     const col = Math.floor(Math.random() * GRID_COLS);
-    const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
-    tiles.push({ row, col, letter });
+    tiles.push({ row, col, letter: startingLetters[row] });
   }
+  
   return tiles;
 };
 
@@ -131,14 +140,14 @@ const GameBoard = () => {
   // AI move trigger
   useEffect(() => {
     if (gameState.currentPlayer === 2 && !gameState.gameEnded) {
-      const aiDelay = Math.random() * 3000 + 2000; // 2-5 seconds thinking time
+      const aiDelay = Math.random() * 2000 + 1000; // 1-3 seconds thinking time
       const timer = setTimeout(() => {
         makeAIMove(gameState);
       }, aiDelay);
       
       return () => clearTimeout(timer);
     }
-  }, [gameState.currentPlayer, gameState.gameEnded]); // Removed gameState.turn from dependencies
+  }, [gameState.currentPlayer, gameState.gameEnded]);
 
   const makeAIMove = async (currentState: GameState) => {
     const dict = await loadDictionary();
@@ -411,23 +420,57 @@ const GameBoard = () => {
     );
   };
 
+  const renderAvailableLetters = () => {
+    const availableToSelect = availableLetters.filter(letter => !isLetterOnCooldown(letter));
+    
+    return (
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-4xl">
+        <div className="text-center mb-3">
+          <span className="text-sm font-semibold text-muted-foreground">Available Letters</span>
+        </div>
+        <div className="flex flex-wrap gap-2 justify-center">
+          {availableLetters.map(letter => {
+            const isOnCooldown = isLetterOnCooldown(letter);
+            const isSelected = selectedLetter === letter;
+            return (
+              <button
+                key={letter}
+                onClick={() => !isOnCooldown && !gameState.gameEnded && gameState.currentPlayer === 1 && setSelectedLetter(letter)}
+                disabled={isOnCooldown || gameState.gameEnded || gameState.currentPlayer !== 1}
+                className={`
+                  w-12 h-12 rounded-lg font-bold text-lg transition-all duration-200
+                  ${isSelected ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
+                  ${isOnCooldown ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed' : 
+                    'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105'}
+                  ${!isOnCooldown && !isSelected ? 'border-2 border-border' : ''}
+                `}
+              >
+                {letter}
+                {isOnCooldown && (
+                  <div className="text-xs mt-1">{getLetterCooldown(letter)}</div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const renderLetterCooldowns = () => {
     const onCooldownLetters = availableLetters.filter(letter => isLetterOnCooldown(letter));
     if (onCooldownLetters.length === 0) return null;
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-2xl">
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2 max-w-2xl">
         <div className="text-center mb-2">
-          <span className="text-sm font-semibold text-muted-foreground">Letters on Cooldown</span>
+          <span className="text-xs font-semibold text-muted-foreground">On Cooldown</span>
         </div>
-        <div className="flex flex-wrap gap-3 justify-center">
+        <div className="flex flex-wrap gap-2 justify-center">
           {onCooldownLetters.map(letter => (
-            <div key={letter} className="bg-muted/50 rounded-lg p-3 border border-muted-foreground/20">
-              <div className="text-3xl font-bold text-muted-foreground/60 text-center mb-1">
-                {letter}
-              </div>
-              <div className="text-xs text-center text-muted-foreground">
-                {getLetterCooldown(letter)} turns
+            <div key={letter} className="bg-muted/50 rounded p-2 border border-muted-foreground/20">
+              <div className="text-sm font-bold text-muted-foreground/60 text-center">
+                {letter} ({getLetterCooldown(letter)})
               </div>
             </div>
           ))}
@@ -505,6 +548,9 @@ const GameBoard = () => {
         {/* Empty slot to maintain grid layout */}
         <div></div>
       </div>
+
+      {/* Available Letters */}
+      {renderAvailableLetters()}
 
       {/* Cooldown Letters Display */}
       {renderLetterCooldowns()}
