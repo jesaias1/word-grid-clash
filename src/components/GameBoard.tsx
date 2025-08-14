@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
 
@@ -32,6 +33,7 @@ const GRID_ROWS = 5;
 const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30; // 30 seconds per turn
+const WINNING_SCORE = 25; // Game ends when someone reaches this score
 
 // All 26 letters are available - cooldown is the only restriction
 const generateLetterPool = (): string[] => {
@@ -90,8 +92,8 @@ const GameBoard = () => {
 
   const [gameState, setGameState] = useState<GameState>(initializeGame());
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
+  const [showWinnerDialog, setShowWinnerDialog] = useState(false);
 
   // Set available letters from game state
   useEffect(() => {
@@ -119,7 +121,7 @@ const GameBoard = () => {
             // Player turn timeout - pass to AI
             return {
               ...prev,
-              currentPlayer: 2,
+              currentPlayer: 2 as Player,
               turn: prev.turn + 1,
               timeLeft: TURN_TIME
             };
@@ -167,7 +169,7 @@ const GameBoard = () => {
       // No letters available, pass turn
       setGameState(prev => ({
         ...prev,
-        currentPlayer: 1,
+        currentPlayer: 1 as Player,
         turn: prev.turn + 1,
         timeLeft: TURN_TIME
       }));
@@ -175,11 +177,21 @@ const GameBoard = () => {
     }
     
     let bestMove: {letter: string, row: number, col: number, score: number} | null = null;
-    let bestScore = -100; // Allow negative scores for defensive play
+    let bestScore = -10;
     
-    // Advanced AI strategy: Try each available letter at each position
-    for (const letter of availableAILetters) {
-      for (const cell of availableCells) {
+    // Competitive but beatable AI strategy
+    const maxMovesToEvaluate = Math.min(availableCells.length * availableAILetters.length, 50);
+    let movesEvaluated = 0;
+    
+    // Shuffle letters and cells for variety
+    const shuffledLetters = [...availableAILetters].sort(() => Math.random() - 0.5);
+    const shuffledCells = [...availableCells].sort(() => Math.random() - 0.5);
+    
+    for (const letter of shuffledLetters.slice(0, 8)) { // Limit letters to evaluate
+      for (const cell of shuffledCells) {
+        if (movesEvaluated >= maxMovesToEvaluate) break;
+        movesEvaluated++;
+        
         // Create test grid
         const testGrid = aiGrid.map(row => [...row]);
         testGrid[cell.row][cell.col] = letter;
@@ -189,38 +201,19 @@ const GameBoard = () => {
         const newAIResult = scoreGrid(testGrid, dict, currentState.usedWords[1], 3);
         const aiScoreGain = newAIResult.score - currentAIResult.score;
         
-        // Calculate player's potential score to block them
-        const playerGrid = currentState.grids[0];
-        const playerResult = scoreGrid(playerGrid, dict, currentState.usedWords[0], 3);
+        let moveValue = 0;
         
-        // Check how this letter placement might affect player's future moves
-        let blockingValue = 0;
-        
-        // If player could use this letter for a high-scoring word, blocking it has value
-        for (let pRow = 0; pRow < GRID_ROWS; pRow++) {
-          for (let pCol = 0; pCol < GRID_COLS; pCol++) {
-            if (playerGrid[pRow][pCol] === null) {
-              const testPlayerGrid = playerGrid.map(row => [...row]);
-              testPlayerGrid[pRow][pCol] = letter;
-              const potentialPlayerResult = scoreGrid(testPlayerGrid, dict, currentState.usedWords[0], 3);
-              const playerPotentialGain = potentialPlayerResult.score - playerResult.score;
-              
-              if (playerPotentialGain > 5) { // If player could gain significant points
-                blockingValue += Math.min(playerPotentialGain * 0.3, 8); // Cap blocking value
-              }
-            }
-          }
+        // Prioritize actual scoring moves
+        if (aiScoreGain > 0) {
+          moveValue += aiScoreGain * 3; // Strong weight for scoring
         }
         
-        // Strategic positioning bonuses
-        let positionBonus = 0;
-        
-        // Center squares are more valuable
+        // Position value - center is better
         const centerDistance = Math.abs(cell.row - 2) + Math.abs(cell.col - 2);
-        positionBonus += (4 - centerDistance) * 0.5;
+        moveValue += (4 - centerDistance) * 0.8;
         
-        // Adjacent to existing letters is valuable
-        const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
+        // Adjacent bonus - building connectivity
+        const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
         let adjacentCount = 0;
         for (const [dx, dy] of adjacentPositions) {
           const newRow = cell.row + dx;
@@ -231,20 +224,41 @@ const GameBoard = () => {
             }
           }
         }
-        positionBonus += adjacentCount * 1.5;
+        moveValue += adjacentCount * 1.2;
         
-        // Calculate total move value
-        const totalScore = aiScoreGain + blockingValue + positionBonus;
+        // Light blocking consideration
+        const playerGrid = currentState.grids[0];
+        const playerResult = scoreGrid(playerGrid, dict, currentState.usedWords[0], 3);
         
-        // Add slight randomness (±10%) to make AI less predictable
-        const randomFactor = 0.9 + Math.random() * 0.2;
-        const finalScore = totalScore * randomFactor;
+        // Check only a few positions for blocking
+        for (let i = 0; i < Math.min(3, availableCells.length); i++) {
+          const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
+          const testPlayerGrid = playerGrid.map(row => [...row]);
+          testPlayerGrid[randomCell.row][randomCell.col] = letter;
+          const potentialPlayerResult = scoreGrid(testPlayerGrid, dict, currentState.usedWords[0], 3);
+          const playerPotentialGain = potentialPlayerResult.score - playerResult.score;
+          
+          if (playerPotentialGain > 3) {
+            moveValue += Math.min(playerPotentialGain * 0.5, 4); // Light blocking
+          }
+        }
+        
+        // Add randomness to make AI beatable (±40%)
+        const randomFactor = 0.6 + Math.random() * 0.8;
+        const finalScore = moveValue * randomFactor;
         
         if (finalScore > bestScore) {
           bestScore = finalScore;
           bestMove = {letter, row: cell.row, col: cell.col, score: finalScore};
         }
       }
+    }
+    
+    // Fallback: if no good move found, pick randomly
+    if (!bestMove && availableCells.length > 0 && availableAILetters.length > 0) {
+      const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
+      const randomLetter = availableAILetters[Math.floor(Math.random() * availableAILetters.length)];
+      bestMove = {letter: randomLetter, row: randomCell.row, col: randomCell.col, score: 0};
     }
     
     // Make the AI move
@@ -286,30 +300,41 @@ const GameBoard = () => {
         let gameEnded = false;
         let winner: Player | null = null;
         
-        if (areAllGridsFull) {
+        // Check for winner by score first
+        if (result1.score >= WINNING_SCORE || result2.score >= WINNING_SCORE) {
+          gameEnded = true;
+          winner = result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null;
+        } else if (areAllGridsFull) {
           gameEnded = true;
           winner = result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null;
         }
 
-        return {
+        const newState = {
           ...prev,
           grids: newGrids,
-          currentPlayer: 1, // Back to player
+          currentPlayer: 1 as Player, // Back to player
           turn: prev.turn + 1,
-          scores: [result1.score, result2.score],
-          usedWords: [result1.newUsedWords, result2.newUsedWords],
-          scoredCells: [result1.scoredCells, result2.scoredCells],
+          scores: [result1.score, result2.score] as [number, number],
+          usedWords: [result1.newUsedWords, result2.newUsedWords] as [Set<string>, Set<string>],
+          scoredCells: [result1.scoredCells, result2.scoredCells] as [Set<string>, Set<string>],
           sharedCooldowns: newSharedCooldowns,
           gameEnded,
           winner,
           timeLeft: TURN_TIME
         };
+        
+        // Show winner dialog if game ended
+        if (gameEnded) {
+          setTimeout(() => setShowWinnerDialog(true), 500);
+        }
+        
+        return newState;
       });
     } else {
       // No valid move, pass turn
       setGameState(prev => ({
         ...prev,
-        currentPlayer: 1,
+        currentPlayer: 1 as Player,
         turn: prev.turn + 1,
         timeLeft: TURN_TIME
       }));
@@ -382,7 +407,7 @@ const GameBoard = () => {
       // Set cooldown for used letter (affects both players) AFTER decrement so it starts at full duration
       newSharedCooldowns[selectedLetter] = COOLDOWN_TURNS;
 
-      // Check if both grids are full (game ends when no empty tiles left for either player)
+      // Check if game should end
       const areAllGridsFull = newGrids.every(grid => 
         grid.every(row => row.every(cell => cell !== null))
       );
@@ -390,34 +415,44 @@ const GameBoard = () => {
       let gameEnded = false;
       let winner: Player | null = null;
       
-      if (areAllGridsFull) {
+      // Check for winner by score first
+      if (result1.score >= WINNING_SCORE || result2.score >= WINNING_SCORE) {
+        gameEnded = true;
+        winner = result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null;
+      } else if (areAllGridsFull) {
         gameEnded = true;
         winner = result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null;
       }
 
-      return {
+      const newState = {
         ...prev,
         grids: newGrids,
-        currentPlayer: 2, // Pass to AI
+        currentPlayer: 2 as Player, // Pass to AI
         turn: prev.turn + 1,
-        scores: [result1.score, result2.score],
-        usedWords: [result1.newUsedWords, result2.newUsedWords],
-        scoredCells: [result1.scoredCells, result2.scoredCells],
+        scores: [result1.score, result2.score] as [number, number],
+        usedWords: [result1.newUsedWords, result2.newUsedWords] as [Set<string>, Set<string>],
+        scoredCells: [result1.scoredCells, result2.scoredCells] as [Set<string>, Set<string>],
         sharedCooldowns: newSharedCooldowns,
         gameEnded,
         winner,
         timeLeft: TURN_TIME // Reset timer for next player
       };
+      
+      // Show winner dialog if game ended
+      if (gameEnded) {
+        setTimeout(() => setShowWinnerDialog(true), 500);
+      }
+      
+      return newState;
     });
 
     setSelectedLetter('');
   };
 
   const resetGame = () => {
-    const newGameState = initializeGame();
-    setGameState(newGameState);
-    setAvailableLetters(newGameState.letterPool);
+    setGameState(initializeGame());
     setSelectedLetter('');
+    setShowWinnerDialog(false);
   };
 
 
@@ -549,6 +584,57 @@ const GameBoard = () => {
 
   return (
     <div className="h-screen p-3 space-y-3 max-w-6xl mx-auto flex flex-col">
+      {/* Winner Dialog */}
+      <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold">
+              🎉 Game Over! 🎉
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="text-center space-y-4">
+                <div className="text-lg">
+                  {gameState.winner === 1 ? (
+                    <span className="text-player-1 font-bold">You Win!</span>
+                  ) : gameState.winner === 2 ? (
+                    <span className="text-player-2 font-bold">AI Bot Wins!</span>
+                  ) : (
+                    <span className="font-bold">It's a Tie!</span>
+                  )}
+                </div>
+                
+                <div className="bg-muted rounded-lg p-4">
+                  <div className="text-sm text-muted-foreground mb-2">Final Scores:</div>
+                  <div className="flex justify-center gap-8">
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-player-1">You</div>
+                      <div className="text-2xl font-bold">{gameState.scores[0]}</div>
+                      <div className="text-xs text-muted-foreground">letters</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-player-2">AI Bot</div>
+                      <div className="text-2xl font-bold">{gameState.scores[1]}</div>
+                      <div className="text-xs text-muted-foreground">letters</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-sm text-muted-foreground">
+                  {gameState.winner ? 
+                    `${gameState.winner === 1 ? 'You' : 'AI Bot'} reached ${Math.max(gameState.scores[0], gameState.scores[1])} letters first!` :
+                    'Both players had the same score!'
+                  }
+                </div>
+                
+                <Button onClick={resetGame} className="w-full" size="lg">
+                  Play Again
+                </Button>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
@@ -639,7 +725,7 @@ const GameBoard = () => {
       {/* Compact Rules */}
       <div className="text-center">
         <div className="text-xs text-muted-foreground">
-          30s per turn • 3+ letter words • Each word once per player • Score = letters in valid words
+          30s per turn • 3+ letter words • Each word once per player • First to {WINNING_SCORE} letters wins!
         </div>
       </div>
     </div>
