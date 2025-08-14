@@ -39,6 +39,7 @@ const MultiplayerGameBoard = () => {
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [timeLeft, setTimeLeft] = useState(30);
 
   // Load game data
   useEffect(() => {
@@ -68,6 +69,33 @@ const MultiplayerGameBoard = () => {
       supabase.removeChannel(channel);
     };
   }, [gameId]);
+
+  // Timer effect
+  useEffect(() => {
+    if (!gameState || gameState.game_status !== 'active') return;
+    
+    const isMyTurn = gameState?.current_player === playerNumber;
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          // Time's up - pass turn to opponent
+          if (isMyTurn) {
+            passTurn();
+          }
+          return TURN_TIME;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gameState?.current_player, gameState?.game_status, playerNumber]);
+
+  // Reset timer when turn changes
+  useEffect(() => {
+    setTimeLeft(TURN_TIME);
+  }, [gameState?.current_player]);
 
   const loadGame = async () => {
     if (!gameId) return;
@@ -113,6 +141,7 @@ const MultiplayerGameBoard = () => {
   // Get board size and game constants based on game state
   const boardSize = gameState?.board_size || 5;
   const COOLDOWN_TURNS = 5;
+  const TURN_TIME = 30;
   const WINNING_SCORE = boardSize * boardSize; // Adjust winning score based on board size
 
   const isMyTurn = gameState?.current_player === playerNumber;
@@ -207,6 +236,24 @@ const MultiplayerGameBoard = () => {
         description: "Failed to make move",
         variant: "destructive",
       });
+    }
+  };
+
+  const passTurn = async () => {
+    if (!gameState || !gameId) return;
+
+    try {
+      const { error } = await supabase
+        .from('games')
+        .update({
+          current_player: playerNumber === 1 ? 2 : 1,
+          turn_number: gameState.turn_number + 1,
+        })
+        .eq('id', gameId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error passing turn:', error);
     }
   };
 
@@ -412,6 +459,11 @@ const MultiplayerGameBoard = () => {
                gameState.game_status === 'finished' ? 'Finished' : 
                isMyTurn ? 'Your Move' : 'Opponent Move'}
             </div>
+            {gameState.game_status === 'active' && (
+              <div className={`text-sm font-medium mt-1 ${timeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-muted-foreground'}`}>
+                {timeLeft}s left
+              </div>
+            )}
           </div>
         </Card>
         
