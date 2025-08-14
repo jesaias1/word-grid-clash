@@ -13,7 +13,10 @@ import { Tables } from '@/integrations/supabase/types';
 
 type Player = 1 | 2;
 type Letter = string;
-type GridCell = Letter | null;
+type GridCell = {
+  letter: Letter | null;
+  player: Player | null;
+} | null;
 type Grid = GridCell[][];
 
 type GameState = Tables<'games'> & {
@@ -140,10 +143,15 @@ const MultiplayerGameBoard = () => {
       
       // Create updated grids
       const newMyGrid = myGrid.map(gridRow => [...gridRow]);
-      newMyGrid[row][col] = selectedLetter;
+      newMyGrid[row][col] = { letter: selectedLetter, player: playerNumber };
+      
+      // Convert to simple grid format for scoring
+      const simpleGrid = newMyGrid.map(row => 
+        row.map(cell => cell ? cell.letter : null)
+      );
       
       // Calculate new score
-      const result = scoreGrid(newMyGrid, dict, new Set(), 3);
+      const result = scoreGrid(simpleGrid, dict, new Set(), 3);
       
       // Update cooldowns - decrease all existing and add new one
       const newCooldowns: Record<string, number> = myCooldowns && typeof myCooldowns === 'object' ? { ...myCooldowns } : {};
@@ -235,9 +243,9 @@ const MultiplayerGameBoard = () => {
                 `}
                 onClick={() => isMyGrid && isMyTurn && placeLetter(rowIndex, colIndex)}
               >
-                {cell && (
+                {cell && cell.letter && (
                   <span className="font-bold text-lg drop-shadow-lg text-white">
-                    {cell}
+                    {cell.letter}
                   </span>
                 )}
               </div>
