@@ -43,6 +43,7 @@ const GRID_ROWS = 5;
 const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30;
+
 // Generate a random pool of letters for each game (12-15 letters)
 const generateLetterPool = (): string[] => {
   const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
@@ -57,6 +58,26 @@ const generateLetterPool = (): string[] => {
   }
   
   return pool;
+};
+
+// Generate starting tiles - 5 predetermined letters, same for both players
+const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: number; letter: string }> => {
+  const tiles: Array<{ row: number; col: number; letter: string }> = [];
+  
+  // Pick 5 random letters from the pool for starting tiles
+  const startingLetters = [];
+  for (let i = 0; i < 5; i++) {
+    const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
+    startingLetters.push(letter);
+  }
+  
+  // Place one letter in each row at random column
+  for (let row = 0; row < GRID_ROWS; row++) {
+    const col = Math.floor(Math.random() * GRID_COLS);
+    tiles.push({ row, col, letter: startingLetters[row] });
+  }
+  
+  return tiles;
 };
 
 const MultiplayerGameBoard = ({ gameId, onBackToLobby }: MultiplayerGameBoardProps) => {
@@ -178,10 +199,41 @@ const MultiplayerGameBoard = ({ gameId, onBackToLobby }: MultiplayerGameBoardPro
           ? data.player2_cooldowns as CooldownState : {}
       ];
 
-      // Set available letters from database or generate if not set
-      const gameLetters = (data as any).available_letters ? 
-        (Array.isArray((data as any).available_letters) ? (data as any).available_letters : JSON.parse((data as any).available_letters)) :
-        generateLetterPool();
+      // Set available letters from database or generate and save if not set
+      let gameLetters;
+      if ((data as any).available_letters) {
+        gameLetters = Array.isArray((data as any).available_letters) ? 
+          (data as any).available_letters : 
+          JSON.parse((data as any).available_letters);
+      } else {
+        // Generate new letter pool and starting tiles for new game
+        gameLetters = generateLetterPool();
+        const startingTiles = generateStartingTiles(gameLetters);
+        
+        // Initialize grids with starting tiles if they're empty
+        if (!Array.isArray(data.player1_grid) || data.player1_grid.length === 0) {
+          const grid1: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+          const grid2: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+          
+          startingTiles.forEach(({ row, col, letter }) => {
+            grid1[row][col] = letter;
+            grid2[row][col] = letter;
+          });
+          
+          // Update database with starting grids and letter pool
+          await supabase
+            .from('games')
+            .update({
+              player1_grid: grid1,
+              player2_grid: grid2,
+              available_letters: gameLetters
+            })
+            .eq('id', gameId);
+            
+          grids[0] = grid1;
+          grids[1] = grid2;
+        }
+      }
       setAvailableLetters(gameLetters);
 
       setGameState({
