@@ -277,12 +277,22 @@ const GameBoard = () => {
     if (onCooldownLetters.length === 0) return null;
     
     return (
-      <div className="flex flex-wrap gap-1 justify-center">
-        {onCooldownLetters.map(letter => (
-          <Badge key={letter} variant="secondary" className="text-lg font-bold opacity-60 px-2 py-1">
-            {letter}:{getLetterCooldown(letter)}
-          </Badge>
-        ))}
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-2xl">
+        <div className="text-center mb-2">
+          <span className="text-sm font-semibold text-muted-foreground">Letters on Cooldown</span>
+        </div>
+        <div className="flex flex-wrap gap-3 justify-center">
+          {onCooldownLetters.map(letter => (
+            <div key={letter} className="bg-muted/50 rounded-lg p-3 border border-muted-foreground/20">
+              <div className="text-3xl font-bold text-muted-foreground/60 text-center mb-1">
+                {letter}
+              </div>
+              <div className="text-xs text-center text-muted-foreground">
+                {getLetterCooldown(letter)} turns
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -351,14 +361,12 @@ const GameBoard = () => {
           </div>
         </Card>
 
-        {/* Cooldowns */}
-        <Card className="p-3 bg-gradient-card">
-          <div className="text-center">
-            <div className="text-xs text-muted-foreground mb-1">Cooldowns</div>
-            {renderLetterCooldowns()}
-          </div>
-        </Card>
+        {/* Empty slot to maintain grid layout */}
+        <div></div>
       </div>
+
+      {/* Cooldown Letters Display */}
+      {renderLetterCooldowns()}
 
       {/* Game Grids */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1">
