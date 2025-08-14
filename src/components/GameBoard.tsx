@@ -233,9 +233,7 @@ const GameBoard = () => {
     
     return (
       <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
-        isCurrentPlayer 
-          ? `${playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2'} shadow-lg ring-2 ${playerIndex === 0 ? 'ring-player-1-secondary/20' : 'ring-player-2-secondary/20'}` 
-          : 'bg-card'
+        isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
       }`}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
@@ -254,7 +252,7 @@ const GameBoard = () => {
                 className={`
                   w-full aspect-square cursor-pointer flex items-center justify-center transition-all duration-200
                   ${isLightSquare ? 'bg-muted' : 'bg-muted-foreground/20'}
-                  ${cell ? 'letter-tile' : ''}
+                  ${cell ? (playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2') : ''}
                   ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg' : ''}
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
                   ${winnerHighlight}
@@ -262,7 +260,7 @@ const GameBoard = () => {
                 onClick={() => !gameState.gameEnded && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
-                  <span className={`font-bold text-lg drop-shadow-lg ${isScored ? 'text-accent-foreground' : 'text-white'}`}>
+                  <span className={`font-bold text-lg drop-shadow-lg ${isScored ? 'text-white' : 'text-white'}`}>
                     {cell}
                   </span>
                 )}
