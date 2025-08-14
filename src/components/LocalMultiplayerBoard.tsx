@@ -23,20 +23,9 @@ interface LocalMultiplayerBoardProps {
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30;
 
-// Generate a random pool of letters for each game (12-15 letters)
+// Use the full alphabet for local multiplayer
 const generateLetterPool = (): string[] => {
-  const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  const poolSize = Math.floor(Math.random() * 4) + 12; // 12-15 letters
-  const pool: string[] = [];
-  
-  while (pool.length < poolSize) {
-    const randomLetter = allLetters[Math.floor(Math.random() * allLetters.length)];
-    if (!pool.includes(randomLetter)) {
-      pool.push(randomLetter);
-    }
-  }
-  
-  return pool;
+  return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 };
 
 // Generate starting tiles - 5 predetermined letters, same for both players
