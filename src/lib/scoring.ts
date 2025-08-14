@@ -7,6 +7,7 @@ export interface WordMatch {
   orientation: 'row' | 'col';
   index: number; // row index for rows, col index for cols
   start: number; // start position in the sequence
+  cells: Array<{ row: number; col: number }>; // cells that make up this word
 }
 
 export function findValidWords(grid: Grid, dict: Set<string>, minLength = 2): WordMatch[] {
@@ -16,7 +17,16 @@ export function findValidWords(grid: Grid, dict: Set<string>, minLength = 2): Wo
   const processSequence = (seq: string, orientation: 'row' | 'col', index: number, start: number) => {
     const word = seq.toLowerCase();
     if (word.length >= minLength && dict.has(word)) {
-      results.push({ word, length: word.length, orientation, index, start });
+      // Calculate cells for this word
+      const cells: Array<{ row: number; col: number }> = [];
+      for (let i = 0; i < word.length; i++) {
+        if (orientation === 'row') {
+          cells.push({ row: index, col: start + i });
+        } else {
+          cells.push({ row: start + i, col: index });
+        }
+      }
+      results.push({ word, length: word.length, orientation, index, start, cells });
     }
   };
 
@@ -59,8 +69,28 @@ export function findValidWords(grid: Grid, dict: Set<string>, minLength = 2): Wo
   return results;
 }
 
-export function scoreGrid(grid: Grid, dict: Set<string>, minLength = 2): number {
+export function scoreGrid(grid: Grid, dict: Set<string>, usedWords: Set<string>, minLength = 3): { score: number; scoredCells: Set<string>; newUsedWords: Set<string> } {
   const matches = findValidWords(grid, dict, minLength);
-  // Score is 1 point per letter of each valid word
-  return matches.reduce((sum, m) => sum + m.length, 0);
+  const scoredCells = new Set<string>();
+  const newUsedWords = new Set(usedWords);
+  
+  // Only count words that haven't been used by this player before
+  const validMatches = matches.filter(match => !usedWords.has(match.word));
+  
+  // Add new words to used words set
+  validMatches.forEach(match => newUsedWords.add(match.word));
+  
+  // Mark cells that are part of valid words
+  validMatches.forEach(match => {
+    match.cells.forEach(cell => {
+      scoredCells.add(`${cell.row}-${cell.col}`);
+    });
+  });
+  
+  // Score is 1 point per unique cell that's part of at least one valid word
+  return {
+    score: scoredCells.size,
+    scoredCells,
+    newUsedWords
+  };
 }

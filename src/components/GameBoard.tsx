@@ -22,25 +22,55 @@ interface GameState {
   sharedCooldowns: CooldownState; // Shared cooldowns for both players
   gameEnded: boolean;
   winner: Player | null;
+  usedWords: [Set<string>, Set<string>]; // Track used words per player
+  scoredCells: [Set<string>, Set<string>]; // Track which cells contribute to score per player
 }
 
 const GRID_ROWS = 5;
 const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 
+// High-playability letters for starting tiles
+const HIGH_PLAYABILITY_LETTERS = ['A', 'E', 'S', 'T', 'N', 'R', 'L'];
+
+// Generate starting tiles - one per row, same for both players
+const generateStartingTiles = (): Array<{ row: number; col: number; letter: string }> => {
+  const tiles: Array<{ row: number; col: number; letter: string }> = [];
+  for (let row = 0; row < GRID_ROWS; row++) {
+    const col = Math.floor(Math.random() * GRID_COLS);
+    const letter = HIGH_PLAYABILITY_LETTERS[Math.floor(Math.random() * HIGH_PLAYABILITY_LETTERS.length)];
+    tiles.push({ row, col, letter });
+  }
+  return tiles;
+};
+
 const GameBoard = () => {
-  const [gameState, setGameState] = useState<GameState>({
-    grids: [
-      Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null)),
-      Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null))
-    ],
-    currentPlayer: 1,
-    turn: 1,
-    scores: [0, 0],
-    sharedCooldowns: {}, // Single shared cooldown object
-    gameEnded: false,
-    winner: null
-  });
+  // Initialize game with starting tiles
+  const initializeGame = () => {
+    const startingTiles = generateStartingTiles();
+    const grid1: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+    const grid2: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
+    
+    // Place starting tiles on both grids
+    startingTiles.forEach(({ row, col, letter }) => {
+      grid1[row][col] = letter;
+      grid2[row][col] = letter;
+    });
+    
+    return {
+      grids: [grid1, grid2] as [Grid, Grid],
+      currentPlayer: 1 as Player,
+      turn: 1,
+      scores: [0, 0] as [number, number],
+      sharedCooldowns: {} as CooldownState,
+      gameEnded: false,
+      winner: null as Player | null,
+      usedWords: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
+      scoredCells: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>]
+    };
+  };
+
+  const [gameState, setGameState] = useState<GameState>(initializeGame());
 
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
 
@@ -98,15 +128,15 @@ const GameBoard = () => {
       // Set cooldown for used letter (affects both players) AFTER decrement so it starts at full duration
       newSharedCooldowns[selectedLetter] = COOLDOWN_TURNS;
 
-      // Check if any grid is full (game ends when any grid is full)
-      const isAnyGridFull = newGrids.some(grid => 
+      // Check if both grids are full (game ends when no empty tiles left for either player)
+      const areAllGridsFull = newGrids.every(grid => 
         grid.every(row => row.every(cell => cell !== null))
       );
       
       let gameEnded = false;
       let winner: Player | null = null;
       
-      if (isAnyGridFull) {
+      if (areAllGridsFull) {
         gameEnded = true;
         winner = newScores[0] > newScores[1] ? 1 : newScores[1] > newScores[0] ? 2 : null;
       }
@@ -119,7 +149,9 @@ const GameBoard = () => {
         scores: newScores,
         sharedCooldowns: newSharedCooldowns,
         gameEnded,
-        winner
+        winner,
+        usedWords: prev.usedWords,
+        scoredCells: prev.scoredCells
       };
     });
 
@@ -127,42 +159,35 @@ const GameBoard = () => {
   };
 
   const resetGame = () => {
-    setGameState({
-      grids: [
-        Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null)),
-        Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null))
-      ],
-      currentPlayer: 1,
-      turn: 1,
-      scores: [0, 0],
-      sharedCooldowns: {}, // Reset shared cooldowns
-      gameEnded: false,
-      winner: null
-    });
+    setGameState(initializeGame());
     setSelectedLetter('');
   };
 
-  // When the game ends, compute final scores based on valid words
+  // Compute scores based on valid words whenever grids change
   useEffect(() => {
-    if (!gameState.gameEnded) return;
     let cancelled = false;
     (async () => {
       const dict = await loadDictionary();
       if (cancelled) return;
-      const s1 = scoreGrid(gameState.grids[0], dict, 2);
-      const s2 = scoreGrid(gameState.grids[1], dict, 2);
+      
+      const result1 = scoreGrid(gameState.grids[0], dict, gameState.usedWords[0], 3);
+      const result2 = scoreGrid(gameState.grids[1], dict, gameState.usedWords[1], 3);
+      
       setGameState(prev => ({
         ...prev,
-        scores: [s1, s2],
-        winner: s1 > s2 ? 1 : s2 > s1 ? 2 : null,
+        scores: [result1.score, result2.score],
+        usedWords: [result1.newUsedWords, result2.newUsedWords],
+        scoredCells: [result1.scoredCells, result2.scoredCells],
+        winner: prev.gameEnded ? (result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null) : prev.winner,
       }));
     })();
     return () => { cancelled = true; };
-  }, [gameState.gameEnded]);
+  }, [gameState.grids]);
 
   const renderGrid = (playerIndex: number) => {
     const grid = gameState.grids[playerIndex];
     const isCurrentPlayer = gameState.currentPlayer === (playerIndex + 1);
+    const scoredCells = gameState.scoredCells[playerIndex];
     
     return (
       <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
@@ -172,6 +197,7 @@ const GameBoard = () => {
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
             const canPlaceLetter = !gameState.gameEnded && selectedLetter && !cell;
+            const isScored = scoredCells.has(`${rowIndex}-${colIndex}`);
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
@@ -181,11 +207,12 @@ const GameBoard = () => {
                   ${cell ? 'letter-tile' : ''}
                   ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg' : ''}
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
+                  ${isScored ? 'ring-2 ring-accent ring-inset' : ''}
                 `}
                 onClick={() => !gameState.gameEnded && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
-                  <span className="font-bold text-lg text-white drop-shadow-lg">
+                  <span className={`font-bold text-lg drop-shadow-lg ${isScored ? 'text-accent-foreground' : 'text-white'}`}>
                     {cell}
                   </span>
                 )}
@@ -315,10 +342,10 @@ const GameBoard = () => {
             • Words can form horizontally or vertically
           </div>
           <div>
-            • Only valid words (from the official list) count
-            • Final score = total letters across all valid words
-            • Shared cooldown: when any player uses a letter, both can't use it for 4 turns
-            • Scoring happens at the end when a grid is full
+            • Only valid words (3+ letters from dictionary) count
+            • Each word can only be used once per player
+            • Score = unique letters that are part of valid words
+            • Game ends when both grids are completely full
           </div>
         </div>
       </Card>
