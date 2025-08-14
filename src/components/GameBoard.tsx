@@ -229,6 +229,7 @@ const GameBoard = () => {
     const grid = gameState.grids[playerIndex];
     const isCurrentPlayer = gameState.currentPlayer === (playerIndex + 1);
     const scoredCells = gameState.scoredCells[playerIndex];
+    const isWinner = gameState.gameEnded && gameState.winner === (playerIndex + 1);
     
     return (
       <div className={`grid grid-cols-5 gap-0 p-4 rounded-lg ${
@@ -239,6 +240,12 @@ const GameBoard = () => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
             const canPlaceLetter = !gameState.gameEnded && selectedLetter && !cell;
             const isScored = scoredCells.has(`${rowIndex}-${colIndex}`);
+            
+            // Winner highlight effect - bright gold/yellow for winner, green for others
+            const winnerHighlight = gameState.gameEnded && isScored 
+              ? (isWinner ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : 'ring-2 ring-green-500')
+              : (isScored ? 'ring-2 ring-green-500' : '');
+            
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
@@ -248,7 +255,7 @@ const GameBoard = () => {
                   ${cell ? 'letter-tile' : ''}
                   ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg' : ''}
                   ${!isCurrentPlayer ? 'opacity-75' : ''}
-                  ${isScored ? 'ring-2 ring-accent ring-inset' : ''}
+                  ${winnerHighlight}
                 `}
                 onClick={() => !gameState.gameEnded && placeLetter(rowIndex, colIndex, playerIndex)}
               >
@@ -272,7 +279,7 @@ const GameBoard = () => {
     return (
       <div className="flex flex-wrap gap-1 justify-center">
         {onCooldownLetters.map(letter => (
-          <Badge key={letter} variant="secondary" className="text-xs">
+          <Badge key={letter} variant="secondary" className="text-lg font-bold opacity-60 px-2 py-1">
             {letter}:{getLetterCooldown(letter)}
           </Badge>
         ))}
