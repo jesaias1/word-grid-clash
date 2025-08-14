@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -361,25 +361,30 @@ const GameBoard = () => {
   };
 
   // Compute scores based on valid words whenever grids change
+  const updateScores = useCallback(async (grids: [Grid, Grid], usedWords: [Set<string>, Set<string>], gameEnded: boolean) => {
+    const dict = await loadDictionary();
+    const result1 = scoreGrid(grids[0], dict, usedWords[0], 3);
+    const result2 = scoreGrid(grids[1], dict, usedWords[1], 3);
+    
+    return {
+      scores: [result1.score, result2.score] as [number, number],
+      usedWords: [result1.newUsedWords, result2.newUsedWords] as [Set<string>, Set<string>],
+      scoredCells: [result1.scoredCells, result2.scoredCells] as [Set<string>, Set<string>],
+      winner: gameEnded ? (result1.score > result2.score ? (1 as Player) : result2.score > result1.score ? (2 as Player) : null) : null
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const dict = await loadDictionary();
+    updateScores(gameState.grids, gameState.usedWords, gameState.gameEnded).then(results => {
       if (cancelled) return;
-      
-      const result1 = scoreGrid(gameState.grids[0], dict, gameState.usedWords[0], 3);
-      const result2 = scoreGrid(gameState.grids[1], dict, gameState.usedWords[1], 3);
-      
       setGameState(prev => ({
         ...prev,
-        scores: [result1.score, result2.score],
-        usedWords: [result1.newUsedWords, result2.newUsedWords],
-        scoredCells: [result1.scoredCells, result2.scoredCells],
-        winner: prev.gameEnded ? (result1.score > result2.score ? 1 : result2.score > result1.score ? 2 : null) : prev.winner,
+        ...results
       }));
-    })();
+    });
     return () => { cancelled = true; };
-  }, [gameState.grids]);
+  }, [gameState.grids, gameState.usedWords, gameState.gameEnded, updateScores]);
 
   const renderGrid = (playerIndex: number) => {
     const grid = gameState.grids[playerIndex];
