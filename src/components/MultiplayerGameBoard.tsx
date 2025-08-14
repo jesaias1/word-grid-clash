@@ -43,7 +43,21 @@ const GRID_ROWS = 5;
 const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30;
-const HIGH_PLAYABILITY_LETTERS = ['A', 'E', 'S', 'T', 'N', 'R', 'L'];
+// Generate a random pool of letters for each game (12-15 letters)
+const generateLetterPool = (): string[] => {
+  const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const poolSize = Math.floor(Math.random() * 4) + 12; // 12-15 letters
+  const pool: string[] = [];
+  
+  while (pool.length < poolSize) {
+    const randomLetter = allLetters[Math.floor(Math.random() * allLetters.length)];
+    if (!pool.includes(randomLetter)) {
+      pool.push(randomLetter);
+    }
+  }
+  
+  return pool;
+};
 
 const MultiplayerGameBoard = ({ gameId, onBackToLobby }: MultiplayerGameBoardProps) => {
   const [gameState, setGameState] = useState<MultiplayerGameState | null>(null);
@@ -128,7 +142,7 @@ const MultiplayerGameBoard = ({ gameId, onBackToLobby }: MultiplayerGameBoardPro
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState]);
 
-  const availableLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
 
   const loadGameState = async () => {
     try {
@@ -163,6 +177,12 @@ const MultiplayerGameBoard = ({ gameId, onBackToLobby }: MultiplayerGameBoardPro
         (data.player2_cooldowns && typeof data.player2_cooldowns === 'object' && !Array.isArray(data.player2_cooldowns)) 
           ? data.player2_cooldowns as CooldownState : {}
       ];
+
+      // Set available letters from database or generate if not set
+      const gameLetters = data.available_letters ? 
+        (Array.isArray(data.available_letters) ? data.available_letters : JSON.parse(data.available_letters)) :
+        generateLetterPool();
+      setAvailableLetters(gameLetters);
 
       setGameState({
         id: data.id,

@@ -32,24 +32,41 @@ const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30; // 30 seconds per turn
 
-// High-playability letters for starting tiles
-const HIGH_PLAYABILITY_LETTERS = ['A', 'E', 'S', 'T', 'N', 'R', 'L'];
+// Generate a random pool of letters for each game (12-15 letters)
+const generateLetterPool = (): string[] => {
+  const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const poolSize = Math.floor(Math.random() * 4) + 12; // 12-15 letters
+  const pool: string[] = [];
+  
+  while (pool.length < poolSize) {
+    const randomLetter = allLetters[Math.floor(Math.random() * allLetters.length)];
+    if (!pool.includes(randomLetter)) {
+      pool.push(randomLetter);
+    }
+  }
+  
+  return pool;
+};
 
 // Generate starting tiles - one per row, same for both players
-const generateStartingTiles = (): Array<{ row: number; col: number; letter: string }> => {
+const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: number; letter: string }> => {
   const tiles: Array<{ row: number; col: number; letter: string }> = [];
   for (let row = 0; row < GRID_ROWS; row++) {
     const col = Math.floor(Math.random() * GRID_COLS);
-    const letter = HIGH_PLAYABILITY_LETTERS[Math.floor(Math.random() * HIGH_PLAYABILITY_LETTERS.length)];
+    const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
     tiles.push({ row, col, letter });
   }
   return tiles;
 };
 
 const GameBoard = () => {
+  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
+
   // Initialize game with starting tiles
   const initializeGame = () => {
-    const startingTiles = generateStartingTiles();
+    const letterPool = generateLetterPool();
+    setAvailableLetters(letterPool);
+    const startingTiles = generateStartingTiles(letterPool);
     const grid1: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
     const grid2: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
     
@@ -119,7 +136,7 @@ const GameBoard = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState.gameEnded, gameState.sharedCooldowns]);
 
-  const availableLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  
 
   const isLetterOnCooldown = (letter: Letter): boolean => {
     const cooldown = gameState.sharedCooldowns[letter];

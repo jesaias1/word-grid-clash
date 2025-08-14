@@ -24,7 +24,24 @@ const GRID_COLS = 5;
 const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30;
 
+// Generate a random pool of letters for each game (12-15 letters)
+const generateLetterPool = (): string[] => {
+  const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const poolSize = Math.floor(Math.random() * 4) + 12; // 12-15 letters
+  const pool: string[] = [];
+  
+  while (pool.length < poolSize) {
+    const randomLetter = allLetters[Math.floor(Math.random() * allLetters.length)];
+    if (!pool.includes(randomLetter)) {
+      pool.push(randomLetter);
+    }
+  }
+  
+  return pool;
+};
+
 const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => {
+  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
   const [grids, setGrids] = useState<[Grid, Grid]>([
     Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null)),
     Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null))
@@ -40,7 +57,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
   const [scoredCells] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
 
-  const availableLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  // Initialize letters on first load
+  useEffect(() => {
+    setAvailableLetters(generateLetterPool());
+  }, []);
 
   // Timer effect
   useEffect(() => {
@@ -166,6 +186,22 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
     setTimeLeft(TURN_TIME);
   };
 
+  const resetGame = () => {
+    setAvailableLetters(generateLetterPool());
+    setGrids([
+      Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null)),
+      Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null))
+    ]);
+    setCurrentPlayer(1);
+    setTurn(1);
+    setScores([0, 0]);
+    setCooldowns([{}, {}]);
+    setSelectedLetter('');
+    setGameEnded(false);
+    setWinner(null);
+    setTimeLeft(TURN_TIME);
+  };
+
   const renderGrid = (playerIndex: number) => {
     const grid = grids[playerIndex];
     const isCurrentPlayer = currentPlayer === (playerIndex + 1);
@@ -279,9 +315,14 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
                 <div className="text-sm font-bold text-accent">
                   {winner ? `Player ${winner} Wins!` : "Tie!"}
                 </div>
-                <Button onClick={onBackToMenu} variant="default" size="sm">
-                  Back to Menu
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={resetGame} variant="outline" size="sm">
+                    New Game
+                  </Button>
+                  <Button onClick={onBackToMenu} variant="default" size="sm">
+                    Back to Menu
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
