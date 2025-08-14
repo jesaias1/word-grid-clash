@@ -27,13 +27,16 @@ interface GameState {
   scoredCells: [Set<string>, Set<string>]; // Track which cells contribute to score per player
   timeLeft: number; // Time left in current turn (seconds)
   letterPool: string[]; // Available letters for the game
+  difficulty: DifficultyLevel; // AI difficulty level
 }
 
 const GRID_ROWS = 5;
 const GRID_COLS = 5;
-const COOLDOWN_TURNS = 4;
+const COOLDOWN_TURNS = 5;
 const TURN_TIME = 30; // 30 seconds per turn
 const WINNING_SCORE = 25; // Game ends when someone reaches this score
+
+type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
 // All 26 letters are available - cooldown is the only restriction
 const generateLetterPool = (): string[] => {
@@ -86,7 +89,8 @@ const GameBoard = () => {
       usedWords: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
       scoredCells: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
       timeLeft: TURN_TIME,
-      letterPool // Store the letter pool in game state
+      letterPool, // Store the letter pool in game state
+      difficulty: 'medium' as DifficultyLevel
     };
   };
 
@@ -94,6 +98,7 @@ const GameBoard = () => {
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
 
   // Set available letters from game state
   useEffect(() => {
@@ -179,18 +184,45 @@ const GameBoard = () => {
     let bestMove: {letter: string, row: number, col: number, score: number} | null = null;
     let bestScore = -10;
     
-    // Competitive but beatable AI strategy - focus on common letters
+    // AI strategy based on difficulty level
+    const difficultySettings = {
+      easy: { 
+        maxMoves: 15, 
+        lettersToEvaluate: 3, 
+        randomness: 1.2, 
+        blockingWeight: 0.1,
+        centerWeight: 0.3
+      },
+      medium: { 
+        maxMoves: 40, 
+        lettersToEvaluate: 6, 
+        randomness: 0.8, 
+        blockingWeight: 0.5,
+        centerWeight: 0.8
+      },
+      hard: { 
+        maxMoves: 80, 
+        lettersToEvaluate: 10, 
+        randomness: 0.3, 
+        blockingWeight: 1.0,
+        centerWeight: 1.2
+      }
+    };
+    
+    const settings = difficultySettings[difficulty];
+    
+    // Focus on common letters
     const commonLetters = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'D', 'L', 'U', 'C', 'M', 'W', 'F', 'G', 'Y', 'P', 'B', 'V', 'K', 'J', 'X', 'Q', 'Z'];
     const availableCommonLetters = commonLetters.filter(letter => availableAILetters.includes(letter));
     const lettersToUse = availableCommonLetters.length > 0 ? availableCommonLetters : availableAILetters;
     
-    const maxMovesToEvaluate = Math.min(availableCells.length * lettersToUse.length, 40);
+    const maxMovesToEvaluate = Math.min(availableCells.length * lettersToUse.length, settings.maxMoves);
     let movesEvaluated = 0;
     
     // Shuffle cells for variety, but keep common letters prioritized
     const shuffledCells = [...availableCells].sort(() => Math.random() - 0.5);
     
-    for (const letter of lettersToUse.slice(0, 6)) { // Focus on fewer, better letters
+    for (const letter of lettersToUse.slice(0, settings.lettersToEvaluate)) {
       for (const cell of shuffledCells) {
         if (movesEvaluated >= maxMovesToEvaluate) break;
         movesEvaluated++;
@@ -211,9 +243,9 @@ const GameBoard = () => {
           moveValue += aiScoreGain * 3; // Strong weight for scoring
         }
         
-        // Position value - center is better
+        // Position value - center is better (scaled by difficulty)
         const centerDistance = Math.abs(cell.row - 2) + Math.abs(cell.col - 2);
-        moveValue += (4 - centerDistance) * 0.8;
+        moveValue += (4 - centerDistance) * settings.centerWeight;
         
         // Adjacent bonus - building connectivity
         const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
@@ -229,25 +261,27 @@ const GameBoard = () => {
         }
         moveValue += adjacentCount * 1.2;
         
-        // Light blocking consideration
+        // Blocking consideration (scaled by difficulty)
         const playerGrid = currentState.grids[0];
         const playerResult = scoreGrid(playerGrid, dict, currentState.usedWords[0], 3);
         
-        // Check only a few positions for blocking
-        for (let i = 0; i < Math.min(3, availableCells.length); i++) {
+        // Check positions for blocking based on difficulty
+        const blockingChecks = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 3 : 5;
+        for (let i = 0; i < Math.min(blockingChecks, availableCells.length); i++) {
           const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
           const testPlayerGrid = playerGrid.map(row => [...row]);
           testPlayerGrid[randomCell.row][randomCell.col] = letter;
           const potentialPlayerResult = scoreGrid(testPlayerGrid, dict, currentState.usedWords[0], 3);
           const playerPotentialGain = potentialPlayerResult.score - playerResult.score;
           
-          if (playerPotentialGain > 3) {
-            moveValue += Math.min(playerPotentialGain * 0.5, 4); // Light blocking
+          if (playerPotentialGain > 2) {
+            moveValue += Math.min(playerPotentialGain * settings.blockingWeight, 6);
           }
         }
         
-        // Add randomness to make AI beatable (±40%)
-        const randomFactor = 0.6 + Math.random() * 0.8;
+        // Add randomness based on difficulty level
+        const randomRange = settings.randomness;
+        const randomFactor = (2 - randomRange) / 2 + Math.random() * randomRange;
         const finalScore = moveValue * randomFactor;
         
         if (finalScore > bestScore) {
@@ -639,11 +673,36 @@ const GameBoard = () => {
       </Dialog>
 
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS
         </h1>
         <p className="text-xs text-muted-foreground">Type a letter, then click to place it</p>
+        
+        {/* Difficulty Selector */}
+        <div className="flex justify-center items-center gap-2">
+          <span className="text-xs text-muted-foreground">AI Difficulty:</span>
+          {(['easy', 'medium', 'hard'] as DifficultyLevel[]).map((level) => (
+            <button
+              key={level}
+              onClick={() => {
+                setDifficulty(level);
+                setGameState(prev => ({ ...prev, difficulty: level }));
+              }}
+              disabled={gameState.currentPlayer === 2 && !gameState.gameEnded}
+              className={`
+                px-2 py-1 text-xs rounded-md font-medium transition-colors
+                ${difficulty === level 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-muted hover:bg-accent hover:text-accent-foreground'
+                }
+                ${gameState.currentPlayer === 2 && !gameState.gameEnded ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+              `}
+            >
+              {level.charAt(0).toUpperCase() + level.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Game Stats and Controls */}
