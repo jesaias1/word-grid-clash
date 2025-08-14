@@ -68,11 +68,10 @@ const GameBoard = () => {
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
     if (!cell) return '';
-    if (typeof cell === 'object' && cell !== null && 'letter' in cell) {
+    if (typeof cell === 'object') {
       return (cell as { letter: string }).letter;
     }
-    // TypeScript workaround: cast after null check
-    return String(cell);
+    return cell;
   };
   // Initialize game with starting tiles
   const initializeGame = () => {
