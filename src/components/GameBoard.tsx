@@ -25,6 +25,7 @@ interface GameState {
   usedWords: [Set<string>, Set<string>]; // Track used words per player
   scoredCells: [Set<string>, Set<string>]; // Track which cells contribute to score per player
   timeLeft: number; // Time left in current turn (seconds)
+  letterPool: string[]; // Available letters for the game
 }
 
 const GRID_ROWS = 5;
@@ -69,12 +70,9 @@ const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: 
 };
 
 const GameBoard = () => {
-  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-
   // Initialize game with starting tiles
   const initializeGame = () => {
     const letterPool = generateLetterPool();
-    setAvailableLetters(letterPool);
     const startingTiles = generateStartingTiles(letterPool);
     const grid1: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
     const grid2: Grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(null));
@@ -95,13 +93,20 @@ const GameBoard = () => {
       winner: null as Player | null,
       usedWords: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
       scoredCells: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
-      timeLeft: TURN_TIME
+      timeLeft: TURN_TIME,
+      letterPool // Store the letter pool in game state
     };
   };
 
   const [gameState, setGameState] = useState<GameState>(initializeGame());
+  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
 
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
+
+  // Set available letters from game state
+  useEffect(() => {
+    setAvailableLetters(gameState.letterPool || []);
+  }, [gameState.letterPool]);
 
   // Preload dictionary in the background
   useEffect(() => {
@@ -368,7 +373,9 @@ const GameBoard = () => {
   };
 
   const resetGame = () => {
-    setGameState(initializeGame());
+    const newGameState = initializeGame();
+    setGameState(newGameState);
+    setAvailableLetters(newGameState.letterPool);
     setSelectedLetter('');
   };
 
