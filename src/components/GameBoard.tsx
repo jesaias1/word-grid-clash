@@ -746,6 +746,16 @@ const GameBoard = () => {
                 <div className={`text-lg font-bold ${gameState.timeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
                   {gameState.timeLeft}s
                 </div>
+                {gameState.currentPlayer === 2 && (
+                  <Button 
+                    onClick={() => setGameState(prev => ({ ...prev, currentPlayer: 1, timeLeft: TURN_TIME }))} 
+                    variant="outline" 
+                    size="sm"
+                    className="text-xs"
+                  >
+                    Skip AI Turn
+                  </Button>
+                )}
               </>
             )}
           </div>
