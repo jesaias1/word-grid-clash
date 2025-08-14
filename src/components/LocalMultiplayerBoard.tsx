@@ -61,6 +61,14 @@ const generateStartingTiles = (letterPool: string[]): Array<{ row: number; col: 
 };
 
 const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => {
+  // Helper function to safely get display value from cell
+  const getCellDisplay = (cell: GridCell): string => {
+    if (!cell) return '';
+    if (typeof cell === 'object' && 'letter' in cell) {
+      return (cell as { letter: string }).letter;
+    }
+    return cell;
+  };
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
   
   // Initialize game with starting tiles
@@ -283,7 +291,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu }: LocalMultiplayerBoardProps) => 
               >
                 {cell && (
                   <span className="font-bold text-lg drop-shadow-lg text-white">
-                    {cell}
+                    {getCellDisplay(cell)}
                   </span>
                 )}
               </div>
