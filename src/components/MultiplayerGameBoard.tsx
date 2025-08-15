@@ -421,15 +421,16 @@ const MultiplayerGameBoard = () => {
   };
 
   const renderAvailableLetters = () => {
-    if (!gameState?.letter_pool) return null;
+    // Use all 26 letters like single player
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-2xl">
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-4xl">
         <div className="text-center mb-3">
           <span className="text-sm font-semibold text-muted-foreground">Available Letters</span>
         </div>
-        <div className="flex justify-center gap-2">
-          {gameState.letter_pool.map(letter => {
+        <div className="flex flex-wrap gap-2 justify-center">
+          {allLetters.map(letter => {
             const isOnCooldown = isLetterOnCooldown(letter);
             const isSelected = selectedLetter === letter;
             const cooldownTurns = getLetterCooldown(letter);
@@ -440,20 +441,17 @@ const MultiplayerGameBoard = () => {
                 onClick={() => !isOnCooldown && isMyTurn && setSelectedLetter(letter)}
                 disabled={isOnCooldown || !isMyTurn}
                 className={`
-                  relative rounded-lg font-bold transition-all duration-200 flex flex-col items-center justify-center
-                  ${isOnCooldown ? 
-                    'w-16 h-16 bg-destructive/20 text-destructive border-2 border-destructive/50 cursor-not-allowed' : 
-                    'w-14 h-14'}
+                  w-12 h-12 rounded-lg font-bold text-lg transition-all duration-200
                   ${isSelected && !isOnCooldown ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
-                  ${!isOnCooldown && !isSelected && isMyTurn ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border-2 border-border' : ''}
+                  ${isOnCooldown ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed' : 
+                    'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105'}
+                  ${!isOnCooldown && !isSelected ? 'border-2 border-border' : ''}
                   ${!isMyTurn ? 'opacity-50' : ''}
                 `}
               >
-                <span className={`${isOnCooldown ? 'text-lg' : 'text-xl'}`}>
-                  {letter}
-                </span>
+                {letter}
                 {isOnCooldown && (
-                  <span className="text-xs font-normal">{cooldownTurns}</span>
+                  <div className="text-xs mt-1">{cooldownTurns}</div>
                 )}
               </button>
             );
