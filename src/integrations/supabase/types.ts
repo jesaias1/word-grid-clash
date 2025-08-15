@@ -22,6 +22,7 @@ export type Database = {
           game_status: string
           id: string
           invite_code: string
+          letter_pool: Json
           player1_cooldowns: Json
           player1_grid: Json
           player1_id: string | null
@@ -30,6 +31,7 @@ export type Database = {
           player2_grid: Json
           player2_id: string | null
           player2_score: number
+          starting_tiles: Json
           turn_number: number
           updated_at: string
           winner_id: string | null
@@ -41,6 +43,7 @@ export type Database = {
           game_status?: string
           id?: string
           invite_code: string
+          letter_pool?: Json
           player1_cooldowns?: Json
           player1_grid?: Json
           player1_id?: string | null
@@ -49,6 +52,7 @@ export type Database = {
           player2_grid?: Json
           player2_id?: string | null
           player2_score?: number
+          starting_tiles?: Json
           turn_number?: number
           updated_at?: string
           winner_id?: string | null
@@ -60,6 +64,7 @@ export type Database = {
           game_status?: string
           id?: string
           invite_code?: string
+          letter_pool?: Json
           player1_cooldowns?: Json
           player1_grid?: Json
           player1_id?: string | null
@@ -68,6 +73,7 @@ export type Database = {
           player2_grid?: Json
           player2_id?: string | null
           player2_score?: number
+          starting_tiles?: Json
           turn_number?: number
           updated_at?: string
           winner_id?: string | null

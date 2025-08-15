@@ -24,6 +24,8 @@ type GameState = Tables<'games'> & {
   player2_grid: Grid;
   player1_cooldowns: Record<string, number>;
   player2_cooldowns: Record<string, number>;
+  letter_pool: string[];
+  starting_tiles: Array<{ row: number; col: number; letter: string }>;
 };
 
 const MultiplayerGameBoard = () => {
@@ -136,12 +138,15 @@ const MultiplayerGameBoard = () => {
       const timer = setTimeout(() => {
         setGameStartCountdown(prev => {
           if (prev <= 1) {
-            // Start the game
+            // Start the game and place starting tiles
             if (gameId) {
               supabase
                 .from('games')
                 .update({ game_status: 'active' })
-                .eq('id', gameId);
+                .eq('id', gameId)
+                .then(() => {
+                  // The realtime subscription will trigger loadGame which will place starting tiles
+                });
             }
             return 0;
           }
@@ -180,9 +185,21 @@ const MultiplayerGameBoard = () => {
           player2_grid: Array.isArray(data.player2_grid) ? data.player2_grid as Grid : createEmptyGrid(data.board_size || 5),
           player1_cooldowns: typeof data.player1_cooldowns === 'object' && data.player1_cooldowns ? data.player1_cooldowns as Record<string, number> : {},
           player2_cooldowns: typeof data.player2_cooldowns === 'object' && data.player2_cooldowns ? data.player2_cooldowns as Record<string, number> : {},
+          letter_pool: Array.isArray(data.letter_pool) ? data.letter_pool as string[] : ['A', 'B', 'C', 'D', 'E'],
+          starting_tiles: Array.isArray(data.starting_tiles) ? data.starting_tiles as Array<{ row: number; col: number; letter: string }> : [],
         };
         
         setGameState(gameData);
+        
+        // Place starting tiles on grids when game becomes active
+        if (data.game_status === 'active' && Array.isArray(data.starting_tiles) && data.starting_tiles.length > 0) {
+          const shouldPlaceStartingTiles = gameData.player1_grid.every(row => row.every(cell => cell === null)) && 
+                                          gameData.player2_grid.every(row => row.every(cell => cell === null));
+          
+          if (shouldPlaceStartingTiles) {
+            placeStartingTiles(gameData);
+          }
+        }
         
         // Check if both players joined and start countdown
         if (data.game_status === 'waiting' && data.player1_id && data.player2_id && gameStartCountdown === 0) {
@@ -207,6 +224,35 @@ const MultiplayerGameBoard = () => {
 
   const createEmptyGrid = (size: number = 5): Grid => {
     return Array(size).fill(null).map(() => Array(size).fill(null));
+  };
+
+  const placeStartingTiles = async (gameData: GameState) => {
+    if (!gameId || !gameData.starting_tiles || gameData.starting_tiles.length === 0) return;
+    
+    try {
+      const newPlayer1Grid = gameData.player1_grid.map(row => [...row]);
+      const newPlayer2Grid = gameData.player2_grid.map(row => [...row]);
+      
+      // Place starting tiles on both grids
+      gameData.starting_tiles.forEach((tile: any) => {
+        const { row, col, letter } = tile;
+        if (row < gameData.board_size && col < gameData.board_size) {
+          newPlayer1Grid[row][col] = { letter, player: 1 };
+          newPlayer2Grid[row][col] = { letter, player: 2 };
+        }
+      });
+      
+      await supabase
+        .from('games')
+        .update({
+          player1_grid: newPlayer1Grid,
+          player2_grid: newPlayer2Grid,
+        })
+        .eq('id', gameId);
+        
+    } catch (error) {
+      console.error('Error placing starting tiles:', error);
+    }
   };
 
   // Get board size and game constants based on game state
@@ -375,15 +421,15 @@ const MultiplayerGameBoard = () => {
   };
 
   const renderAvailableLetters = () => {
-    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    if (!gameState?.letter_pool) return null;
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-6xl">
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-2xl">
         <div className="text-center mb-3">
           <span className="text-sm font-semibold text-muted-foreground">Available Letters</span>
         </div>
-        <div className="grid grid-cols-13 gap-1 justify-center max-w-4xl mx-auto">
-          {allLetters.map(letter => {
+        <div className="flex justify-center gap-2">
+          {gameState.letter_pool.map(letter => {
             const isOnCooldown = isLetterOnCooldown(letter);
             const isSelected = selectedLetter === letter;
             const cooldownTurns = getLetterCooldown(letter);
@@ -397,13 +443,13 @@ const MultiplayerGameBoard = () => {
                   relative rounded-lg font-bold transition-all duration-200 flex flex-col items-center justify-center
                   ${isOnCooldown ? 
                     'w-16 h-16 bg-destructive/20 text-destructive border-2 border-destructive/50 cursor-not-allowed' : 
-                    'w-12 h-12'}
+                    'w-14 h-14'}
                   ${isSelected && !isOnCooldown ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
                   ${!isOnCooldown && !isSelected && isMyTurn ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border-2 border-border' : ''}
                   ${!isMyTurn ? 'opacity-50' : ''}
                 `}
               >
-                <span className={`${isOnCooldown ? 'text-lg' : 'text-sm'}`}>
+                <span className={`${isOnCooldown ? 'text-lg' : 'text-xl'}`}>
                   {letter}
                 </span>
                 {isOnCooldown && (
