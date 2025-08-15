@@ -65,16 +65,13 @@ const MultiplayerGameBoard = () => {
             .update({ player1_id: user.user?.id || null })
             .eq('id', gameId);
         } else if (game && game.game_status === 'waiting' && game.player1_id && !game.player2_id && game.player1_id !== user.user?.id) {
-          // Assign current user as player 2 and start countdown
+          // Assign current user as player 2
           await supabase
             .from('games')
             .update({ 
               player2_id: user.user?.id || null
             })
             .eq('id', gameId);
-          
-          // Start 3-second countdown before activating game
-          setGameStartCountdown(3);
         }
       } catch (error) {
         console.error('Error auto-joining game:', error);
@@ -159,6 +156,7 @@ const MultiplayerGameBoard = () => {
   // Check if both players have joined and start countdown
   useEffect(() => {
     if (gameState && gameState.game_status === 'waiting' && gameState.player1_id && gameState.player2_id && gameStartCountdown === 0) {
+      console.log('Starting countdown - both players joined');
       setGameStartCountdown(3);
     }
   }, [gameState?.player1_id, gameState?.player2_id, gameState?.game_status, gameStartCountdown]);
@@ -176,13 +174,20 @@ const MultiplayerGameBoard = () => {
       if (error) throw error;
       
       if (data) {
-        setGameState({
+        const gameData = {
           ...data,
           player1_grid: Array.isArray(data.player1_grid) ? data.player1_grid as Grid : createEmptyGrid(data.board_size || 5),
           player2_grid: Array.isArray(data.player2_grid) ? data.player2_grid as Grid : createEmptyGrid(data.board_size || 5),
           player1_cooldowns: typeof data.player1_cooldowns === 'object' && data.player1_cooldowns ? data.player1_cooldowns as Record<string, number> : {},
           player2_cooldowns: typeof data.player2_cooldowns === 'object' && data.player2_cooldowns ? data.player2_cooldowns as Record<string, number> : {},
-        });
+        };
+        
+        setGameState(gameData);
+        
+        // Check if both players joined and start countdown
+        if (data.game_status === 'waiting' && data.player1_id && data.player2_id && gameStartCountdown === 0) {
+          setGameStartCountdown(3);
+        }
         
         if (data.game_status === 'finished' && data.winner_id) {
           setShowWinnerDialog(true);
