@@ -34,7 +34,7 @@ const MultiplayerGameBoard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const playerNumber = parseInt(searchParams.get('player') || '1') as Player;
+  const [playerNumber, setPlayerNumber] = useState<Player>(parseInt(searchParams.get('player') || '1') as Player);
   const username = searchParams.get('username') || `Player ${playerNumber}`;
   
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -65,18 +65,32 @@ const MultiplayerGameBoard = () => {
           .single();
 
         if (game && game.game_status === 'waiting') {
-          if (!game.player1_id && !game.player2_id) {
+          // Determine which player this session should be
+          if (game.player1_id === sessionId) {
+            setPlayerNumber(1);
+          } else if (game.player2_id === sessionId) {
+            setPlayerNumber(2);
+          } else if (!game.player1_id && !game.player2_id) {
             // Assign current session as player 1 if no players
             await supabase
               .from('games')
               .update({ player1_id: sessionId })
               .eq('id', gameId);
-          } else if (game.player1_id && !game.player2_id && game.player1_id !== sessionId) {
+            setPlayerNumber(1);
+          } else if (game.player1_id && !game.player2_id) {
             // Assign current session as player 2
             await supabase
               .from('games')
               .update({ player2_id: sessionId })
               .eq('id', gameId);
+            setPlayerNumber(2);
+          }
+        } else if (game && (game.game_status === 'active' || game.game_status === 'finished')) {
+          // For active/finished games, determine player number based on session ID
+          if (game.player1_id === sessionId) {
+            setPlayerNumber(1);
+          } else if (game.player2_id === sessionId) {
+            setPlayerNumber(2);
           }
         }
       } catch (error) {

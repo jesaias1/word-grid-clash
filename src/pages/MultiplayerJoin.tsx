@@ -25,13 +25,12 @@ const MultiplayerJoin = () => {
                              `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
             localStorage.setItem('player_session_id', sessionId);
             
-            // Check if this game needs a player 2
-            if (!game.player2_id && game.player1_id !== sessionId) {
-              // Join as player 2
-              await supabase
-                .from('games')
-                .update({ player2_id: sessionId })
-                .eq('id', game.id);
+            // Determine which player this session should be or join as available player
+            if (game.player1_id === sessionId) {
+              // Already player 1
+              navigate(`/multiplayer/${game.id}?player=1&username=Player 1`);
+            } else if (game.player2_id === sessionId) {
+              // Already player 2
               navigate(`/multiplayer/${game.id}?player=2&username=Player 2`);
             } else if (!game.player1_id) {
               // Join as player 1
@@ -40,8 +39,15 @@ const MultiplayerJoin = () => {
                 .update({ player1_id: sessionId })
                 .eq('id', game.id);
               navigate(`/multiplayer/${game.id}?player=1&username=Player 1`);
+            } else if (!game.player2_id) {
+              // Join as player 2
+              await supabase
+                .from('games')
+                .update({ player2_id: sessionId })
+                .eq('id', game.id);
+              navigate(`/multiplayer/${game.id}?player=2&username=Player 2`);
             } else {
-              // Game is full or user is already in game
+              // Game is full
               navigate(`/multiplayer/${game.id}?spectate=true`);
             }
           } else {
