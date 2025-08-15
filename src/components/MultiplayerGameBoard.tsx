@@ -40,6 +40,7 @@ const MultiplayerGameBoard = () => {
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [gameStartCountdown, setGameStartCountdown] = useState(0);
 
   // Load game data
   useEffect(() => {
@@ -64,14 +65,16 @@ const MultiplayerGameBoard = () => {
             .update({ player1_id: user.user?.id || null })
             .eq('id', gameId);
         } else if (game && game.game_status === 'waiting' && game.player1_id && !game.player2_id && game.player1_id !== user.user?.id) {
-          // Assign current user as player 2 and start game
+          // Assign current user as player 2 and start countdown
           await supabase
             .from('games')
             .update({ 
-              player2_id: user.user?.id || null,
-              game_status: 'active'
+              player2_id: user.user?.id || null
             })
             .eq('id', gameId);
+          
+          // Start 3-second countdown before activating game
+          setGameStartCountdown(3);
         }
       } catch (error) {
         console.error('Error auto-joining game:', error);
@@ -129,6 +132,36 @@ const MultiplayerGameBoard = () => {
   useEffect(() => {
     setTimeLeft(TURN_TIME);
   }, [gameState?.current_player]);
+
+  // Game start countdown effect
+  useEffect(() => {
+    if (gameStartCountdown > 0) {
+      const timer = setTimeout(() => {
+        setGameStartCountdown(prev => {
+          if (prev <= 1) {
+            // Start the game
+            if (gameId) {
+              supabase
+                .from('games')
+                .update({ game_status: 'active' })
+                .eq('id', gameId);
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameStartCountdown, gameId]);
+
+  // Check if both players have joined and start countdown
+  useEffect(() => {
+    if (gameState && gameState.game_status === 'waiting' && gameState.player1_id && gameState.player2_id && gameStartCountdown === 0) {
+      setGameStartCountdown(3);
+    }
+  }, [gameState?.player1_id, gameState?.player2_id, gameState?.game_status, gameStartCountdown]);
 
   const loadGame = async () => {
     if (!gameId) return;
@@ -525,11 +558,24 @@ const MultiplayerGameBoard = () => {
       </div>
 
       {/* Game Status */}
-      {gameState.game_status === 'waiting' && (
+      {gameState.game_status === 'waiting' && gameStartCountdown === 0 && (
         <div className="text-center p-4 bg-muted rounded-lg">
           <p className="text-muted-foreground">
             Waiting for opponent to join. Share the invite code: <strong>{gameState.invite_code}</strong>
           </p>
+        </div>
+      )}
+      
+      {/* Game Start Countdown */}
+      {gameStartCountdown > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card p-8 rounded-lg text-center space-y-4">
+            <h2 className="text-2xl font-bold">Game Starting!</h2>
+            <div className="text-6xl font-bold text-primary animate-pulse">
+              {gameStartCountdown}
+            </div>
+            <p className="text-muted-foreground">Get ready to play!</p>
+          </div>
         </div>
       )}
     </div>

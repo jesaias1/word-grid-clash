@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 const MultiplayerJoin = () => {
   const { inviteCode } = useParams<{ inviteCode: string }>();
@@ -9,8 +10,27 @@ const MultiplayerJoin = () => {
 
   useEffect(() => {
     if (inviteCode) {
-      // Redirect to lobby with the invite code pre-filled
-      navigate(`/multiplayer?code=${inviteCode}`);
+      // Find the game by invite code and redirect to it
+      const findAndJoinGame = async () => {
+        try {
+          const { data: game } = await supabase
+            .from('games')
+            .select('id')
+            .eq('invite_code', inviteCode)
+            .single();
+          
+          if (game) {
+            navigate(`/multiplayer/${game.id}?player=2&username=Player 2`);
+          } else {
+            navigate(`/multiplayer?code=${inviteCode}`);
+          }
+        } catch (error) {
+          console.error('Error finding game:', error);
+          navigate(`/multiplayer?code=${inviteCode}`);
+        }
+      };
+      
+      findAndJoinGame();
     }
   }, [inviteCode, navigate]);
 
