@@ -398,7 +398,7 @@ const MultiplayerGameBoard = () => {
             
             return (
               <div
-                key={`${rowIndex}-${colIndex}`}
+                key={`${rowIndex}-${colIndex}-${playerNumber}`}
                 className={`
                   w-full aspect-square cursor-pointer flex items-center justify-center transition-all duration-200
                   ${isLightSquare ? 'bg-muted' : 'bg-muted-foreground/20'}
