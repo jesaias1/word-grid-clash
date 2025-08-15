@@ -167,6 +167,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   const makeAIMove = async (currentState: GameState) => {
     const dict = await loadDictionary();
     const aiGrid = currentState.grids[1]; // AI is player 2
+    const playerGrid = currentState.grids[0]; // Player 1 grid
     const availableCells: Array<{row: number, col: number}> = [];
     
     // Find empty cells in AI grid
@@ -195,120 +196,192 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     }
     
     let bestMove: {letter: string, row: number, col: number, score: number} | null = null;
-    let bestScore = -10;
+    let bestScore = -1000;
     
     // AI strategy based on difficulty level
     const difficultySettings = {
       easy: { 
-        maxMoves: 15, 
-        lettersToEvaluate: 3, 
-        randomness: 1.2, 
-        blockingWeight: 0.1,
-        centerWeight: 0.3
+        scoreWeight: 2.0,
+        wordLengthBonus: 1.0,
+        connectivityWeight: 0.5,
+        blockingWeight: 0.2,
+        randomness: 0.6,
+        lettersToEvaluate: 8,
+        maxMoves: 30
       },
       medium: { 
-        maxMoves: 40, 
-        lettersToEvaluate: 6, 
-        randomness: 0.8, 
-        blockingWeight: 0.5,
-        centerWeight: 0.8
+        scoreWeight: 4.0,
+        wordLengthBonus: 2.0,
+        connectivityWeight: 1.0,
+        blockingWeight: 0.8,
+        randomness: 0.3,
+        lettersToEvaluate: 12,
+        maxMoves: 60
       },
       hard: { 
-        maxMoves: 80, 
-        lettersToEvaluate: 10, 
-        randomness: 0.3, 
-        blockingWeight: 1.0,
-        centerWeight: 1.2
+        scoreWeight: 6.0,
+        wordLengthBonus: 3.0,
+        connectivityWeight: 1.5,
+        blockingWeight: 1.2,
+        randomness: 0.1,
+        lettersToEvaluate: 16,
+        maxMoves: 100
       }
     };
     
     const settings = difficultySettings[difficulty];
     
-    // Focus on common letters
-    const commonLetters = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'D', 'L', 'U', 'C', 'M', 'W', 'F', 'G', 'Y', 'P', 'B', 'V', 'K', 'J', 'X', 'Q', 'Z'];
-    const availableCommonLetters = commonLetters.filter(letter => availableAILetters.includes(letter));
-    const lettersToUse = availableCommonLetters.length > 0 ? availableCommonLetters : availableAILetters;
+    // Prioritize vowels and common consonants for word formation
+    const vowels = ['A', 'E', 'I', 'O', 'U'];
+    const commonConsonants = ['R', 'S', 'T', 'L', 'N', 'D', 'C', 'M', 'P', 'B', 'H', 'K', 'F', 'G', 'W', 'Y', 'V', 'J', 'X', 'Q', 'Z'];
     
-    const maxMovesToEvaluate = Math.min(availableCells.length * lettersToUse.length, settings.maxMoves);
+    // Sort letters by usefulness for word formation
+    const sortedLetters = [...availableAILetters].sort((a, b) => {
+      const aIsVowel = vowels.includes(a);
+      const bIsVowel = vowels.includes(b);
+      const aIndex = commonConsonants.indexOf(a);
+      const bIndex = commonConsonants.indexOf(b);
+      
+      if (aIsVowel && !bIsVowel) return -1;
+      if (!aIsVowel && bIsVowel) return 1;
+      if (aIsVowel && bIsVowel) return 0;
+      
+      return (aIndex === -1 ? 100 : aIndex) - (bIndex === -1 ? 100 : bIndex);
+    });
+    
+    const lettersToUse = sortedLetters.slice(0, settings.lettersToEvaluate);
     let movesEvaluated = 0;
     
-    // Shuffle cells for variety, but keep common letters prioritized
-    const shuffledCells = [...availableCells].sort(() => Math.random() - 0.5);
+    // Get current AI and player scores for comparison
+    const currentAIResult = scoreGrid(aiGrid, dict, currentState.usedWords[1], 3);
+    const currentPlayerResult = scoreGrid(playerGrid, dict, currentState.usedWords[0], 3);
     
-    for (const letter of lettersToUse.slice(0, settings.lettersToEvaluate)) {
-      for (const cell of shuffledCells) {
-        if (movesEvaluated >= maxMovesToEvaluate) break;
+    // Evaluate each possible move
+    for (const letter of lettersToUse) {
+      for (const cell of availableCells) {
+        if (movesEvaluated >= settings.maxMoves) break;
         movesEvaluated++;
         
-        // Create test grid
+        // Create test grid with this move
         const testGrid = aiGrid.map(row => [...row]);
         testGrid[cell.row][cell.col] = letter;
         
-        // Calculate AI's score improvement
-        const currentAIResult = scoreGrid(aiGrid, dict, currentState.usedWords[1], 3);
+        // Calculate score improvement
         const newAIResult = scoreGrid(testGrid, dict, currentState.usedWords[1], 3);
-        const aiScoreGain = newAIResult.score - currentAIResult.score;
+        const scoreGain = newAIResult.score - currentAIResult.score;
         
         let moveValue = 0;
         
-        // Prioritize actual scoring moves
-        if (aiScoreGain > 0) {
-          moveValue += aiScoreGain * 3; // Strong weight for scoring
+        // 1. Prioritize moves that actually form words (MAIN FOCUS)
+        if (scoreGain > 0) {
+          moveValue += scoreGain * settings.scoreWeight;
+          
+          // Bonus for longer words formed
+          const newWords = [...newAIResult.newUsedWords].filter(word => 
+            !currentState.usedWords[1].has(word)
+          );
+          for (const word of newWords) {
+            if (word.length >= 4) {
+              moveValue += word.length * settings.wordLengthBonus;
+            }
+          }
         }
         
-        // Position value - center is better (scaled by difficulty)
-        const centerDistance = Math.abs(cell.row - 2) + Math.abs(cell.col - 2);
-        moveValue += (4 - centerDistance) * settings.centerWeight;
+        // 2. Look for potential word extensions and formations
+        const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
+        let connectivityScore = 0;
+        let adjacentLetters = 0;
         
-        // Adjacent bonus - building connectivity
-        const adjacentPositions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-        let adjacentCount = 0;
         for (const [dx, dy] of adjacentPositions) {
           const newRow = cell.row + dx;
           const newCol = cell.col + dy;
           if (newRow >= 0 && newRow < boardSize && newCol >= 0 && newCol < boardSize) {
             if (testGrid[newRow][newCol] !== null) {
-              adjacentCount++;
+              adjacentLetters++;
+              // Check if this creates word potential
+              const adjacentLetter = testGrid[newRow][newCol];
+              if (typeof adjacentLetter === 'string') {
+                // Basic heuristic: vowel next to consonant or vice versa
+                const isVowel = vowels.includes(letter);
+                const adjacentIsVowel = vowels.includes(adjacentLetter);
+                if (isVowel !== adjacentIsVowel) {
+                  connectivityScore += 2;
+                }
+              }
             }
           }
         }
-        moveValue += adjacentCount * 1.2;
         
-        // Blocking consideration (scaled by difficulty)
-        const playerGrid = currentState.grids[0];
-        const playerResult = scoreGrid(playerGrid, dict, currentState.usedWords[0], 3);
+        moveValue += connectivityScore * settings.connectivityWeight;
+        moveValue += Math.min(adjacentLetters, 3) * 0.5; // Bonus for adjacency, capped
         
-        // Check positions for blocking based on difficulty
-        const blockingChecks = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 3 : 5;
-        for (let i = 0; i < Math.min(blockingChecks, availableCells.length); i++) {
-          const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
-          const testPlayerGrid = playerGrid.map(row => [...row]);
-          testPlayerGrid[randomCell.row][randomCell.col] = letter;
-          const potentialPlayerResult = scoreGrid(testPlayerGrid, dict, currentState.usedWords[0], 3);
-          const playerPotentialGain = potentialPlayerResult.score - playerResult.score;
+        // 3. Strategic positioning - prefer center and edges for word formation
+        const centerDistance = Math.abs(cell.row - Math.floor(boardSize/2)) + Math.abs(cell.col - Math.floor(boardSize/2));
+        const isEdge = cell.row === 0 || cell.row === boardSize-1 || cell.col === 0 || cell.col === boardSize-1;
+        
+        if (centerDistance <= 1) {
+          moveValue += 1.0; // Center positions are good for word building
+        }
+        if (isEdge && adjacentLetters > 0) {
+          moveValue += 0.8; // Edge positions with connections
+        }
+        
+        // 4. Defensive play - try to block player's high-scoring opportunities
+        if (settings.blockingWeight > 0) {
+          // Look for player's potential moves that would score highly
+          const playerEmptyCells: Array<{row: number, col: number}> = [];
+          for (let row = 0; row < boardSize; row++) {
+            for (let col = 0; col < boardSize; col++) {
+              if (playerGrid[row][col] === null) {
+                playerEmptyCells.push({row, col});
+              }
+            }
+          }
           
-          if (playerPotentialGain > 2) {
-            moveValue += Math.min(playerPotentialGain * settings.blockingWeight, 6);
+          // Check a few potential player moves with this letter
+          let maxPlayerThreat = 0;
+          for (let i = 0; i < Math.min(5, playerEmptyCells.length); i++) {
+            const playerCell = playerEmptyCells[i];
+            const testPlayerGrid = playerGrid.map(row => [...row]);
+            testPlayerGrid[playerCell.row][playerCell.col] = letter;
+            const playerResult = scoreGrid(testPlayerGrid, dict, currentState.usedWords[0], 3);
+            const playerGain = playerResult.score - currentPlayerResult.score;
+            if (playerGain > maxPlayerThreat) {
+              maxPlayerThreat = playerGain;
+            }
+          }
+          
+          if (maxPlayerThreat > 2) {
+            moveValue += Math.min(maxPlayerThreat * settings.blockingWeight, 4);
           }
         }
         
-        // Add randomness based on difficulty level
-        const randomRange = settings.randomness;
-        const randomFactor = (2 - randomRange) / 2 + Math.random() * randomRange;
-        const finalScore = moveValue * randomFactor;
+        // 5. Add controlled randomness to prevent predictable play
+        if (settings.randomness > 0) {
+          const randomFactor = 1 + (Math.random() - 0.5) * settings.randomness;
+          moveValue *= randomFactor;
+        }
         
-        if (finalScore > bestScore) {
-          bestScore = finalScore;
-          bestMove = {letter, row: cell.row, col: cell.col, score: finalScore};
+        // Track the best move
+        if (moveValue > bestScore) {
+          bestScore = moveValue;
+          bestMove = {letter, row: cell.row, col: cell.col, score: moveValue};
         }
       }
     }
     
-    // Fallback: if no good move found, pick randomly
+    // Fallback: if no good move found, make a strategic random move
     if (!bestMove && availableCells.length > 0 && availableAILetters.length > 0) {
-      const randomCell = availableCells[Math.floor(Math.random() * availableCells.length)];
-      const randomLetter = availableAILetters[Math.floor(Math.random() * availableAILetters.length)];
-      bestMove = {letter: randomLetter, row: randomCell.row, col: randomCell.col, score: 0};
+      // Prefer vowels and common consonants even in fallback
+      const fallbackLetter = lettersToUse[0] || availableAILetters[0];
+      
+      // Prefer center positions in fallback
+      const centerCell = availableCells.find(cell => 
+        Math.abs(cell.row - Math.floor(boardSize/2)) <= 1 && 
+        Math.abs(cell.col - Math.floor(boardSize/2)) <= 1
+      ) || availableCells[0];
+      
+      bestMove = {letter: fallbackLetter, row: centerCell.row, col: centerCell.col, score: 0};
     }
     
     // Make the AI move
