@@ -15,12 +15,35 @@ const MultiplayerJoin = () => {
         try {
           const { data: game } = await supabase
             .from('games')
-            .select('id')
+            .select('*')
             .eq('invite_code', inviteCode)
             .single();
           
           if (game) {
-            navigate(`/multiplayer/${game.id}?player=2&username=Player 2`);
+            // Generate a unique session ID for this browser session
+            const sessionId = localStorage.getItem('player_session_id') || 
+                             `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            localStorage.setItem('player_session_id', sessionId);
+            
+            // Check if this game needs a player 2
+            if (!game.player2_id && game.player1_id !== sessionId) {
+              // Join as player 2
+              await supabase
+                .from('games')
+                .update({ player2_id: sessionId })
+                .eq('id', game.id);
+              navigate(`/multiplayer/${game.id}?player=2&username=Player 2`);
+            } else if (!game.player1_id) {
+              // Join as player 1
+              await supabase
+                .from('games')
+                .update({ player1_id: sessionId })
+                .eq('id', game.id);
+              navigate(`/multiplayer/${game.id}?player=1&username=Player 1`);
+            } else {
+              // Game is full or user is already in game
+              navigate(`/multiplayer/${game.id}?spectate=true`);
+            }
           } else {
             navigate(`/multiplayer?code=${inviteCode}`);
           }

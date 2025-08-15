@@ -50,30 +50,34 @@ const MultiplayerGameBoard = () => {
     
     loadGame();
     
-    // Auto-join if game is waiting and user isn't assigned
+    // Auto-join if game is waiting and user isn't assigned (using session ID instead of auth)
     const autoJoinIfNeeded = async () => {
       try {
-        const { data: user } = await supabase.auth.getUser();
+        // Generate or get existing session ID for this browser
+        const sessionId = localStorage.getItem('player_session_id') || 
+                         `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('player_session_id', sessionId);
+        
         const { data: game } = await supabase
           .from('games')
           .select('*')
           .eq('id', gameId)
           .single();
 
-        if (game && game.game_status === 'waiting' && !game.player1_id && !game.player2_id) {
-          // Assign current user as player 1 if no players
-          await supabase
-            .from('games')
-            .update({ player1_id: user.user?.id || null })
-            .eq('id', gameId);
-        } else if (game && game.game_status === 'waiting' && game.player1_id && !game.player2_id && game.player1_id !== user.user?.id) {
-          // Assign current user as player 2
-          await supabase
-            .from('games')
-            .update({ 
-              player2_id: user.user?.id || null
-            })
-            .eq('id', gameId);
+        if (game && game.game_status === 'waiting') {
+          if (!game.player1_id && !game.player2_id) {
+            // Assign current session as player 1 if no players
+            await supabase
+              .from('games')
+              .update({ player1_id: sessionId })
+              .eq('id', gameId);
+          } else if (game.player1_id && !game.player2_id && game.player1_id !== sessionId) {
+            // Assign current session as player 2
+            await supabase
+              .from('games')
+              .update({ player2_id: sessionId })
+              .eq('id', gameId);
+          }
         }
       } catch (error) {
         console.error('Error auto-joining game:', error);
