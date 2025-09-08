@@ -314,36 +314,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     );
   };
 
-  const renderCrossGridIndicators = () => {
-    return (
-      <div className="flex justify-center gap-8 mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-player-1">Player 1:</span>
-          <div className="flex gap-1">
-            {[0, 1, 2].map(i => (
-              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
-                i < crossGridPlacements[0] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
-              }`}>
-                ✕
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-player-2">Player 2:</span>
-          <div className="flex gap-1">
-            {[0, 1, 2].map(i => (
-              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
-                i < crossGridPlacements[1] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
-              }`}>
-                ✕
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const renderAvailableLetters = () => {
     const availableToSelect = availableLetters.filter(letter => !isLetterOnCooldown(letter));

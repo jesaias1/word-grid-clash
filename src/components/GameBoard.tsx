@@ -939,8 +939,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
         <div></div>
       </div>
 
-      {/* Cross-Grid Placement Indicators */}
-      {renderCrossGridIndicators()}
 
       {/* All Letters Display */}
       {renderAvailableLetters()}
@@ -949,14 +947,37 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       {renderLetterCooldowns()}
 
       {/* Game Grids */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 flex-1">
-        <div className="space-y-1">
-          <h2 className="text-xs font-bold text-player-1 text-center">Your Grid</h2>
+      <div className="flex justify-center items-start gap-4 flex-1">
+        {/* Player Grid */}
+        <div className="flex flex-col items-center">
+          <div className={`mb-2 p-2 rounded-lg text-center ${gameState.currentPlayer === 1 ? 'bg-player-1/20 border border-player-1/30' : 'bg-card'}`}>
+            <div className="text-lg font-bold text-player-1">You</div>
+            <div className="text-2xl font-bold">{gameState.scores[0]}</div>
+          </div>
+          {/* Player Attack Indicators */}
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
+            {[0, 1, 2].map(i => (
+              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
+                i < crossGridPlacements ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
+              }`}>
+                ✕
+              </div>
+            ))}
+          </div>
           {renderGrid(0)}
         </div>
-        
-        <div className="space-y-1">
-          <h2 className="text-xs font-bold text-player-2 text-center">AI Bot Grid</h2>
+
+        {/* AI Grid */}
+        <div className="flex flex-col items-center">
+          <div className={`mb-2 p-2 rounded-lg text-center ${gameState.currentPlayer === 2 ? 'bg-player-2/20 border border-player-2/30' : 'bg-card'}`}>
+            <div className="text-lg font-bold text-player-2">AI Bot</div>
+            <div className="text-2xl font-bold">{gameState.scores[1]}</div>
+          </div>
+          {/* AI doesn't have attacks, so show placeholder */}
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs font-medium text-muted-foreground">AI Grid</span>
+          </div>
           {renderGrid(1)}
         </div>
       </div>
