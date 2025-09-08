@@ -69,10 +69,13 @@ export function findValidWords(grid: Grid, dict: Set<string>, minLength = 2): Wo
   return results;
 }
 
-export function scoreGrid(grid: Grid, dict: Set<string>, usedWords: Set<string>, minLength = 3): { score: number; scoredCells: Set<string>; newUsedWords: Set<string> } {
+export function scoreGrid(grid: Grid, dict: Set<string>, usedWords: Set<string>, minLength = 3): { score: number; scoredCells: Set<string>; newUsedWords: Set<string>; allFoundWords: string[] } {
   const matches = findValidWords(grid, dict, minLength);
   const scoredCells = new Set<string>();
   const newUsedWords = new Set(usedWords);
+  
+  // Get all words found (including ones already used)
+  const allFoundWords = matches.map(match => match.word);
   
   // Only count words that haven't been used by this player before
   const validMatches = matches.filter(match => !usedWords.has(match.word));
@@ -91,6 +94,7 @@ export function scoreGrid(grid: Grid, dict: Set<string>, usedWords: Set<string>,
   return {
     score: scoredCells.size,
     scoredCells,
-    newUsedWords
+    newUsedWords,
+    allFoundWords
   };
 }

@@ -95,6 +95,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
   const [scoredCells, setScoredCells] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
+  const [allFoundWords, setAllFoundWords] = useState<[string[], string[]]>([[], []]);
 
   // Preload dictionary in the background
   useEffect(() => {
@@ -193,6 +194,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       const newUsedWords: [Set<string>, Set<string>] = [result1.newUsedWords, result2.newUsedWords];
       setUsedWords(newUsedWords);
       setScoredCells([result1.scoredCells, result2.scoredCells]);
+      setAllFoundWords([result1.allFoundWords, result2.allFoundWords]);
 
       // Check if game should end
       const areAllGridsFull = newGrids.every(grid => 
@@ -401,30 +403,30 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
 
                 {/* Words Found Section */}
                 <div className="bg-muted rounded-lg p-4 max-h-48 overflow-y-auto">
-                  <div className="text-sm text-muted-foreground mb-3">Words Found:</div>
+                  <div className="text-sm text-muted-foreground mb-3">All Words Found:</div>
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div className="space-y-1">
-                      <div className="font-medium text-player-1">Player 1 Words ({usedWords[0].size})</div>
+                      <div className="font-medium text-player-1">Player 1 Words ({allFoundWords[0].length})</div>
                       <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {Array.from(usedWords[0]).sort().map((word, idx) => (
+                        {allFoundWords[0].sort().map((word, idx) => (
                           <div key={idx} className="bg-background/50 rounded px-2 py-1">
                             {word.toUpperCase()}
                           </div>
                         ))}
-                        {usedWords[0].size === 0 && (
+                        {allFoundWords[0].length === 0 && (
                           <div className="text-muted-foreground italic">No words found</div>
                         )}
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className="font-medium text-player-2">Player 2 Words ({usedWords[1].size})</div>
+                      <div className="font-medium text-player-2">Player 2 Words ({allFoundWords[1].length})</div>
                       <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {Array.from(usedWords[1]).sort().map((word, idx) => (
+                        {allFoundWords[1].sort().map((word, idx) => (
                           <div key={idx} className="bg-background/50 rounded px-2 py-1">
                             {word.toUpperCase()}
                           </div>
                         ))}
-                        {usedWords[1].size === 0 && (
+                        {allFoundWords[1].length === 0 && (
                           <div className="text-muted-foreground italic">No words found</div>
                         )}
                       </div>

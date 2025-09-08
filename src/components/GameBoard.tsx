@@ -112,6 +112,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
+  const [allFoundWords, setAllFoundWords] = useState<[string[], string[]]>([[], []]);
 
   // Set available letters from game state
   useEffect(() => {
@@ -446,6 +447,9 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
           timeLeft: TURN_TIME
         };
         
+        // Update all found words
+        setAllFoundWords([result1.allFoundWords, result2.allFoundWords]);
+        
         // Show winner dialog if game ended
         if (gameEnded) {
           setTimeout(() => setShowWinnerDialog(true), 500);
@@ -561,6 +565,9 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
         timeLeft: TURN_TIME // Reset timer for next player
       };
       
+      // Update all found words
+      setAllFoundWords([result1.allFoundWords, result2.allFoundWords]);
+      
       // Show winner dialog if game ended
       if (gameEnded) {
         setTimeout(() => setShowWinnerDialog(true), 500);
@@ -576,6 +583,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     setGameState(initializeGame());
     setSelectedLetter('');
     setShowWinnerDialog(false);
+    setAllFoundWords([[], []]);
   };
 
 
@@ -750,30 +758,30 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
 
                 {/* Words Found Section */}
                 <div className="bg-muted rounded-lg p-4 max-h-48 overflow-y-auto">
-                  <div className="text-sm text-muted-foreground mb-3">Words Found:</div>
+                  <div className="text-sm text-muted-foreground mb-3">All Words Found:</div>
                   <div className="grid grid-cols-2 gap-4 text-xs">
                     <div className="space-y-1">
-                      <div className="font-medium text-player-1">Your Words ({gameState.usedWords[0].size})</div>
+                      <div className="font-medium text-player-1">Your Words ({allFoundWords[0].length})</div>
                       <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {Array.from(gameState.usedWords[0]).sort().map((word, idx) => (
+                        {allFoundWords[0].sort().map((word, idx) => (
                           <div key={idx} className="bg-background/50 rounded px-2 py-1">
                             {word.toUpperCase()}
                           </div>
                         ))}
-                        {gameState.usedWords[0].size === 0 && (
+                        {allFoundWords[0].length === 0 && (
                           <div className="text-muted-foreground italic">No words found</div>
                         )}
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className="font-medium text-player-2">AI Words ({gameState.usedWords[1].size})</div>
+                      <div className="font-medium text-player-2">AI Words ({allFoundWords[1].length})</div>
                       <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {Array.from(gameState.usedWords[1]).sort().map((word, idx) => (
+                        {allFoundWords[1].sort().map((word, idx) => (
                           <div key={idx} className="bg-background/50 rounded px-2 py-1">
                             {word.toUpperCase()}
                           </div>
                         ))}
-                        {gameState.usedWords[1].size === 0 && (
+                        {allFoundWords[1].length === 0 && (
                           <div className="text-muted-foreground italic">No words found</div>
                         )}
                       </div>
