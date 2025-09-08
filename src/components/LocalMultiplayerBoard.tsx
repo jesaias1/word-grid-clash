@@ -59,6 +59,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     return cell;
   };
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
+  const [crossGridPlacements, setCrossGridPlacements] = useState<[number, number]>([3, 3]); // Each player starts with 3 cross-grid placements
   
   // Initialize game with starting tiles
   const initializeGame = () => {
@@ -150,9 +151,13 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     if (!selectedLetter || gameEnded) return;
     
     const targetGrid = grids[targetPlayerIndex];
+    const isPlacingOnOpponentGrid = targetPlayerIndex !== (currentPlayer - 1);
     
     if (targetGrid[row][col] !== null) return; // Cell already occupied
     if (isLetterOnCooldown(selectedLetter)) return; // Letter on cooldown
+    
+    // Check if placing on opponent's grid and if cross-placements available
+    if (isPlacingOnOpponentGrid && crossGridPlacements[currentPlayer - 1] <= 0) return;
 
     try {
       // Update grids
@@ -185,6 +190,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       newCooldowns[0][selectedLetter] = COOLDOWN_TURNS;
       newCooldowns[1][selectedLetter] = COOLDOWN_TURNS;
 
+      // Update cross-grid placements if placing on opponent's grid
+      const newCrossGridPlacements: [number, number] = [...crossGridPlacements];
+      if (isPlacingOnOpponentGrid) {
+        newCrossGridPlacements[currentPlayer - 1]--;
+      }
+
       // Calculate new scores
       const dict = await loadDictionary();
       const result1 = scoreGrid(newGrids[0], dict, usedWords[0], 3);
@@ -215,6 +226,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       setGrids(newGrids);
       setCooldowns(newCooldowns);
       setScores([result1.score, result2.score]);
+      setCrossGridPlacements(newCrossGridPlacements);
       setSelectedLetter('');
       
       // Pass turn
@@ -241,6 +253,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     setTurn(1);
     setScores([0, 0]);
     setCooldowns([{}, {}]);
+    setCrossGridPlacements([3, 3]);
     setSelectedLetter('');
     setGameEnded(false);
     setWinner(null);
@@ -252,15 +265,16 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     const isCurrentPlayer = currentPlayer === (playerIndex + 1);
     const playerScoredCells = scoredCells[playerIndex];
     const isWinner = gameEnded && winner === (playerIndex + 1);
+    const canPlaceOnThisGrid = isCurrentPlayer || crossGridPlacements[currentPlayer - 1] > 0;
     
     return (
-      <div className={`grid gap-0 p-4 rounded-lg ${
+      <div className={`grid gap-0 p-2 rounded-lg ${
         isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
-      }`} style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}>
+      } ${!canPlaceOnThisGrid ? 'opacity-50' : ''}`} style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-            const canPlaceLetter = !gameEnded && selectedLetter && !cell;
+            const canPlaceLetter = !gameEnded && selectedLetter && !cell && canPlaceOnThisGrid;
             const isScored = playerScoredCells.has(`${rowIndex}-${colIndex}`);
             
             // Winner highlight effect - use darker green for better visibility
@@ -277,18 +291,18 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  w-full aspect-square cursor-pointer flex items-center justify-center transition-all duration-200
+                  w-8 h-8 cursor-pointer flex items-center justify-center transition-all duration-200
                   ${isLightSquare ? 'bg-muted' : 'bg-muted-foreground/20'}
                   ${cell ? (playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2') : ''}
                   ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg' : ''}
-                  ${!isCurrentPlayer ? 'opacity-75' : ''}
+                  ${!canPlaceOnThisGrid ? 'cursor-not-allowed' : ''}
                   ${winnerHighlight}
                 `}
                 style={highlightStyle}
                 onClick={() => canPlaceLetter && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
-                  <span className="font-bold text-lg drop-shadow-lg text-white">
+                  <span className="font-bold text-sm drop-shadow-lg text-white">
                     {getCellDisplay(cell)}
                   </span>
                 )}
@@ -300,15 +314,46 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     );
   };
 
+  const renderCrossGridIndicators = () => {
+    return (
+      <div className="flex justify-center gap-8 mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-player-1">Player 1:</span>
+          <div className="flex gap-1">
+            {[0, 1, 2].map(i => (
+              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
+                i < crossGridPlacements[0] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
+              }`}>
+                ✕
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-player-2">Player 2:</span>
+          <div className="flex gap-1">
+            {[0, 1, 2].map(i => (
+              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
+                i < crossGridPlacements[1] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
+              }`}>
+                ✕
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderAvailableLetters = () => {
     const availableToSelect = availableLetters.filter(letter => !isLetterOnCooldown(letter));
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-4 mx-auto mb-4 max-w-4xl">
-        <div className="text-center mb-3">
-          <span className="text-sm font-semibold text-muted-foreground">Available Letters</span>
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2">
+        <div className="text-center mb-2">
+          <span className="text-xs font-semibold text-muted-foreground">Available Letters</span>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="flex flex-wrap gap-1 justify-center">
           {availableLetters.map(letter => {
             const isOnCooldown = isLetterOnCooldown(letter);
             const isSelected = selectedLetter === letter;
@@ -318,16 +363,16 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
                 onClick={() => !isOnCooldown && !gameEnded && setSelectedLetter(letter)}
                 disabled={isOnCooldown || gameEnded}
                 className={`
-                  w-12 h-12 rounded-lg font-bold text-lg transition-all duration-200
+                  w-8 h-8 rounded font-bold text-sm transition-all duration-200
                   ${isSelected ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
                   ${isOnCooldown ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed' : 
                     'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105'}
-                  ${!isOnCooldown && !isSelected ? 'border-2 border-border' : ''}
+                  ${!isOnCooldown && !isSelected ? 'border border-border' : ''}
                 `}
               >
                 {letter}
                 {isOnCooldown && (
-                  <div className="text-xs mt-1">{getLetterCooldown(letter)}</div>
+                  <div className="text-xs">{getLetterCooldown(letter)}</div>
                 )}
               </button>
             );
@@ -347,14 +392,14 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     if (onCooldownLetters.length === 0) return null;
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2 max-w-2xl">
-        <div className="text-center mb-2">
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-auto mb-1">
+        <div className="text-center mb-1">
           <span className="text-xs font-semibold text-muted-foreground">On Cooldown</span>
         </div>
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="flex flex-wrap gap-1 justify-center">
           {onCooldownLetters.map(letter => (
-            <div key={letter} className="bg-muted/50 rounded p-2 border border-muted-foreground/20">
-              <div className="text-sm font-bold text-muted-foreground/60 text-center">
+            <div key={letter} className="bg-muted/50 rounded p-1 border border-muted-foreground/20">
+              <div className="text-xs font-bold text-muted-foreground/60 text-center">
                 {letter} ({getLetterCooldown(letter)})
               </div>
             </div>
@@ -365,7 +410,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
   };
 
   return (
-    <div className="h-screen p-3 space-y-3 max-w-6xl mx-auto flex flex-col">
+    <div className="min-h-screen p-2 space-y-2 max-w-5xl mx-auto flex flex-col">
       {/* Winner Dialog */}
       <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
         <DialogContent className="max-w-lg">
@@ -388,16 +433,16 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
                 <div className="bg-muted rounded-lg p-4">
                   <div className="text-sm text-muted-foreground mb-2">Final Scores:</div>
                   <div className="flex justify-center gap-8">
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-player-1">Player 1</div>
-                      <div className="text-2xl font-bold">{scores[0]}</div>
-                      <div className="text-xs text-muted-foreground">letters</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm font-medium text-player-2">Player 2</div>
-                      <div className="text-2xl font-bold">{scores[1]}</div>
-                      <div className="text-xs text-muted-foreground">letters</div>
-                    </div>
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-player-1">Player 1</div>
+                    <div className="text-2xl font-bold">{scores[0]}</div>
+                    <div className="text-xs text-muted-foreground">points</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-player-2">Player 2</div>
+                    <div className="text-2xl font-bold">{scores[1]}</div>
+                    <div className="text-xs text-muted-foreground">points</div>
+                  </div>
                   </div>
                 </div>
 
