@@ -16,88 +16,58 @@ export type Database = {
     Tables: {
       games: {
         Row: {
-          board_size: number
           created_at: string
           current_player: number
-          game_status: string
+          game_ended: boolean
+          grid: Json
           id: string
           invite_code: string
-          letter_pool: Json
           player1_cooldowns: Json
-          player1_grid: Json
           player1_id: string | null
           player1_score: number
           player2_cooldowns: Json
-          player2_grid: Json
           player2_id: string | null
           player2_score: number
-          starting_tiles: Json
-          turn_number: number
+          status: string
+          turn: number
           updated_at: string
-          winner_id: string | null
+          winner: number | null
         }
         Insert: {
-          board_size?: number
           created_at?: string
           current_player?: number
-          game_status?: string
+          game_ended?: boolean
+          grid?: Json
           id?: string
           invite_code: string
-          letter_pool?: Json
           player1_cooldowns?: Json
-          player1_grid?: Json
           player1_id?: string | null
           player1_score?: number
           player2_cooldowns?: Json
-          player2_grid?: Json
           player2_id?: string | null
           player2_score?: number
-          starting_tiles?: Json
-          turn_number?: number
+          status?: string
+          turn?: number
           updated_at?: string
-          winner_id?: string | null
+          winner?: number | null
         }
         Update: {
-          board_size?: number
           created_at?: string
           current_player?: number
-          game_status?: string
+          game_ended?: boolean
+          grid?: Json
           id?: string
           invite_code?: string
-          letter_pool?: Json
           player1_cooldowns?: Json
-          player1_grid?: Json
           player1_id?: string | null
           player1_score?: number
           player2_cooldowns?: Json
-          player2_grid?: Json
           player2_id?: string | null
           player2_score?: number
-          starting_tiles?: Json
-          turn_number?: number
+          status?: string
+          turn?: number
           updated_at?: string
-          winner_id?: string | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          id: string
-          updated_at: string
-          username: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          updated_at?: string
-          username: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          updated_at?: string
-          username?: string
+          winner?: number | null
         }
         Relationships: []
       }
@@ -106,14 +76,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_empty_grid: {
-        Args: { grid_size?: number }
-        Returns: Json
-      }
-      generate_invite_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
