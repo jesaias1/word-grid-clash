@@ -268,9 +268,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     const canPlaceOnThisGrid = isCurrentPlayer || crossGridPlacements[currentPlayer - 1] > 0;
     
     return (
-      <div className={`grid gap-0 p-2 rounded-lg ${
-        isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20' : 'bg-card'
-      } ${!canPlaceOnThisGrid ? 'opacity-50' : ''}`} style={{ gridTemplateColumns: `repeat(${boardSize}, minmax(0, 1fr))` }}>
+      <div className={`inline-grid gap-px p-2 rounded-lg border-2 ${
+        isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20 border-primary/30' : 'bg-card border-border'
+      } ${!canPlaceOnThisGrid ? 'opacity-50' : ''}`} style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
@@ -291,10 +291,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  w-8 h-8 cursor-pointer flex items-center justify-center transition-all duration-200
-                  ${isLightSquare ? 'bg-muted' : 'bg-muted-foreground/20'}
+                  w-12 h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
+                  ${isLightSquare ? 'bg-muted/80' : 'bg-muted-foreground/10'}
                   ${cell ? (playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2') : ''}
-                  ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg' : ''}
+                  ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg hover:bg-accent/20' : ''}
                   ${!canPlaceOnThisGrid ? 'cursor-not-allowed' : ''}
                   ${winnerHighlight}
                 `}
@@ -302,7 +302,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
                 onClick={() => canPlaceLetter && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
-                  <span className="font-bold text-sm drop-shadow-lg text-white">
+                  <span className="font-bold text-base drop-shadow-lg text-white">
                     {getCellDisplay(cell)}
                   </span>
                 )}
