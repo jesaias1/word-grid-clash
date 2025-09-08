@@ -69,14 +69,6 @@ const Index = () => {
             >
               Local Multiplayer
             </Button>
-            <Button 
-              onClick={() => navigate('/multiplayer')} 
-              size="lg" 
-              className="w-48"
-              variant="outline"
-            >
-              Online Multiplayer
-            </Button>
           </div>
         </div>
       </div>

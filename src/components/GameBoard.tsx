@@ -715,7 +715,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     <div className="h-screen p-3 space-y-3 max-w-6xl mx-auto flex flex-col">
       {/* Winner Dialog */}
       <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl font-bold">
               🎉 Game Over! 🎉
@@ -747,11 +747,44 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
                     </div>
                   </div>
                 </div>
+
+                {/* Words Found Section */}
+                <div className="bg-muted rounded-lg p-4 max-h-48 overflow-y-auto">
+                  <div className="text-sm text-muted-foreground mb-3">Words Found:</div>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <div className="font-medium text-player-1">Your Words ({gameState.usedWords[0].size})</div>
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {Array.from(gameState.usedWords[0]).sort().map((word, idx) => (
+                          <div key={idx} className="bg-background/50 rounded px-2 py-1">
+                            {word.toUpperCase()}
+                          </div>
+                        ))}
+                        {gameState.usedWords[0].size === 0 && (
+                          <div className="text-muted-foreground italic">No words found</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="font-medium text-player-2">AI Words ({gameState.usedWords[1].size})</div>
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {Array.from(gameState.usedWords[1]).sort().map((word, idx) => (
+                          <div key={idx} className="bg-background/50 rounded px-2 py-1">
+                            {word.toUpperCase()}
+                          </div>
+                        ))}
+                        {gameState.usedWords[1].size === 0 && (
+                          <div className="text-muted-foreground italic">No words found</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <div className="text-sm text-muted-foreground">
                   {gameState.winner ? 
-                    `${gameState.winner === 1 ? 'You' : 'AI Bot'} reached ${Math.max(gameState.scores[0], gameState.scores[1])} letters first!` :
-                    'Both players had the same score!'
+                    `${gameState.winner === 1 ? 'You' : 'AI Bot'} found more valid words!` :
+                    'Both players found the same number of letters!'
                   }
                 </div>
                 

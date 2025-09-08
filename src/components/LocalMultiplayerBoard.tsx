@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
 
@@ -90,8 +91,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
   const [gameEnded, setGameEnded] = useState(false);
   const [winner, setWinner] = useState<Player | null>(null);
-  const [usedWords] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
-  const [scoredCells] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
+  const [usedWords, setUsedWords] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
+  const [scoredCells, setScoredCells] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
+  const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
 
   // Preload dictionary in the background
@@ -187,6 +189,11 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       const result1 = scoreGrid(newGrids[0], dict, usedWords[0], 3);
       const result2 = scoreGrid(newGrids[1], dict, usedWords[1], 3);
 
+      // Update used words
+      const newUsedWords: [Set<string>, Set<string>] = [result1.newUsedWords, result2.newUsedWords];
+      setUsedWords(newUsedWords);
+      setScoredCells([result1.scoredCells, result2.scoredCells]);
+
       // Check if game should end
       const areAllGridsFull = newGrids.every(grid => 
         grid.every(row => row.every(cell => cell !== null))
@@ -199,6 +206,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
         } else if (result2.score > result1.score) {
           setWinner(2);
         }
+        setTimeout(() => setShowWinnerDialog(true), 500);
       }
 
       // Update state
@@ -240,7 +248,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
   const renderGrid = (playerIndex: number) => {
     const grid = grids[playerIndex];
     const isCurrentPlayer = currentPlayer === (playerIndex + 1);
-    const scoredCells = new Set<string>(); // For now, empty set
+    const playerScoredCells = scoredCells[playerIndex];
     const isWinner = gameEnded && winner === (playerIndex + 1);
     
     return (
@@ -251,7 +259,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
             const canPlaceLetter = !gameEnded && selectedLetter && !cell;
-            const isScored = scoredCells.has(`${rowIndex}-${colIndex}`);
+            const isScored = playerScoredCells.has(`${rowIndex}-${colIndex}`);
             
             // Winner highlight effect - use darker green for better visibility
             const winnerHighlight = gameEnded && isScored 
@@ -356,6 +364,95 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
 
   return (
     <div className="h-screen p-3 space-y-3 max-w-6xl mx-auto flex flex-col">
+      {/* Winner Dialog */}
+      <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold">
+              🎉 Game Over! 🎉
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="text-center space-y-4">
+                <div className="text-lg">
+                  {winner === 1 ? (
+                    <span className="text-player-1 font-bold">Player 1 Wins!</span>
+                  ) : winner === 2 ? (
+                    <span className="text-player-2 font-bold">Player 2 Wins!</span>
+                  ) : (
+                    <span className="font-bold">It's a Tie!</span>
+                  )}
+                </div>
+                
+                <div className="bg-muted rounded-lg p-4">
+                  <div className="text-sm text-muted-foreground mb-2">Final Scores:</div>
+                  <div className="flex justify-center gap-8">
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-player-1">Player 1</div>
+                      <div className="text-2xl font-bold">{scores[0]}</div>
+                      <div className="text-xs text-muted-foreground">letters</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm font-medium text-player-2">Player 2</div>
+                      <div className="text-2xl font-bold">{scores[1]}</div>
+                      <div className="text-xs text-muted-foreground">letters</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Words Found Section */}
+                <div className="bg-muted rounded-lg p-4 max-h-48 overflow-y-auto">
+                  <div className="text-sm text-muted-foreground mb-3">Words Found:</div>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <div className="font-medium text-player-1">Player 1 Words ({usedWords[0].size})</div>
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {Array.from(usedWords[0]).sort().map((word, idx) => (
+                          <div key={idx} className="bg-background/50 rounded px-2 py-1">
+                            {word.toUpperCase()}
+                          </div>
+                        ))}
+                        {usedWords[0].size === 0 && (
+                          <div className="text-muted-foreground italic">No words found</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="font-medium text-player-2">Player 2 Words ({usedWords[1].size})</div>
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {Array.from(usedWords[1]).sort().map((word, idx) => (
+                          <div key={idx} className="bg-background/50 rounded px-2 py-1">
+                            {word.toUpperCase()}
+                          </div>
+                        ))}
+                        {usedWords[1].size === 0 && (
+                          <div className="text-muted-foreground italic">No words found</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-sm text-muted-foreground">
+                  {winner ? 
+                    `Player ${winner} found more valid words!` :
+                    'Both players found the same number of letters!'
+                  }
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button onClick={resetGame} className="flex-1" size="lg">
+                    Play Again
+                  </Button>
+                  <Button onClick={onBackToMenu} variant="outline" className="flex-1" size="lg">
+                    Back to Menu
+                  </Button>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
