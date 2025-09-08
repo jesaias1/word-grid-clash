@@ -291,7 +291,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  w-12 h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
+                  w-14 h-14 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
                   ${isLightSquare ? 'bg-muted/80' : 'bg-muted-foreground/10'}
                   ${cell ? (playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2') : ''}
                   ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -550,18 +550,44 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       {renderLetterCooldowns()}
 
       {/* Game Grids */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 flex-1">
-        <div className="space-y-1">
-          <h2 className="text-sm font-bold text-player-1 text-center">
-            Player 1 Grid
-          </h2>
+      <div className="flex justify-center items-start gap-6 flex-1">
+        {/* Player 1 Grid */}
+        <div className="flex flex-col items-center">
+          <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === 1 ? 'bg-player-1/20 border border-player-1/30' : 'bg-card'}`}>
+            <div className="text-lg font-bold text-player-1">Player 1</div>
+            <div className="text-2xl font-bold">{scores[0]}</div>
+          </div>
+          {/* Player 1 Attack Indicators */}
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
+            {[0, 1, 2].map(i => (
+              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
+                i < crossGridPlacements[0] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
+              }`}>
+                ✕
+              </div>
+            ))}
+          </div>
           {renderGrid(0)}
         </div>
-        
-        <div className="space-y-1">
-          <h2 className="text-sm font-bold text-player-2 text-center">
-            Player 2 Grid
-          </h2>
+
+        {/* Player 2 Grid */}
+        <div className="flex flex-col items-center">
+          <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === 2 ? 'bg-player-2/20 border border-player-2/30' : 'bg-card'}`}>
+            <div className="text-lg font-bold text-player-2">Player 2</div>
+            <div className="text-2xl font-bold">{scores[1]}</div>
+          </div>
+          {/* Player 2 Attack Indicators */}
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
+            {[0, 1, 2].map(i => (
+              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
+                i < crossGridPlacements[1] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
+              }`}>
+                ✕
+              </div>
+            ))}
+          </div>
           {renderGrid(1)}
         </div>
       </div>
