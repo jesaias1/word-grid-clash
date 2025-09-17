@@ -75,23 +75,16 @@ export function Scoreboard() {
           })}
         </div>
         
-        {/* Attack Letters Display */}
-        {state.attackLetters.length > 0 && (
-          <div className="pt-2 border-t border-border/20">
-            <div className="text-xs text-muted-foreground mb-2">Attack Letters:</div>
-            <div className="flex gap-1">
-              {state.attackLetters.map((letter, index) => (
-                <Badge 
-                  key={index}
-                  variant="destructive" 
-                  className="text-xs font-bold"
-                >
-                  ⚡{letter}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Attack Vowel Display */}
+        <div className="pt-2 border-t border-border/20">
+          <div className="text-xs text-muted-foreground mb-2">Attack Vowel This Round:</div>
+          <Badge 
+            variant="destructive" 
+            className="text-lg font-bold"
+          >
+            ⚡{state.attackVowel}
+          </Badge>
+        </div>
       </div>
     </Card>
   );

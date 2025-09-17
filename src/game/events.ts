@@ -1,49 +1,82 @@
 import { useGame, PlayerId } from './store';
-import { loadDictionary } from '@/lib/dictionary';
+import { scorePlacement } from '@/lib/letterPlacement';
 
 export function useGameEvents() {
   const { state, dispatch } = useGame();
 
-  async function validateWord(word: string): Promise<boolean> {
-    if (!word || !/^[A-Za-z]+$/.test(word)) return false;
-    
-    try {
-      const dict = await loadDictionary();
-      return dict.has(word.toLowerCase());
-    } catch (error) {
-      console.error('Error validating word:', error);
-      return false;
-    }
+  function onSelectCell(row: number, col: number) {
+    dispatch({ type: 'SELECT_CELL', row, col });
   }
 
-  async function onSubmitWord(playerId: PlayerId, word: string): Promise<{ success: boolean; reason?: string }> {
-    const trimmed = word.trim();
-    
-    if (!trimmed) {
-      return { success: false, reason: 'Word cannot be empty' };
+  function onToggleAttack() {
+    dispatch({ type: 'TOGGLE_ATTACK' });
+  }
+
+  async function onPlaceLetter(letter: string): Promise<{ success: boolean; reason?: string }> {
+    if (!state.selectedCell) {
+      return { success: false, reason: 'No cell selected' };
     }
-    
-    if (!/^[A-Za-z]+$/.test(trimmed)) {
-      return { success: false, reason: 'Word can only contain letters' };
+
+    if (!state.currentPlayer) {
+      return { success: false, reason: 'No current player' };
     }
+
+    const { row, col } = state.selectedCell;
+    const currentPlayerId = state.currentPlayer;
     
-    // Check if word was already used by this player this round
-    const used = state.usedWordsThisRound[playerId];
-    if (used && used.has(trimmed.toLowerCase())) {
-      return { success: false, reason: 'Word already used this round' };
+    // Determine target board (own board or opponent's if attacking)
+    let targetBoardId = currentPlayerId;
+    if (state.isAttacking) {
+      // Find opponent's board (for simplicity, assume 2 players)
+      const opponent = state.players.find(p => p.id !== currentPlayerId);
+      if (!opponent) {
+        return { success: false, reason: 'No opponent found' };
+      }
+      targetBoardId = opponent.id;
+      
+      // Check if player has attacks remaining
+      if ((state.attacksRemaining[currentPlayerId] ?? 0) <= 0) {
+        return { success: false, reason: 'No attacks remaining' };
+      }
+      
+      // Check if letter matches attack vowel
+      if (letter.toUpperCase() !== state.attackVowel) {
+        return { success: false, reason: `Attack must use vowel: ${state.attackVowel}` };
+      }
     }
-    
-    // Validate word exists in dictionary
-    const isValid = await validateWord(trimmed);
-    if (!isValid) {
-      return { success: false, reason: 'Word not found in dictionary' };
+
+    const targetGrid = state.boardByPlayer[targetBoardId];
+    if (!targetGrid) {
+      return { success: false, reason: 'Target board not found' };
     }
-    
-    // Calculate points: 1 point per letter
-    const points = trimmed.length;
-    
-    dispatch({ type: 'SUBMIT_WORD', playerId, word: trimmed, points });
-    
+
+    // Check if cell is empty
+    if (targetGrid[row][col] && targetGrid[row][col].trim() !== '') {
+      return { success: false, reason: 'Cell already occupied' };
+    }
+
+    // Calculate score for this placement
+    const completedWords = state.completedWordHashesThisRound[currentPlayerId] ?? new Set();
+    const { points, newWords } = await scorePlacement(
+      targetGrid,
+      row,
+      col,
+      letter,
+      completedWords
+    );
+
+    // Place the letter
+    dispatch({
+      type: 'PLACE_LETTER',
+      playerId: currentPlayerId,
+      targetBoardId,
+      row,
+      col,
+      letter: letter.toUpperCase(),
+      points,
+      newWords
+    });
+
     return { success: true };
   }
 
@@ -78,13 +111,14 @@ export function useGameEvents() {
   }
 
   return { 
-    onSubmitWord, 
+    onSelectCell,
+    onToggleAttack,
+    onPlaceLetter,
     onRoundEnd, 
     onNewGame, 
     onBoardSizeChange,
     initializePlayers,
     setCurrentPlayer,
-    setGameStatus,
-    validateWord
+    setGameStatus
   };
 }

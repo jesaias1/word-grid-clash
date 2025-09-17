@@ -8,7 +8,7 @@ interface AttackLetterIndicatorProps {
 
 export function AttackLetterIndicator({ letter, className = "" }: AttackLetterIndicatorProps) {
   const { state } = useGame();
-  const isAttackLetter = state.attackLetters.includes(letter.toUpperCase());
+  const isAttackLetter = letter.toUpperCase() === state.attackVowel;
 
   if (!isAttackLetter) {
     return null;
