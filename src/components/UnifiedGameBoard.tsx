@@ -22,7 +22,7 @@ const TURN_TIME = 30;
 
 const UnifiedGameBoardInner = ({ onBackToMenu, boardSize = 5, mode }: UnifiedGameBoardProps) => {
   const { state } = useGame();
-  const { onRoundEnd, onNewGame, onBoardSizeChange, initializePlayers, endTurn } = useGameEvents();
+  const { onRoundEnd, onNewGame, onBoardSizeChange, initializePlayers, endTurn, onSelectCell } = useGameEvents();
   
   // Local game state
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
@@ -123,7 +123,6 @@ const UnifiedGameBoardInner = ({ onBackToMenu, boardSize = 5, mode }: UnifiedGam
     
     // Make the AI move
     if (bestMove) {
-      const { onSelectCell } = useGameEvents();
       const targetId = state.isAttacking ? 'player-1' : 'player-2';
       onSelectCell(targetId, bestMove.row, bestMove.col);
     } else {
