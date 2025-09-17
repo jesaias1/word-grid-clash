@@ -191,3 +191,18 @@ export function scoreGrid(grid: Grid, dict: Set<string>, usedWords: Set<string>,
     allFoundWords
   };
 }
+
+// New function for total board scoring using contiguous words
+export function calculateBoardTotal(grid: Grid, dict: Set<string>, minLength = 3): number {
+  // Use the existing calculateScore function with proper options
+  const opts = {
+    dictionary: dict,
+    useDictionary: true,
+    dedupe: false,
+    excludeCooldown: false,
+    minLen: minLength
+  };
+  
+  const { score } = calculateScore(grid as string[][], opts);
+  return score;
+}

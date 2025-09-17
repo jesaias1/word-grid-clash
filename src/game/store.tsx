@@ -20,7 +20,7 @@ export interface RoundHistory {
 }
 
 export interface GameState {
-  mode: 'solo' | 'offline-mp';
+  mode: 'solo' | 'passplay';
   players: Player[];
   activePlayerId: PlayerId;
   boardSize: 5 | 7 | 10;
@@ -29,6 +29,7 @@ export interface GameState {
   round: number;
   roundScores: Record<PlayerId, number>;
   cumulativeScores: Record<PlayerId, number>;
+  lastBoardTotal: Record<PlayerId, number>; // NEW: for delta scoring
   
   // Per-turn random letter (replaces alphabet picker)
   currentLetter: string;
@@ -79,7 +80,7 @@ const generateRandomLetter = (): string =>
   LETTERS[Math.floor(Math.random() * LETTERS.length)];
 
 const initialState: GameState = {
-  mode: 'offline-mp',
+  mode: 'passplay',
   players: [],
   activePlayerId: '',
   boardSize: 5,
@@ -87,6 +88,7 @@ const initialState: GameState = {
   round: 1,
   roundScores: {},
   cumulativeScores: {},
+  lastBoardTotal: {},
   currentLetter: 'A',
   completedWordHashesThisRound: {},
   attackVowel: 'A',
@@ -98,7 +100,7 @@ const initialState: GameState = {
 };
 
 export type GameAction =
-  | { type: 'INIT_PLAYERS'; players: Player[]; mode: 'solo' | 'offline-mp' }
+  | { type: 'INIT_PLAYERS'; players: Player[]; mode: 'solo' | 'passplay' }
   | { type: 'PLACE_ON_CELL'; actorId: PlayerId; targetId: PlayerId; r: number; c: number }
   | { type: 'START_TURN' }
   | { type: 'END_TURN' }
@@ -115,6 +117,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'INIT_PLAYERS': {
       const roundScores = initialScores(action.players);
       const cumulativeScores = initialScores(action.players);
+      const lastBoardTotal = initialScores(action.players);
       const completedWordHashesThisRound = zeroSets(action.players);
       const boardByPlayer = initializeBoards(action.players, state.boardSize);
       const attacksRemaining: Record<PlayerId, number> = {};
@@ -129,6 +132,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         activePlayerId: action.players[0]?.id || '',
         roundScores,
         cumulativeScores,
+        lastBoardTotal,
         completedWordHashesThisRound,
         boardByPlayer,
         attacksRemaining,
@@ -149,17 +153,23 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       
       board[r][c] = letter;
       
-      // Calculate points using simple scoring for now
-      let gained = 1; // Simple: 1 point per letter placed
-      const dup = state.completedWordHashesThisRound[actorId] ?? new Set<string>();
+      // Calculate board score using contiguous words scorer
+      const { calculateBoardScore, getDeltaScore } = require('@/lib/gameScoring');
+      const newTotal = calculateBoardScore(board);
+      const prevTotal = state.lastBoardTotal[actorId] ?? 0;
+      const delta = getDeltaScore(newTotal, prevTotal);
       
       const roundScores = { 
         ...state.roundScores, 
-        [actorId]: (state.roundScores[actorId] ?? 0) + gained 
+        [actorId]: (state.roundScores[actorId] ?? 0) + delta 
       };
       const cumulativeScores = { 
         ...state.cumulativeScores, 
-        [actorId]: (state.cumulativeScores[actorId] ?? 0) + gained 
+        [actorId]: (state.cumulativeScores[actorId] ?? 0) + delta 
+      };
+      const lastBoardTotal = { 
+        ...state.lastBoardTotal, 
+        [actorId]: newTotal 
       };
       
       const attacksRemaining = { ...state.attacksRemaining };
@@ -172,8 +182,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         boardByPlayer: { ...state.boardByPlayer, [targetId]: board },
         roundScores,
         cumulativeScores,
+        lastBoardTotal,
         attacksRemaining,
-        completedWordHashesThisRound: { ...state.completedWordHashesThisRound, [actorId]: dup },
+        completedWordHashesThisRound: { ...state.completedWordHashesThisRound, [actorId]: new Set() },
         isAttacking: false
       };
     }
@@ -225,6 +236,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'NEW_GAME': {
       const roundScores = initialScores(state.players);
       const cumulativeScores = initialScores(state.players);
+      const lastBoardTotal = initialScores(state.players);
       const completedWordHashesThisRound = zeroSets(state.players);
       const boardByPlayer = initializeBoards(state.players, state.boardSize);
       const attacksRemaining: Record<PlayerId, number> = {};
@@ -237,6 +249,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         round: 1, 
         roundScores, 
         cumulativeScores, 
+        lastBoardTotal,
         history: [], 
         completedWordHashesThisRound,
         boardByPlayer,

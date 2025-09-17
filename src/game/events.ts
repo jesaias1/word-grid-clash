@@ -1,5 +1,5 @@
 import { useGame, PlayerId } from './store';
-import { findLinesThrough, extractValidSubwords } from '@/lib/wordDetection';
+import { calculateBoardScore, getDeltaScore } from '@/lib/gameScoring';
 
 export function useGameEvents() {
   const { state, dispatch } = useGame();
@@ -21,6 +21,16 @@ export function useGameEvents() {
     } else {
       if (targetId !== actorId) return; // Must target own board when not attacking
     }
+    
+    // Create updated board to calculate new score
+    const updatedBoard = targetGrid.map(row => [...row]);
+    const letter = state.isAttacking ? state.attackVowel : state.currentLetter;
+    updatedBoard[r][c] = letter;
+    
+    // Calculate score delta
+    const newTotal = calculateBoardScore(updatedBoard);
+    const prevTotal = state.lastBoardTotal[actorId] ?? 0;
+    const delta = getDeltaScore(newTotal, prevTotal);
     
     dispatch({ type: 'PLACE_ON_CELL', actorId, targetId, r, c });
     
@@ -46,10 +56,11 @@ export function useGameEvents() {
     dispatch({ type: 'SET_BOARD_SIZE', size });
   }
 
-  function initializePlayers(playerNames: string[], mode: 'solo' | 'offline-mp' = 'offline-mp') {
+  function initializePlayers(playerNames: string[], mode: 'solo' | 'passplay' = 'passplay') {
     const players = playerNames.map((name, index) => ({
       id: `player-${index + 1}`,
-      name
+      name,
+      isAI: mode === 'solo' && index === 1 // Second player is AI in solo mode
     }));
     dispatch({ type: 'INIT_PLAYERS', players, mode });
   }
