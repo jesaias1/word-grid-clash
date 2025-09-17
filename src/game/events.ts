@@ -4,9 +4,25 @@ import { calculateBoardScore, getDeltaScore } from '@/lib/gameScoring';
 export function useGameEvents() {
   const { state, dispatch } = useGame();
 
+  function onPickLetter(letter: string) {
+    dispatch({ type: 'PICK_LETTER', letter });
+  }
+
   function onSelectCell(playerId: PlayerId, row: number, col: number) {
-    // Immediately place the current letter
-    onPlaceOnCell(state.activePlayerId, playerId, row, col);
+    if (state.mode === 'solo') {
+      // Solo mode uses currentLetter (random per turn)
+      onPlaceOnCell(state.activePlayerId, playerId, row, col);
+    } else {
+      // Pass & play mode uses selectedLetter (alphabet picker)
+      onPlaceSelected(state.activePlayerId, playerId, row, col);
+    }
+  }
+
+  function onPlaceSelected(actorId: PlayerId, targetId: PlayerId, r: number, c: number) {
+    if (!state.selectedLetter) return; // No letter selected
+    
+    dispatch({ type: 'PLACE_SELECTED', actorId, targetId, r, c });
+    dispatch({ type: 'END_TURN' });
   }
 
   function onPlaceOnCell(actorId: PlayerId, targetId: PlayerId, r: number, c: number) {
@@ -22,20 +38,14 @@ export function useGameEvents() {
       if (targetId !== actorId) return; // Must target own board when not attacking
     }
     
-    // Create updated board to calculate new score
-    const updatedBoard = targetGrid.map(row => [...row]);
-    const letter = state.isAttacking ? state.attackVowel : state.currentLetter;
-    updatedBoard[r][c] = letter;
-    
-    // Calculate score delta
-    const newTotal = calculateBoardScore(updatedBoard);
-    const prevTotal = state.lastBoardTotal[actorId] ?? 0;
-    const delta = getDeltaScore(newTotal, prevTotal);
-    
     dispatch({ type: 'PLACE_ON_CELL', actorId, targetId, r, c });
     
-    // Generate new letter for next turn
-    dispatch({ type: 'START_TURN' });
+    // Generate new letter for next turn (solo mode only)
+    if (state.mode === 'solo') {
+      dispatch({ type: 'START_TURN' });
+    } else {
+      dispatch({ type: 'END_TURN' });
+    }
   }
 
   function onToggleAttack() {
@@ -78,8 +88,10 @@ export function useGameEvents() {
   }
 
   return { 
+    onPickLetter,
     onSelectCell,
     onPlaceOnCell,
+    onPlaceSelected,
     onToggleAttack,
     onRoundEnd, 
     onNewGame, 

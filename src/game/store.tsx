@@ -31,8 +31,9 @@ export interface GameState {
   cumulativeScores: Record<PlayerId, number>;
   lastBoardTotal: Record<PlayerId, number>; // NEW: for delta scoring
   
-  // Per-turn random letter (replaces alphabet picker)
-  currentLetter: string;
+  // Letter selection (alphabet picker model)
+  selectedLetter: string | null;
+  currentLetter: string; // Keep for AI in solo mode
   
   // Sub-word dup guard (per round)
   completedWordHashesThisRound: Record<PlayerId, Set<string>>;
@@ -89,6 +90,7 @@ const initialState: GameState = {
   roundScores: {},
   cumulativeScores: {},
   lastBoardTotal: {},
+  selectedLetter: null,
   currentLetter: 'A',
   completedWordHashesThisRound: {},
   attackVowel: 'A',
@@ -102,6 +104,8 @@ const initialState: GameState = {
 export type GameAction =
   | { type: 'INIT_PLAYERS'; players: Player[]; mode: 'solo' | 'passplay' }
   | { type: 'PLACE_ON_CELL'; actorId: PlayerId; targetId: PlayerId; r: number; c: number }
+  | { type: 'PICK_LETTER'; letter: string }
+  | { type: 'PLACE_SELECTED'; actorId: PlayerId; targetId: PlayerId; r: number; c: number }
   | { type: 'START_TURN' }
   | { type: 'END_TURN' }
   | { type: 'TOGGLE_ATTACK' }
@@ -142,6 +146,62 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     }
     
+    case 'PICK_LETTER': {
+      return {
+        ...state,
+        selectedLetter: action.letter.toUpperCase()
+      };
+    }
+    
+    case 'PLACE_SELECTED': {
+      const { actorId, targetId, r, c } = action;
+      if (!state.selectedLetter) return state; // No letter selected
+      
+      // Choose the letter based on mode
+      const letter = state.isAttacking ? state.attackVowel : state.selectedLetter;
+      const board = JSON.parse(JSON.stringify(state.boardByPlayer[targetId]));
+      
+      if (board[r][c]) return state; // cannot overwrite
+      
+      board[r][c] = letter;
+      
+      // Calculate board score using contiguous words scorer
+      const { calculateBoardScore, getDeltaScore } = require('@/lib/gameScoring');
+      const newTotal = calculateBoardScore(board);
+      const prevTotal = state.lastBoardTotal[actorId] ?? 0;
+      const delta = getDeltaScore(newTotal, prevTotal);
+      
+      const roundScores = { 
+        ...state.roundScores, 
+        [actorId]: (state.roundScores[actorId] ?? 0) + delta 
+      };
+      const cumulativeScores = { 
+        ...state.cumulativeScores, 
+        [actorId]: (state.cumulativeScores[actorId] ?? 0) + delta 
+      };
+      const lastBoardTotal = { 
+        ...state.lastBoardTotal, 
+        [actorId]: newTotal 
+      };
+      
+      const attacksRemaining = { ...state.attacksRemaining };
+      if (state.isAttacking) {
+        attacksRemaining[actorId] = Math.max(0, attacksRemaining[actorId] - 1);
+      }
+      
+      return {
+        ...state,
+        boardByPlayer: { ...state.boardByPlayer, [targetId]: board },
+        roundScores,
+        cumulativeScores,
+        lastBoardTotal,
+        attacksRemaining,
+        completedWordHashesThisRound: { ...state.completedWordHashesThisRound, [actorId]: new Set() },
+        isAttacking: false,
+        selectedLetter: null // Clear selection after placement
+      };
+    }
+
     case 'PLACE_ON_CELL': {
       const { actorId, targetId, r, c } = action;
       

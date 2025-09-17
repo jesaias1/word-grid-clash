@@ -9,8 +9,11 @@ import { Scoreboard } from '@/components/Scoreboard';
 import { AttackBar } from '@/components/AttackBar';
 import { GameGrid } from '@/components/GameGrid';
 import { CurrentLetterDisplay } from '@/components/CurrentLetterDisplay';
+import { SelectedLetterDisplay } from '@/components/SelectedLetterDisplay';
+import { AlphabetBar } from '@/components/AlphabetBar';
 import { loadDictionary } from '@/lib/dictionary';
 import { calculateBoardScore } from '@/lib/gameScoring';
+import { useKeyboard } from '@/hooks/useKeyboard';
 
 interface UnifiedGameBoardProps {
   onBackToMenu: () => void;
@@ -23,6 +26,9 @@ const TURN_TIME = 30;
 const UnifiedGameBoardInner = ({ onBackToMenu, boardSize = 5, mode }: UnifiedGameBoardProps) => {
   const { state } = useGame();
   const { onRoundEnd, onNewGame, onBoardSizeChange, initializePlayers, endTurn, onSelectCell } = useGameEvents();
+  
+  // Enable keyboard controls for passplay mode
+  useKeyboard();
   
   // Local game state
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
@@ -175,7 +181,7 @@ const UnifiedGameBoardInner = ({ onBackToMenu, boardSize = 5, mode }: UnifiedGam
               </div>
             </div>
             
-            <CurrentLetterDisplay />
+            {mode === 'solo' ? <CurrentLetterDisplay /> : <SelectedLetterDisplay />}
             
             <div className="flex items-center gap-2">
               <Badge variant={timeLeft <= 10 ? "destructive" : "secondary"} className="text-lg px-3 py-1">
@@ -217,6 +223,9 @@ const UnifiedGameBoardInner = ({ onBackToMenu, boardSize = 5, mode }: UnifiedGam
           />
         </div>
       </div>
+      
+      {/* Alphabet Bar for Pass & Play mode */}
+      {mode === 'passplay' && <AlphabetBar />}
 
       {/* Winner Dialog */}
       <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>

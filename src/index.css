@@ -123,7 +123,7 @@ All colors MUST be HSL.
 
   .content {
     flex: 1;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 80px); /* Space for alphabet bar in passplay mode */
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
@@ -164,8 +164,20 @@ All colors MUST be HSL.
     text-shadow: 0 0 10px hsl(var(--score-glow) / 0.5);
   }
 
-  /* Grid utilities */
+  /* Grid for 26 letters (13 columns) */
   .grid-cols-13 {
     grid-template-columns: repeat(13, minmax(0, 1fr));
+  }
+
+  /* Mobile alphabet bar spacing */
+  @media (max-width: 768px) {
+    .content {
+      padding-bottom: calc(env(safe-area-inset-bottom) + 100px);
+    }
+  }
+  
+  /* Safe area for alphabet bar */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
