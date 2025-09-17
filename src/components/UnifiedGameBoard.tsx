@@ -181,12 +181,14 @@ const UnifiedGameBoardInner = ({ onBackToMenu, boardSize = 5, mode }: UnifiedGam
               </div>
             </div>
             
-            {mode === 'solo' ? <CurrentLetterDisplay /> : <SelectedLetterDisplay />}
-            
-            <div className="flex items-center gap-2">
-              <Badge variant={timeLeft <= 10 ? "destructive" : "secondary"} className="text-lg px-3 py-1">
-                {timeLeft}s
-              </Badge>
+            <div className="flex items-center gap-4">
+              {mode === 'solo' ? <CurrentLetterDisplay /> : <SelectedLetterDisplay />}
+              
+              <div className="flex items-center gap-2">
+                <Badge variant={timeLeft <= 10 ? "destructive" : "secondary"} className="text-lg px-3 py-1">
+                  {timeLeft}s
+                </Badge>
+              </div>
             </div>
           </div>
           
