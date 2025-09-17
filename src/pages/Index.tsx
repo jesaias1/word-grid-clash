@@ -98,7 +98,7 @@ const Index = () => {
             Back to Menu
           </Button>
         </div>
-        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} />
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize as 5 | 7 | 10} />
       </div>
     );
   }
