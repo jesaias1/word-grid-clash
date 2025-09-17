@@ -9,6 +9,8 @@ import { useGameEvents } from '@/game/events';
 import { Scoreboard } from '@/components/Scoreboard';
 import { AttackBar } from '@/components/AttackBar';
 import { GameGrid } from '@/components/GameGrid';
+import { AlphabetBar } from '@/components/AlphabetBar';
+import { useKeyboard } from '@/hooks/useKeyboard';
 
 interface LocalMultiplayerBoardProps {
   onBackToMenu: () => void;
@@ -20,6 +22,9 @@ const TURN_TIME = 30;
 const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayerBoardProps) => {
   const { state } = useGame();
   const { onRoundEnd, onNewGame, onBoardSizeChange, initializePlayers, setCurrentPlayer } = useGameEvents();
+  
+  // Enable keyboard input
+  useKeyboard();
   
   // Local game state
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
@@ -65,9 +70,12 @@ const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultipla
     setCurrentPlayerIndex(nextPlayerIndex);
     setTimeLeft(TURN_TIME);
     
-    if (state.players.length > 0) {
-      setCurrentPlayer(state.players[nextPlayerIndex].id);
-    }
+    // Use setTimeout to avoid setState during render
+    setTimeout(() => {
+      if (state.players.length > 0) {
+        setCurrentPlayer(state.players[nextPlayerIndex].id);
+      }
+    }, 0);
   };
 
 
@@ -148,6 +156,9 @@ const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultipla
             isCurrentPlayer={currentPlayerIndex === 1}
           />
         </div>
+
+        {/* Alphabet Bar */}
+        <AlphabetBar />
       </div>
 
       {/* Winner Dialog */}

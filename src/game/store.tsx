@@ -26,7 +26,11 @@ export interface GameState {
   attackVowel: 'A' | 'E' | 'I' | 'O' | 'U';
   attacksRemaining: Record<PlayerId, number>;
   isAttacking: boolean;
-  selectedCell: { row: number; col: number } | null;
+  
+  // Letter placement state
+  pendingLetter: string | null;
+  pendingCell: { playerId: PlayerId; row: number; col: number } | null;
+  
   roundScores: Record<PlayerId, number>;
   cumulativeScores: Record<PlayerId, number>;
   history: RoundHistory[];
@@ -69,7 +73,8 @@ const initialState: GameState = {
   attackVowel: 'A',
   attacksRemaining: {},
   isAttacking: false,
-  selectedCell: null,
+  pendingLetter: null,
+  pendingCell: null,
   roundScores: {},
   cumulativeScores: {},
   history: [],
@@ -82,7 +87,8 @@ const initialState: GameState = {
 export type GameAction =
   | { type: 'INIT_PLAYERS'; players: Player[] }
   | { type: 'PLACE_LETTER'; playerId: PlayerId; targetBoardId: PlayerId; row: number; col: number; letter: string; points: number; newWords: string[] }
-  | { type: 'SELECT_CELL'; row: number; col: number }
+  | { type: 'PICK_LETTER'; letter: string }
+  | { type: 'SELECT_CELL'; playerId: PlayerId; row: number; col: number }
   | { type: 'TOGGLE_ATTACK' }
   | { type: 'ROUND_END' }
   | { type: 'NEW_GAME' }
@@ -168,15 +174,23 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         completedWordHashesThisRound,
         attacksRemaining,
         history,
-        selectedCell: null,
+        pendingLetter: null,
+        pendingCell: null,
         isAttacking: false
+      };
+    }
+    
+    case 'PICK_LETTER': {
+      return {
+        ...state,
+        pendingLetter: action.letter.toUpperCase()
       };
     }
     
     case 'SELECT_CELL': {
       return {
         ...state,
-        selectedCell: { row: action.row, col: action.col }
+        pendingCell: { playerId: action.playerId, row: action.row, col: action.col }
       };
     }
     
@@ -199,7 +213,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         roundScores, 
         completedWordHashesThisRound,
         attackVowel,
-        selectedCell: null,
+        pendingLetter: null,
+        pendingCell: null,
         isAttacking: false
       };
     }
@@ -224,7 +239,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         boardByPlayer,
         attacksRemaining,
         attackVowel: generateAttackVowel(),
-        selectedCell: null,
+        pendingLetter: null,
+        pendingCell: null,
         isAttacking: false,
         gameStatus: 'playing'
       };

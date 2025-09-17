@@ -21,15 +21,122 @@ export async function findWordsCrossingCell(
   const results: WordMatch[] = [];
   
   // Check horizontal words through this cell
-  const horizontalWord = extractHorizontalWord(grid, row, col);
-  if (horizontalWord && horizontalWord.word.length >= minLength && dict.has(horizontalWord.word.toLowerCase())) {
-    results.push(horizontalWord);
-  }
+  const horizontalWords = extractAllHorizontalWords(grid, row, col, dict, minLength);
+  results.push(...horizontalWords);
   
   // Check vertical words through this cell
-  const verticalWord = extractVerticalWord(grid, row, col);
-  if (verticalWord && verticalWord.word.length >= minLength && dict.has(verticalWord.word.toLowerCase())) {
-    results.push(verticalWord);
+  const verticalWords = extractAllVerticalWords(grid, row, col, dict, minLength);
+  results.push(...verticalWords);
+  
+  return results;
+}
+
+/**
+ * Extract all valid sub-words horizontally that include the target cell
+ */
+function extractAllHorizontalWords(
+  grid: Grid, 
+  row: number, 
+  col: number, 
+  dict: Set<string>, 
+  minLength: number
+): WordMatch[] {
+  const results: WordMatch[] = [];
+  const rowData = grid[row];
+  if (!rowData || !rowData[col]) return results;
+  
+  // Find the full contiguous sequence
+  let start = col;
+  while (start > 0 && rowData[start - 1] && rowData[start - 1].trim() !== '') {
+    start--;
+  }
+  
+  let end = col;
+  while (end < rowData.length - 1 && rowData[end + 1] && rowData[end + 1].trim() !== '') {
+    end++;
+  }
+  
+  // Extract all valid sub-words that include the target cell
+  for (let i = start; i <= col; i++) {
+    for (let j = col; j <= end; j++) {
+      if (j - i + 1 >= minLength) {
+        const wordChars = [];
+        const cells = [];
+        let valid = true;
+        
+        for (let k = i; k <= j; k++) {
+          if (rowData[k] && rowData[k].trim() !== '') {
+            wordChars.push(rowData[k]);
+            cells.push({ row, col: k });
+          } else {
+            valid = false;
+            break;
+          }
+        }
+        
+        if (valid && wordChars.length >= minLength) {
+          const word = wordChars.join('').toUpperCase();
+          if (dict.has(word.toLowerCase())) {
+            results.push({ word, length: word.length, cells });
+          }
+        }
+      }
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Extract all valid sub-words vertically that include the target cell
+ */
+function extractAllVerticalWords(
+  grid: Grid, 
+  row: number, 
+  col: number, 
+  dict: Set<string>, 
+  minLength: number
+): WordMatch[] {
+  const results: WordMatch[] = [];
+  if (!grid[row] || !grid[row][col]) return results;
+  
+  // Find the full contiguous sequence
+  let start = row;
+  while (start > 0 && grid[start - 1] && grid[start - 1][col] && grid[start - 1][col].trim() !== '') {
+    start--;
+  }
+  
+  let end = row;
+  while (end < grid.length - 1 && grid[end + 1] && grid[end + 1][col] && grid[end + 1][col].trim() !== '') {
+    end++;
+  }
+  
+  // Extract all valid sub-words that include the target cell
+  for (let i = start; i <= row; i++) {
+    for (let j = row; j <= end; j++) {
+      if (j - i + 1 >= minLength) {
+        const wordChars = [];
+        const cells = [];
+        let valid = true;
+        
+        for (let k = i; k <= j; k++) {
+          if (grid[k] && grid[k][col] && grid[k][col].trim() !== '') {
+            wordChars.push(grid[k][col]);
+            cells.push({ row: k, col });
+          } else {
+            valid = false;
+            break;
+          }
+        }
+        
+        if (valid && wordChars.length >= minLength) {
+          const word = wordChars.join('').toUpperCase();
+          if (dict.has(word.toLowerCase())) {
+            results.push({ word, length: word.length, cells });
+          }
+        }
+      }
+    }
   }
   
   return results;

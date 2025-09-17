@@ -4,8 +4,24 @@ import { scorePlacement } from '@/lib/letterPlacement';
 export function useGameEvents() {
   const { state, dispatch } = useGame();
 
-  function onSelectCell(row: number, col: number) {
-    dispatch({ type: 'SELECT_CELL', row, col });
+  function onPickLetter(letter: string) {
+    const newAction = { type: 'PICK_LETTER', letter: letter.toUpperCase() } as const;
+    dispatch(newAction);
+    
+    // Check if we can place immediately
+    if (state.pendingCell && state.currentPlayer) {
+      setTimeout(() => onPlaceLetter(letter.toUpperCase()), 0);
+    }
+  }
+
+  function onSelectCell(playerId: PlayerId, row: number, col: number) {
+    const newAction = { type: 'SELECT_CELL', playerId, row, col } as const;
+    dispatch(newAction);
+    
+    // Check if we can place immediately
+    if (state.pendingLetter && state.currentPlayer) {
+      setTimeout(() => onPlaceLetter(state.pendingLetter), 0);
+    }
   }
 
   function onToggleAttack() {
@@ -13,7 +29,7 @@ export function useGameEvents() {
   }
 
   async function onPlaceLetter(letter: string): Promise<{ success: boolean; reason?: string }> {
-    if (!state.selectedCell) {
+    if (!state.pendingCell) {
       return { success: false, reason: 'No cell selected' };
     }
 
@@ -21,19 +37,14 @@ export function useGameEvents() {
       return { success: false, reason: 'No current player' };
     }
 
-    const { row, col } = state.selectedCell;
+    const { row, col, playerId: targetPlayerId } = state.pendingCell;
     const currentPlayerId = state.currentPlayer;
     
-    // Determine target board (own board or opponent's if attacking)
-    let targetBoardId = currentPlayerId;
+    // Determine target board (use the selected cell's playerId)
+    let targetBoardId = targetPlayerId;
+    
+    // If attacking, validate attack rules
     if (state.isAttacking) {
-      // Find opponent's board (for simplicity, assume 2 players)
-      const opponent = state.players.find(p => p.id !== currentPlayerId);
-      if (!opponent) {
-        return { success: false, reason: 'No opponent found' };
-      }
-      targetBoardId = opponent.id;
-      
       // Check if player has attacks remaining
       if ((state.attacksRemaining[currentPlayerId] ?? 0) <= 0) {
         return { success: false, reason: 'No attacks remaining' };
@@ -42,6 +53,16 @@ export function useGameEvents() {
       // Check if letter matches attack vowel
       if (letter.toUpperCase() !== state.attackVowel) {
         return { success: false, reason: `Attack must use vowel: ${state.attackVowel}` };
+      }
+      
+      // Ensure targeting opponent's board
+      if (targetBoardId === currentPlayerId) {
+        return { success: false, reason: 'Must target opponent when attacking' };
+      }
+    } else {
+      // If not attacking, must target own board
+      if (targetBoardId !== currentPlayerId) {
+        return { success: false, reason: 'Must target own board when not attacking' };
       }
     }
 
@@ -111,6 +132,7 @@ export function useGameEvents() {
   }
 
   return { 
+    onPickLetter,
     onSelectCell,
     onToggleAttack,
     onPlaceLetter,
