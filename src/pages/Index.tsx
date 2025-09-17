@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import UnifiedGameBoard from '@/components/UnifiedGameBoard';
+import GameBoard from '@/components/GameBoard';
+import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
@@ -77,26 +78,32 @@ const Index = () => {
   // Local solo game
   if (gameMode === 'local') {
     return (
-      <UnifiedGameBoard 
-        onBackToMenu={handleBackToMenu} 
-        boardSize={boardSize as 5 | 7 | 10} 
-        mode="solo"
-      />
+      <div>
+        <div className="absolute top-4 left-4">
+          <Button onClick={handleBackToMenu} variant="outline" size="sm">
+            Back to Menu
+          </Button>
+        </div>
+        <GameBoard boardSize={boardSize} />
+      </div>
     );
   }
 
   // Local multiplayer game
   if (gameMode === 'local-multiplayer') {
     return (
-      <UnifiedGameBoard 
-        onBackToMenu={handleBackToMenu} 
-        boardSize={boardSize as 5 | 7 | 10} 
-        mode="passplay"
-      />
+      <div>
+        <div className="absolute top-4 left-4">
+          <Button onClick={handleBackToMenu} variant="outline" size="sm">
+            Back to Menu
+          </Button>
+        </div>
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} />
+      </div>
     );
   }
 
-  return <UnifiedGameBoard onBackToMenu={handleBackToMenu} boardSize={boardSize as 5 | 7 | 10} mode="solo" />;
+  return <GameBoard boardSize={boardSize} />;
 };
 
 export default Index;
