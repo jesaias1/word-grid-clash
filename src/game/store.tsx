@@ -198,10 +198,12 @@ function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
-const GameContext = createContext<{ 
-  state: GameState; 
-  dispatch: React.Dispatch<GameAction> 
-} | null>(null);
+interface GameContextValue {
+  state: GameState;
+  dispatch: React.Dispatch<GameAction>;
+}
+
+const GameContext = createContext<GameContextValue | null>(null);
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
-import { useGame } from '@/game/store';
+import { GameProvider, useGame } from '@/game/store';
 import { useGameEvents } from '@/game/events';
 import { Scoreboard } from '@/components/Scoreboard';
 import { AttackLetterIndicator } from '@/components/AttackLetterIndicator';
@@ -407,4 +407,11 @@ const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultipla
   );
 };
 
-export default LocalMultiplayerBoardNew;
+// Wrap the component with GameProvider
+const LocalMultiplayerBoard = (props: LocalMultiplayerBoardProps) => (
+  <GameProvider>
+    <LocalMultiplayerBoardNew {...props} />
+  </GameProvider>
+);
+
+export default LocalMultiplayerBoard;
