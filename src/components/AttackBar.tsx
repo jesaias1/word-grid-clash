@@ -9,9 +9,9 @@ export function AttackBar() {
   const { state } = useGame();
   const { onToggleAttack } = useGameEvents();
 
-  if (!state.currentPlayer) return null;
+  if (!state.activePlayerId) return null;
 
-  const currentPlayerAttacks = state.attacksRemaining[state.currentPlayer] ?? 0;
+  const currentPlayerAttacks = state.attacksRemaining[state.activePlayerId] ?? 0;
 
   return (
     <Card className="p-4 bg-gradient-card border-border/30">

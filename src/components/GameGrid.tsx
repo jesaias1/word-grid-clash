@@ -21,11 +21,6 @@ export function GameGrid({ playerId, playerName, isCurrentPlayer }: GameGridProp
     onSelectCell(playerId, row, col);
   };
 
-  const isSelectedCell = (row: number, col: number) => {
-    return state.pendingCell?.playerId === playerId && 
-           state.pendingCell?.row === row && 
-           state.pendingCell?.col === col;
-  };
 
   const canPlaceInCell = (row: number, col: number) => {
     if (grid[row][col] && grid[row][col].trim() !== '') return false;
@@ -56,7 +51,6 @@ export function GameGrid({ playerId, playerName, isCurrentPlayer }: GameGridProp
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-            const isSelected = isSelectedCell(rowIndex, colIndex);
             const canPlace = canPlaceInCell(rowIndex, colIndex);
             
             return (
@@ -66,7 +60,6 @@ export function GameGrid({ playerId, playerName, isCurrentPlayer }: GameGridProp
                   w-12 h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30 relative text-sm font-bold
                   ${isLightSquare ? 'bg-muted/80' : 'bg-muted-foreground/10'}
                   ${cell ? (playerId === 'player-1' ? 'bg-gradient-player-1' : 'bg-gradient-player-2') : ''}
-                  ${isSelected ? 'ring-2 ring-accent' : ''}
                   ${canPlace ? 'hover:scale-105 hover:shadow-lg hover:bg-accent/20' : ''}
                 `}
                 onClick={() => handleCellClick(rowIndex, colIndex)}
@@ -82,17 +75,6 @@ export function GameGrid({ playerId, playerName, isCurrentPlayer }: GameGridProp
         )}
       </div>
 
-      {/* Selection Status */}
-      {state.pendingCell?.playerId === playerId && (
-        <div className="text-xs text-muted-foreground text-center">
-          Selected: Row {state.pendingCell.row + 1}, Col {state.pendingCell.col + 1}
-          {state.pendingLetter && (
-            <span className="ml-2 text-primary font-bold">
-              Letter: {state.pendingLetter}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -21,7 +21,7 @@ export function Scoreboard() {
         
         <div className="space-y-2">
           {state.players.map((player, index) => {
-            const isCurrentPlayer = state.currentPlayer === player.id;
+            const isCurrentPlayer = state.activePlayerId === player.id;
             const roundScore = state.roundScores[player.id] ?? 0;
             const totalScore = state.cumulativeScores[player.id] ?? 0;
             

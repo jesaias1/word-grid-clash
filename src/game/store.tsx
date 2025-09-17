@@ -20,28 +20,37 @@ export interface RoundHistory {
 }
 
 export interface GameState {
+  mode: 'solo' | 'offline-mp';
   players: Player[];
+  activePlayerId: PlayerId;
   boardSize: 5 | 7 | 10;
   boardByPlayer: Record<PlayerId, string[][]>;
+  
+  round: number;
+  roundScores: Record<PlayerId, number>;
+  cumulativeScores: Record<PlayerId, number>;
+  
+  // Per-turn random letter (replaces alphabet picker)
+  currentLetter: string;
+  
+  // Sub-word dup guard (per round)
+  completedWordHashesThisRound: Record<PlayerId, Set<string>>;
+  
+  // Attacks
   attackVowel: 'A' | 'E' | 'I' | 'O' | 'U';
   attacksRemaining: Record<PlayerId, number>;
   isAttacking: boolean;
   
-  // Letter placement state
-  pendingLetter: string | null;
-  pendingCell: { playerId: PlayerId; row: number; col: number } | null;
+  // Timers (optional)
+  turnSeconds?: number;
   
-  roundScores: Record<PlayerId, number>;
-  cumulativeScores: Record<PlayerId, number>;
   history: RoundHistory[];
-  round: number;
-  completedWordHashesThisRound: Record<PlayerId, Set<string>>;
-  currentPlayer: PlayerId | null;
   gameStatus: 'setup' | 'playing' | 'ended';
 }
 
 const ATTACK_LIMIT: Record<5 | 7 | 10, number> = { 5: 1, 7: 2, 10: 3 };
 const VOWELS: ('A' | 'E' | 'I' | 'O' | 'U')[] = ['A', 'E', 'I', 'O', 'U'];
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 const initialScores = (players: Player[]) =>
   Object.fromEntries(players.map(p => [p.id, 0]));
@@ -66,29 +75,33 @@ const initializeBoards = (players: Player[], size: number): Record<PlayerId, str
 const generateAttackVowel = (): 'A' | 'E' | 'I' | 'O' | 'U' => 
   VOWELS[Math.floor(Math.random() * VOWELS.length)];
 
+const generateRandomLetter = (): string => 
+  LETTERS[Math.floor(Math.random() * LETTERS.length)];
+
 const initialState: GameState = {
+  mode: 'offline-mp',
   players: [],
+  activePlayerId: '',
   boardSize: 5,
   boardByPlayer: {},
+  round: 1,
+  roundScores: {},
+  cumulativeScores: {},
+  currentLetter: 'A',
+  completedWordHashesThisRound: {},
   attackVowel: 'A',
   attacksRemaining: {},
   isAttacking: false,
-  pendingLetter: null,
-  pendingCell: null,
-  roundScores: {},
-  cumulativeScores: {},
+  turnSeconds: 30,
   history: [],
-  round: 1,
-  completedWordHashesThisRound: {},
-  currentPlayer: null,
   gameStatus: 'setup'
 };
 
 export type GameAction =
-  | { type: 'INIT_PLAYERS'; players: Player[] }
-  | { type: 'PLACE_LETTER'; playerId: PlayerId; targetBoardId: PlayerId; row: number; col: number; letter: string; points: number; newWords: string[] }
-  | { type: 'PICK_LETTER'; letter: string }
-  | { type: 'SELECT_CELL'; playerId: PlayerId; row: number; col: number }
+  | { type: 'INIT_PLAYERS'; players: Player[]; mode: 'solo' | 'offline-mp' }
+  | { type: 'PLACE_ON_CELL'; actorId: PlayerId; targetId: PlayerId; r: number; c: number }
+  | { type: 'START_TURN' }
+  | { type: 'END_TURN' }
   | { type: 'TOGGLE_ATTACK' }
   | { type: 'ROUND_END' }
   | { type: 'NEW_GAME' }
@@ -111,90 +124,81 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       
       return {
         ...state,
+        mode: action.mode,
         players: action.players,
+        activePlayerId: action.players[0]?.id || '',
         roundScores,
         cumulativeScores,
         completedWordHashesThisRound,
         boardByPlayer,
         attacksRemaining,
         attackVowel: generateAttackVowel(),
-        currentPlayer: action.players[0]?.id || null,
+        currentLetter: generateRandomLetter(),
         gameStatus: 'playing'
       };
     }
     
-    case 'PLACE_LETTER': {
-      const { playerId, targetBoardId, row, col, letter, points, newWords } = action;
+    case 'PLACE_ON_CELL': {
+      const { actorId, targetId, r, c } = action;
       
-      // Update the board
-      const boardByPlayer = { ...state.boardByPlayer };
-      boardByPlayer[targetBoardId] = boardByPlayer[targetBoardId].map(r => [...r]);
-      boardByPlayer[targetBoardId][row][col] = letter;
+      // Choose the letter based on mode
+      const letter = state.isAttacking ? state.attackVowel : state.currentLetter;
+      const board = JSON.parse(JSON.stringify(state.boardByPlayer[targetId]));
       
-      // Update scores
+      if (board[r][c]) return state; // cannot overwrite
+      
+      board[r][c] = letter;
+      
+      // Calculate points using simple scoring for now
+      let gained = 1; // Simple: 1 point per letter placed
+      const dup = state.completedWordHashesThisRound[actorId] ?? new Set<string>();
+      
       const roundScores = { 
         ...state.roundScores, 
-        [playerId]: (state.roundScores[playerId] ?? 0) + points 
+        [actorId]: (state.roundScores[actorId] ?? 0) + gained 
       };
       const cumulativeScores = { 
         ...state.cumulativeScores, 
-        [playerId]: (state.cumulativeScores[playerId] ?? 0) + points 
+        [actorId]: (state.cumulativeScores[actorId] ?? 0) + gained 
       };
       
-      // Update completed words for this round
-      const completedWordHashesThisRound = { ...state.completedWordHashesThisRound };
-      completedWordHashesThisRound[playerId] = new Set(completedWordHashesThisRound[playerId] ?? []);
-      newWords.forEach(word => completedWordHashesThisRound[playerId].add(word.toLowerCase()));
-      
-      // Update attack quota if this was an attack
-      let attacksRemaining = state.attacksRemaining;
-      if (targetBoardId !== playerId && state.isAttacking) {
-        attacksRemaining = { 
-          ...state.attacksRemaining, 
-          [playerId]: Math.max(0, (state.attacksRemaining[playerId] ?? 0) - 1) 
-        };
+      const attacksRemaining = { ...state.attacksRemaining };
+      if (state.isAttacking) {
+        attacksRemaining[actorId] = Math.max(0, attacksRemaining[actorId] - 1);
       }
       
-      // Add to current round's history
-      const history = [...state.history];
-      const currentRoundIndex = history.findIndex(h => h.round === state.round);
-      const submission: GameSubmission = { playerId, word: newWords.join(', '), points, ts: Date.now() };
-      
-      if (currentRoundIndex >= 0) {
-        history[currentRoundIndex].submissions.push(submission);
-      } else {
-        history.push({ round: state.round, submissions: [submission] });
-      }
-      
-      return { 
-        ...state, 
-        boardByPlayer,
-        roundScores, 
-        cumulativeScores, 
-        completedWordHashesThisRound,
+      return {
+        ...state,
+        boardByPlayer: { ...state.boardByPlayer, [targetId]: board },
+        roundScores,
+        cumulativeScores,
         attacksRemaining,
-        history,
-        pendingLetter: null,
-        pendingCell: null,
+        completedWordHashesThisRound: { ...state.completedWordHashesThisRound, [actorId]: dup },
         isAttacking: false
       };
     }
     
-    case 'PICK_LETTER': {
-      return {
-        ...state,
-        pendingLetter: action.letter.toUpperCase()
+    case 'START_TURN': {
+      return { 
+        ...state, 
+        currentLetter: generateRandomLetter(), 
+        isAttacking: false 
       };
     }
     
-    case 'SELECT_CELL': {
-      return {
-        ...state,
-        pendingCell: { playerId: action.playerId, row: action.row, col: action.col }
+    case 'END_TURN': {
+      // Switch to next player
+      const currentIndex = state.players.findIndex(p => p.id === state.activePlayerId);
+      const nextIndex = (currentIndex + 1) % state.players.length;
+      return { 
+        ...state, 
+        activePlayerId: state.players[nextIndex].id,
+        currentLetter: generateRandomLetter()
       };
     }
     
     case 'TOGGLE_ATTACK': {
+      if ((state.attacksRemaining[state.activePlayerId] ?? 0) <= 0) return state;
       return {
         ...state,
         isAttacking: !state.isAttacking
@@ -213,8 +217,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         roundScores, 
         completedWordHashesThisRound,
         attackVowel,
-        pendingLetter: null,
-        pendingCell: null,
+        currentLetter: generateRandomLetter(),
         isAttacking: false
       };
     }
@@ -239,8 +242,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         boardByPlayer,
         attacksRemaining,
         attackVowel: generateAttackVowel(),
-        pendingLetter: null,
-        pendingCell: null,
+        currentLetter: generateRandomLetter(),
         isAttacking: false,
         gameStatus: 'playing'
       };
@@ -262,7 +264,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     
     case 'SET_CURRENT_PLAYER': {
-      return { ...state, currentPlayer: action.playerId };
+      return { ...state, activePlayerId: action.playerId };
     }
     
     case 'SET_GAME_STATUS': {

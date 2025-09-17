@@ -9,8 +9,7 @@ import { useGameEvents } from '@/game/events';
 import { Scoreboard } from '@/components/Scoreboard';
 import { AttackBar } from '@/components/AttackBar';
 import { GameGrid } from '@/components/GameGrid';
-import { AlphabetBar } from '@/components/AlphabetBar';
-import { useKeyboard } from '@/hooks/useKeyboard';
+import { CurrentLetterDisplay } from '@/components/CurrentLetterDisplay';
 
 interface LocalMultiplayerBoardProps {
   onBackToMenu: () => void;
@@ -21,10 +20,7 @@ const TURN_TIME = 30;
 
 const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayerBoardProps) => {
   const { state } = useGame();
-  const { onRoundEnd, onNewGame, onBoardSizeChange, initializePlayers, setCurrentPlayer } = useGameEvents();
-  
-  // Enable keyboard input
-  useKeyboard();
+  const { onRoundEnd, onNewGame, onBoardSizeChange, initializePlayers, setCurrentPlayer, endTurn } = useGameEvents();
   
   // Local game state
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
@@ -37,7 +33,7 @@ const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultipla
   // Initialize players when component mounts
   useEffect(() => {
     if (!gameStarted) {
-      initializePlayers(['Player 1', 'Player 2']);
+      initializePlayers(['Player 1', 'Player 2'], 'offline-mp');
       onBoardSizeChange(boardSize);
       setGameStarted(true);
     }
@@ -69,13 +65,7 @@ const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultipla
     const nextPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
     setCurrentPlayerIndex(nextPlayerIndex);
     setTimeLeft(TURN_TIME);
-    
-    // Use setTimeout to avoid setState during render
-    setTimeout(() => {
-      if (state.players.length > 0) {
-        setCurrentPlayer(state.players[nextPlayerIndex].id);
-      }
-    }, 0);
+    endTurn();
   };
 
 
@@ -128,9 +118,15 @@ const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultipla
             <div className={`text-lg font-bold ${currentPlayerIndex === 0 ? 'text-player-1' : 'text-player-2'}`}>
               {state.players[currentPlayerIndex]?.name || `Player ${currentPlayerIndex + 1}`}'s Turn
             </div>
-            <Badge variant={timeLeft <= 10 ? "destructive" : "secondary"} className="text-lg px-3 py-1">
-              {timeLeft}s
-            </Badge>
+            <CurrentLetterDisplay />
+            <div className="flex items-center gap-2">
+              <Badge variant={timeLeft <= 10 ? "destructive" : "secondary"} className="text-lg px-3 py-1">
+                {timeLeft}s
+              </Badge>
+              <Button variant="outline" size="sm" onClick={passTurn}>
+                Pass Turn
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -157,8 +153,6 @@ const LocalMultiplayerBoardNew = ({ onBackToMenu, boardSize = 5 }: LocalMultipla
           />
         </div>
 
-        {/* Alphabet Bar */}
-        <AlphabetBar />
       </div>
 
       {/* Winner Dialog */}
