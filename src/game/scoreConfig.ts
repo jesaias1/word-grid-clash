@@ -1,8 +1,13 @@
-import { getDictionary } from './dictionary';
+import { getDictionary, isDictionaryHealthy } from './dictionary';
 
-export const SCORE_OPTS = () => ({
-  dictionary: getDictionary(),
-  useDictionary: true,  // set to false if you want to accept ANY 2+ substring
-  dedupe: false,        // <- count every occurrence; NO "once per player"
-  minLen: 2             // <- include 2-letter words (ON, IN, AT, …)
-});
+export const SCORE_OPTS = () => {
+  const dict = getDictionary();
+  const healthy = isDictionaryHealthy();
+  
+  return {
+    dictionary: dict,
+    useDictionary: healthy, // only filter if we have a good dictionary
+    dedupe: false,
+    minLen: 2
+  };
+};
