@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
-import { calculateScore } from '@/game/scoring';
-import { scoreFromSubwords } from '@/game/subwordScoring';
+import { calculateScore } from '@/game/calculateScore';
 import { getDictionary } from '@/game/dictionary';
 
 type Player = 1 | 2;
@@ -204,16 +203,11 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
 
       // Calculate new scores using the sub-word scoring system
       const dict = getDictionary();
-      const result1 = calculateScore(newGrids[0], { dictionary: dict, useDictionary: true, minLen: 3 });
-      const result2 = calculateScore(newGrids[1], { dictionary: dict, useDictionary: true, minLen: 3 });
+      const result1 = calculateScore(newGrids[0], { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
+      const result2 = calculateScore(newGrids[1], { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
       
-      // Convert to WordHit format for sub-word scoring
-      const hits1 = result1.words;
-      const hits2 = result2.words;
-      
-      // Calculate sub-word scores
-      const newTotal1 = scoreFromSubwords(hits1, { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
-      const newTotal2 = scoreFromSubwords(hits2, { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
+      const newTotal1 = result1.score;
+      const newTotal2 = result2.score;
       
       // Delta scoring for player 1
       const prevTotal1 = lastBoardTotal['1'] ?? 0;
@@ -237,20 +231,20 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       // Create scored cells sets
       const scoredCells1 = new Set<string>();
       const scoredCells2 = new Set<string>();
-      hits1.forEach(word => {
+      result1.words.forEach(word => {
         word.path.forEach(cell => {
           scoredCells1.add(`${cell.r}-${cell.c}`);
         });
       });
-      hits2.forEach(word => {
+      result2.words.forEach(word => {
         word.path.forEach(cell => {
           scoredCells2.add(`${cell.r}-${cell.c}`);
         });
       });
       
       // Convert to old format for compatibility
-      const score1 = { score: newCumulativeScores['1'], newUsedWords: new Set(hits1.map(w => w.text)), scoredCells: scoredCells1, allFoundWords: hits1.map(w => w.text) };
-      const score2 = { score: newCumulativeScores['2'], newUsedWords: new Set(hits2.map(w => w.text)), scoredCells: scoredCells2, allFoundWords: hits2.map(w => w.text) };
+      const score1 = { score: newCumulativeScores['1'], newUsedWords: new Set(result1.words.map(w => w.text)), scoredCells: scoredCells1, allFoundWords: result1.words.map(w => w.text) };
+      const score2 = { score: newCumulativeScores['2'], newUsedWords: new Set(result2.words.map(w => w.text)), scoredCells: scoredCells2, allFoundWords: result2.words.map(w => w.text) };
 
       // Update used words
       const newUsedWords: [Set<string>, Set<string>] = [score1.newUsedWords, score2.newUsedWords];
@@ -307,7 +301,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     setTurn(1);
     setScores([0, 0]);
     setCooldowns([{}, {}]);
-    setCrossGridPlacements([1, 1]); // One attack per game for each player
+    setCrossGridPlacements([1, 1]); // Exactly one attack per game for each player
     setSelectedLetter('');
     setLastBoardTotal({ '1': 0, '2': 0 });
     setRoundScores({ '1': 0, '2': 0 });
