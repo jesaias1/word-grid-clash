@@ -22,7 +22,7 @@ const Index = () => {
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-6 max-w-md">
           <div className="flex items-center justify-center mb-4">
-            <img src="/src/assets/lettus-logo.png" alt="Lettus Logo" className="w-[410px] h-[160px] object-contain" />
+            <img src="/src/assets/lettus-logo.png" alt="Lettus Logo" className="w-[1230px] h-[480px] object-contain" />
           </div>
           <p className="text-lg text-muted-foreground">Choose your game mode</p>
           
