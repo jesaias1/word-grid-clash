@@ -4,6 +4,7 @@ import GameBoard from '@/components/GameBoard';
 import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import lettusLogo from '@/assets/lettus-logo.png';
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer';
 
@@ -22,7 +23,7 @@ const Index = () => {
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-6 max-w-md">
           <div className="flex items-center justify-center mb-4">
-            <img src="/src/assets/lettus-logo.png" alt="Lettus Logo" className="w-[1230px] h-[480px] object-contain" />
+            <img src={lettusLogo} alt="Lettus Logo" className="w-[1230px] h-[480px] object-contain" />
           </div>
           <p className="text-lg text-muted-foreground">Choose your game mode</p>
           
