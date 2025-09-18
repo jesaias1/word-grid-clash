@@ -21,11 +21,8 @@ const Index = () => {
     return (
       <div className="h-screen flex items-center justify-center p-4">
         <div className="text-center space-y-6 max-w-md">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <img src="/src/assets/lettus-logo.png" alt="Lettus Logo" className="w-16 h-16" />
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              LETTUS
-            </h1>
+          <div className="flex items-center justify-center mb-4">
+            <img src="/src/assets/lettus-logo.png" alt="Lettus Logo" className="w-[410px] h-[160px] object-contain" />
           </div>
           <p className="text-lg text-muted-foreground">Choose your game mode</p>
           
