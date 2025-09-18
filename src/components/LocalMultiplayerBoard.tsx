@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
 import { calculateScore } from '@/game/calculateScore';
-import { getDictionary } from '@/game/dictionary';
+import { SCORE_OPTS } from '@/game/scoreConfig';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -202,9 +202,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       }
 
       // Calculate new scores using the sub-word scoring system
-      const dict = getDictionary();
-      const result1 = calculateScore(newGrids[0], { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
-      const result2 = calculateScore(newGrids[1], { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
+      const result1 = calculateScore(newGrids[0], SCORE_OPTS());
+      const result2 = calculateScore(newGrids[1], SCORE_OPTS());
       
       const newTotal1 = result1.score;
       const newTotal2 = result2.score;

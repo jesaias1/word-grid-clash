@@ -1,9 +1,8 @@
-// src/game/calculateScore.ts
 export type Cell = { r: number; c: number };
 export type WordHit = { text: string; path: Cell[]; dir: '→'|'←'|'↓'|'↑' };
 
 export type ScoreOpts = {
-  dictionary?: Set<string>;
+  dictionary?: Set<string> | null;
   useDictionary?: boolean;  // default true
   dedupe?: boolean;         // default false (count every occurrence)
   minLen?: number;          // default 2
@@ -11,20 +10,12 @@ export type ScoreOpts = {
 
 const isAZ = (ch: string) => /^[A-Z]$/.test(ch);
 
-/**
- * Replacement scoring:
- * - Rows & columns only (no diagonals)
- * - Both directions (→, ←, ↓, ↑)
- * - All substrings length >= minLen
- * - Each occurrence scores length
- * - Returns total score and list of occurrences with coordinates
- */
 export function calculateScore(
   grid: string[][],
   opts: ScoreOpts = {}
 ): { score: number; words: WordHit[] } {
   const {
-    dictionary = new Set<string>(),
+    dictionary = null,
     useDictionary = true,
     dedupe = false,
     minLen = 2,
@@ -33,29 +24,32 @@ export function calculateScore(
   const rows = grid.length;
   const cols = grid[0]?.length ?? 0;
   const hits: WordHit[] = [];
-  const seen = new Set<string>(); // for dedupe by string if enabled
+  const seen = new Set<string>();
+  const dict = dictionary ?? new Set<string>();
 
-  // Scan every row as a line
-  for (let r = 0; r < rows; r++) {
-    const line = Array.from({ length: cols }, (_, c) =>
-      isAZ(grid[r][c]) ? grid[r][c].toUpperCase() : ' '
-    );
-    scanLine(line, (k) => ({ r, c: k }), '→', '←');
+  function accept(word: string): boolean {
+    if (word.length < minLen) return false;
+    if (!useDictionary) return true;
+    // autoguard: if list is tiny/unloaded, accept everything
+    if (dict.size <= 5000) return true;
+    return dict.has(word);
   }
 
-  // Scan every column as a line
+  for (let r = 0; r < rows; r++) {
+    const line = Array.from({ length: cols }, (_, c) => isAZ(grid[r][c]) ? grid[r][c].toUpperCase() : ' ');
+    scanLine(line, k => ({ r, c: k }), '→', '←');
+  }
+
   for (let c = 0; c < cols; c++) {
-    const line = Array.from({ length: rows }, (_, r) =>
-      isAZ(grid[r][c]) ? grid[r][c].toUpperCase() : ' '
-    );
-    scanLine(line, (k) => ({ r: k, c }), '↓', '↑');
+    const line = Array.from({ length: rows }, (_, r) => isAZ(grid[r][c]) ? grid[r][c].toUpperCase() : ' ');
+    scanLine(line, k => ({ r: k, c }), '↓', '↑');
   }
 
   function scanLine(
     chars: string[],
     coord: (k: number) => Cell,
-    fwdDir: WordHit['dir'],
-    revDir: WordHit['dir']
+    fwd: WordHit['dir'],
+    rev: WordHit['dir']
   ) {
     const n = chars.length;
     let i = 0;
@@ -64,21 +58,21 @@ export function calculateScore(
       if (i >= n) break;
       let j = i;
       while (j < n && chars[j] !== ' ') j++;
-      // segment is [i, j)
       const segLen = j - i;
       if (segLen >= minLen) {
-        // forward direction
+        // forward substrings
         for (let a = 0; a < segLen; a++) {
           for (let b = a + minLen; b <= segLen; b++) {
-            emit(chars.slice(i + a, i + b).join(''), i + a, i + b, fwdDir, coord);
+            const text = chars.slice(i + a, i + b).join('');
+            if (accept(text)) emit(text, i + a, i + b, fwd, coord, false);
           }
         }
-        // reverse direction
+        // reverse substrings
         for (let a = 0; a < segLen; a++) {
           for (let b = a + minLen; b <= segLen; b++) {
-            const revStart = j - b; // mirrored in original indices
-            const revEnd   = j - a; // not inclusive
-            emit(chars.slice(revStart, revEnd).reverse().join(''), revStart, revEnd, revDir, coord, true);
+            const start = j - b, end = j - a; // [start,end)
+            const text = chars.slice(start, end).reverse().join('');
+            if (accept(text)) emit(text, start, end, rev, coord, true);
           }
         }
       }
@@ -92,20 +86,12 @@ export function calculateScore(
     end: number,
     dir: WordHit['dir'],
     coord: (k: number) => Cell,
-    reversed = false
+    reversed: boolean
   ) {
-    if (text.length < minLen) return;
-    if (useDictionary && !dictionary.has(text)) return;
-    if (dedupe) {
-      if (seen.has(text)) return;
-      seen.add(text);
-    }
+    if (dedupe) { if (seen.has(text)) return; seen.add(text); }
     const path: Cell[] = [];
-    if (!reversed) {
-      for (let k = start; k < end; k++) path.push(coord(k));
-    } else {
-      for (let k = end - 1; k >= start; k--) path.push(coord(k));
-    }
+    if (!reversed) { for (let k = start; k < end; k++) path.push(coord(k)); }
+    else           { for (let k = end - 1; k >= start; k--) path.push(coord(k)); }
     hits.push({ text, path, dir });
   }
 

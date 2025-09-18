@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
 import { calculateScore } from '@/game/calculateScore';
-import { getDictionary } from '@/game/dictionary';
+import { SCORE_OPTS } from '@/game/scoreConfig';
 
 type Player = 1 | 2;
 type Letter = string;
