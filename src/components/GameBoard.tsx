@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
 import { calculateScore } from '@/game/scoring';
+import { scoreFromSubwords } from '@/game/subwordScoring';
+import { getDictionary } from '@/game/dictionary';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -29,6 +31,9 @@ interface GameState {
   timeLeft: number; // Time left in current turn (seconds)
   letterPool: string[]; // Available letters for the game
   difficulty: DifficultyLevel; // AI difficulty level
+  lastBoardTotal: { [playerId: string]: number }; // Last total score for each player
+  roundScores: { [playerId: string]: number }; // Score gained this round
+  cumulativeScores: { [playerId: string]: number }; // Total cumulative scores
 }
 
 const GRID_ROWS = 5;
@@ -104,7 +109,10 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       scoredCells: [new Set<string>(), new Set<string>()] as [Set<string>, Set<string>],
       timeLeft: TURN_TIME,
       letterPool, // Store the letter pool in game state
-      difficulty: 'medium' as DifficultyLevel
+      difficulty: 'medium' as DifficultyLevel,
+      lastBoardTotal: { '1': 0, '2': 0 },
+      roundScores: { '1': 0, '2': 0 },
+      cumulativeScores: { '1': 0, '2': 0 }
     };
   };
 
@@ -114,7 +122,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
   const [allFoundWords, setAllFoundWords] = useState<[string[], string[]]>([[], []]);
-  const [crossGridPlacements, setCrossGridPlacements] = useState<number>(3); // Player starts with 3 cross-grid placements
+  const [crossGridPlacements, setCrossGridPlacements] = useState<number>(1); // Player starts with 1 cross-grid placement per game
 
   // Set available letters from game state
   useEffect(() => {
@@ -520,9 +528,50 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       // Place the letter on the target grid
       newGrids[targetPlayerIndex][row][col] = selectedLetter;
       
-      // Calculate scores using new scoring system with delta scoring
-      const result1 = scoreGrid(newGrids[0], dict, prev.usedWords[0], 3);
-      const result2 = scoreGrid(newGrids[1], dict, prev.usedWords[1], 3);
+      // Calculate scores using the new sub-word scoring system
+      const result1 = calculateScore(newGrids[0], { dictionary: dict, useDictionary: true, minLen: 3 });
+      const result2 = calculateScore(newGrids[1], { dictionary: dict, useDictionary: true, minLen: 3 });
+      
+      // Convert to WordHit format for sub-word scoring
+      const hits1 = result1.words;
+      const hits2 = result2.words;
+      
+      // Calculate sub-word scores
+      const newTotal1 = scoreFromSubwords(hits1, { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
+      const newTotal2 = scoreFromSubwords(hits2, { dictionary: dict, useDictionary: true, dedupe: false, minLen: 2 });
+      
+      // Delta scoring for player 1
+      const prevTotal1 = prev.lastBoardTotal['1'] ?? 0;
+      const delta1 = Math.max(0, newTotal1 - prevTotal1);
+      
+      // Delta scoring for player 2  
+      const prevTotal2 = prev.lastBoardTotal['2'] ?? 0;
+      const delta2 = Math.max(0, newTotal2 - prevTotal2);
+      
+      // Update scoring state
+      const newRoundScores = {
+        '1': (prev.roundScores['1'] ?? 0) + delta1,
+        '2': (prev.roundScores['2'] ?? 0) + delta2
+      };
+      const newCumulativeScores = {
+        '1': (prev.cumulativeScores['1'] ?? 0) + delta1,
+        '2': (prev.cumulativeScores['2'] ?? 0) + delta2
+      };
+      const newLastBoardTotal = { '1': newTotal1, '2': newTotal2 };
+      
+      // Create scored cells sets
+      const scoredCells1 = new Set<string>();
+      const scoredCells2 = new Set<string>();
+      hits1.forEach(word => {
+        word.path.forEach(cell => {
+          scoredCells1.add(`${cell.r}-${cell.c}`);
+        });
+      });
+      hits2.forEach(word => {
+        word.path.forEach(cell => {
+          scoredCells2.add(`${cell.r}-${cell.c}`);
+        });
+      });
       
       // Update shared cooldowns
       const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
@@ -567,17 +616,20 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
         grids: newGrids,
         currentPlayer: 2 as Player, // Pass to AI
         turn: prev.turn + 1,
-        scores: [result1.score, result2.score] as [number, number],
-        usedWords: [result1.newUsedWords, result2.newUsedWords] as [Set<string>, Set<string>],
-        scoredCells: [result1.scoredCells, result2.scoredCells] as [Set<string>, Set<string>],
+        scores: [newCumulativeScores['1'], newCumulativeScores['2']] as [number, number],
+        usedWords: [new Set(hits1.map(w => w.text)), new Set(hits2.map(w => w.text))] as [Set<string>, Set<string>],
+        scoredCells: [scoredCells1, scoredCells2] as [Set<string>, Set<string>],
         sharedCooldowns: newSharedCooldowns,
         gameEnded,
         winner,
-        timeLeft: TURN_TIME // Reset timer for next player
+        timeLeft: TURN_TIME, // Reset timer for next player
+        lastBoardTotal: newLastBoardTotal,
+        roundScores: newRoundScores,
+        cumulativeScores: newCumulativeScores
       };
       
       // Update all found words
-      setAllFoundWords([result1.allFoundWords, result2.allFoundWords]);
+      setAllFoundWords([hits1.map(w => w.text), hits2.map(w => w.text)]);
       
       // Show winner dialog if game ended
       if (gameEnded) {
