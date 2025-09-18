@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
+import { calculateScore } from '@/game/scoring';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -505,7 +506,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     if (targetGrid[row][col] !== null) return; // Cell already occupied
     if (isLetterOnCooldown(selectedLetter)) return; // Letter on shared cooldown
     
-    // Check if placing on AI grid and if cross-placements available
+    // Check if placing on AI grid and if attack available (1 per game)
     if (isPlacingOnAIGrid && crossGridPlacements <= 0) return;
 
     const dict = await loadDictionary();
@@ -519,9 +520,9 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       // Place the letter on the target grid
       newGrids[targetPlayerIndex][row][col] = selectedLetter;
       
-      // Calculate new scores for both players (cumulative from all previous turns)
-      const result1 = scoreGrid(newGrids[0], dict, new Set(), 3); // Reset used words to get total current score
-      const result2 = scoreGrid(newGrids[1], dict, new Set(), 3); // Reset used words to get total current score
+      // Calculate scores using new scoring system with delta scoring
+      const result1 = scoreGrid(newGrids[0], dict, prev.usedWords[0], 3);
+      const result2 = scoreGrid(newGrids[1], dict, prev.usedWords[1], 3);
       
       // Update shared cooldowns
       const newSharedCooldowns: CooldownState = { ...prev.sharedCooldowns };
@@ -594,7 +595,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     setSelectedLetter('');
     setShowWinnerDialog(false);
     setAllFoundWords([[], []]);
-    setCrossGridPlacements(3);
+    setCrossGridPlacements(1); // One attack per game
   };
 
 

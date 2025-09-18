@@ -8,53 +8,53 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Gaming dark theme with neon accents */
-    --background: 215 28% 8%;
+    /* Green gaming theme */
+    --background: 120 20% 8%;
     --foreground: 60 100% 99%;
 
-    --card: 220 25% 12%;
+    --card: 120 15% 12%;
     --card-foreground: 60 100% 99%;
 
-    --popover: 220 25% 12%;
+    --popover: 120 15% 12%;
     --popover-foreground: 60 100% 99%;
 
-    --primary: 280 100% 70%;
-    --primary-foreground: 215 28% 8%;
+    --primary: 120 100% 50%;
+    --primary-foreground: 120 20% 8%;
 
-    --secondary: 195 100% 65%;
-    --secondary-foreground: 215 28% 8%;
+    --secondary: 160 80% 45%;
+    --secondary-foreground: 120 20% 8%;
 
-    --muted: 220 25% 16%;
-    --muted-foreground: 210 20% 65%;
+    --muted: 120 15% 16%;
+    --muted-foreground: 120 10% 65%;
 
-    --accent: 120 100% 70%;
-    --accent-foreground: 215 28% 8%;
+    --accent: 140 100% 60%;
+    --accent-foreground: 120 20% 8%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 60 100% 99%;
 
-    --border: 220 25% 20%;
-    --input: 220 25% 16%;
-    --ring: 280 100% 70%;
+    --border: 120 15% 20%;
+    --input: 120 15% 16%;
+    --ring: 120 100% 50%;
 
     /* Game-specific colors */
-    --grid-cell: 220 25% 14%;
-    --grid-border: 220 25% 25%;
-    --letter-tile: 280 100% 70%;
+    --grid-cell: 120 15% 14%;
+    --grid-border: 120 15% 25%;
+    --letter-tile: 120 100% 50%;
     --letter-cooldown: 0 0% 40%;
-    --player-1: 280 100% 70%;
+    --player-1: 120 100% 50%;
     --player-2: 25 100% 60%;
-    --player-1-secondary: 195 100% 65%;
-    --player-2-secondary: 120 100% 50%;
+    --player-1-secondary: 160 80% 45%;
+    --player-2-secondary: 280 100% 70%;
     --score-glow: 120 100% 70%;
     --highlight-cell: 120 60% 35%;
 
     /* Player-specific gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(280 100% 70%), hsl(195 100% 65%));
-    --gradient-player-1: linear-gradient(135deg, hsl(280 100% 70%), hsl(195 100% 65%));
-    --gradient-player-2: linear-gradient(135deg, hsl(25 100% 60%), hsl(120 100% 50%));
-    --gradient-accent: linear-gradient(45deg, hsl(120 100% 70%), hsl(280 100% 70%));
-    --gradient-card: linear-gradient(145deg, hsl(220 25% 12%), hsl(220 25% 16%));
+    --gradient-primary: linear-gradient(135deg, hsl(120 100% 50%), hsl(160 80% 45%));
+    --gradient-player-1: linear-gradient(135deg, hsl(120 100% 50%), hsl(160 80% 45%));
+    --gradient-player-2: linear-gradient(135deg, hsl(25 100% 60%), hsl(280 100% 70%));
+    --gradient-accent: linear-gradient(45deg, hsl(140 100% 60%), hsl(120 100% 50%));
+    --gradient-card: linear-gradient(145deg, hsl(120 15% 12%), hsl(120 15% 16%));
 
     --radius: 0.75rem;
 
@@ -76,26 +76,26 @@ All colors MUST be HSL.
   }
 
   .dark {
-    /* Dark mode uses same gaming theme */
-    --background: 215 28% 8%;
+    /* Dark mode uses same green gaming theme */
+    --background: 120 20% 8%;
     --foreground: 60 100% 99%;
-    --card: 220 25% 12%;
+    --card: 120 15% 12%;
     --card-foreground: 60 100% 99%;
-    --popover: 220 25% 12%;
+    --popover: 120 15% 12%;
     --popover-foreground: 60 100% 99%;
-    --primary: 280 100% 70%;
-    --primary-foreground: 215 28% 8%;
-    --secondary: 195 100% 65%;
-    --secondary-foreground: 215 28% 8%;
-    --muted: 220 25% 16%;
-    --muted-foreground: 210 20% 65%;
-    --accent: 120 100% 70%;
-    --accent-foreground: 215 28% 8%;
+    --primary: 120 100% 50%;
+    --primary-foreground: 120 20% 8%;
+    --secondary: 160 80% 45%;
+    --secondary-foreground: 120 20% 8%;
+    --muted: 120 15% 16%;
+    --muted-foreground: 120 10% 65%;
+    --accent: 140 100% 60%;
+    --accent-foreground: 120 20% 8%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 60 100% 99%;
-    --border: 220 25% 20%;
-    --input: 220 25% 16%;
-    --ring: 280 100% 70%;
+    --border: 120 15% 20%;
+    --input: 120 15% 16%;
+    --ring: 120 100% 50%;
   }
 }
 
@@ -106,7 +106,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans;
-    background: linear-gradient(135deg, hsl(215 28% 8%), hsl(220 25% 12%));
+    background: linear-gradient(135deg, hsl(120 20% 8%), hsl(120 15% 12%));
     min-height: 100vh;
   }
 

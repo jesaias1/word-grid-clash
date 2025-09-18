@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
+import { calculateScore } from '@/game/scoring';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -59,7 +60,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     return cell;
   };
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-  const [crossGridPlacements, setCrossGridPlacements] = useState<[number, number]>([3, 3]); // Each player starts with 3 cross-grid placements
+  const [crossGridPlacements, setCrossGridPlacements] = useState<[number, number]>([1, 1]); // Each player starts with 1 attack per game
   
   // Initialize game with starting tiles
   const initializeGame = () => {
@@ -196,16 +197,32 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
         newCrossGridPlacements[currentPlayer - 1]--;
       }
 
-      // Calculate new scores
+      // Calculate new scores using the new scoring system
       const dict = await loadDictionary();
-      const result1 = scoreGrid(newGrids[0], dict, usedWords[0], 3);
-      const result2 = scoreGrid(newGrids[1], dict, usedWords[1], 3);
+      const result1 = calculateScore(newGrids[0], { dictionary: dict, useDictionary: true, minLen: 3 });
+      const result2 = calculateScore(newGrids[1], { dictionary: dict, useDictionary: true, minLen: 3 });
+      
+      // Convert to old format for compatibility
+      const score1 = { score: result1.score, newUsedWords: new Set(result1.words.map(w => w.text)), scoredCells: new Set<string>(), allFoundWords: result1.words.map(w => w.text) };
+      const score2 = { score: result2.score, newUsedWords: new Set(result2.words.map(w => w.text)), scoredCells: new Set<string>(), allFoundWords: result2.words.map(w => w.text) };
+      
+      // Mark scored cells
+      result1.words.forEach(word => {
+        word.path.forEach(cell => {
+          score1.scoredCells.add(`${cell.r}-${cell.c}`);
+        });
+      });
+      result2.words.forEach(word => {
+        word.path.forEach(cell => {
+          score2.scoredCells.add(`${cell.r}-${cell.c}`);
+        });
+      });
 
       // Update used words
-      const newUsedWords: [Set<string>, Set<string>] = [result1.newUsedWords, result2.newUsedWords];
+      const newUsedWords: [Set<string>, Set<string>] = [score1.newUsedWords, score2.newUsedWords];
       setUsedWords(newUsedWords);
-      setScoredCells([result1.scoredCells, result2.scoredCells]);
-      setAllFoundWords([result1.allFoundWords, result2.allFoundWords]);
+      setScoredCells([score1.scoredCells, score2.scoredCells]);
+      setAllFoundWords([score1.allFoundWords, score2.allFoundWords]);
 
       // Check if game should end
       const areAllGridsFull = newGrids.every(grid => 
@@ -214,9 +231,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
 
       if (areAllGridsFull) {
         setGameEnded(true);
-        if (result1.score > result2.score) {
+        if (score1.score > score2.score) {
           setWinner(1);
-        } else if (result2.score > result1.score) {
+        } else if (score2.score > score1.score) {
           setWinner(2);
         }
         setTimeout(() => setShowWinnerDialog(true), 500);
@@ -225,7 +242,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       // Update state
       setGrids(newGrids);
       setCooldowns(newCooldowns);
-      setScores([result1.score, result2.score]);
+      setScores([score1.score, score2.score]);
       setCrossGridPlacements(newCrossGridPlacements);
       setSelectedLetter('');
       
@@ -253,7 +270,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     setTurn(1);
     setScores([0, 0]);
     setCooldowns([{}, {}]);
-    setCrossGridPlacements([3, 3]);
+    setCrossGridPlacements([1, 1]); // One attack per game for each player
     setSelectedLetter('');
     setGameEnded(false);
     setWinner(null);
