@@ -61,6 +61,26 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
     }
     return cell;
   };
+
+  // Helper functions for player-specific styling
+  const getPlayerTextClass = (playerIdx: number): string => {
+    const classes = ['text-player-1', 'text-player-2', 'text-player-3'];
+    return classes[playerIdx] || 'text-player-1';
+  };
+
+  const getPlayerGradientClass = (playerIdx: number): string => {
+    const classes = ['bg-gradient-player-1', 'bg-gradient-player-2', 'bg-gradient-player-3'];
+    return classes[playerIdx] || 'bg-gradient-player-1';
+  };
+
+  const getPlayerBgClass = (playerIdx: number): string => {
+    const classes = [
+      'bg-player-1/20 border border-player-1/30',
+      'bg-player-2/20 border border-player-2/30',
+      'bg-player-3/20 border border-player-3/30'
+    ];
+    return classes[playerIdx] || 'bg-card';
+  };
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
   const [crossGridPlacements, setCrossGridPlacements] = useState<number[]>(Array(playerCount).fill(1)); // Each player starts with 1 attack per game
   
@@ -346,7 +366,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
                 className={`
                   w-14 h-14 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
                   ${isLightSquare ? 'bg-muted/80' : 'bg-muted-foreground/10'}
-                  ${cell ? (playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2') : ''}
+                  ${cell ? getPlayerGradientClass(playerIndex) : ''}
                   ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg hover:bg-accent/20' : ''}
                   ${!canPlaceOnThisGrid ? 'cursor-not-allowed' : ''}
                   ${winnerHighlight}
@@ -445,7 +465,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
               <div className="text-center space-y-4">
                 <div className="text-lg">
                   {winner ? (
-                    <span className={`text-player-${winner} font-bold`}>Player {winner} Wins!</span>
+                    <span className={`font-bold ${winner === 1 ? 'text-player-1' : winner === 2 ? 'text-player-2' : 'text-player-3'}`}>
+                      Player {winner} Wins!
+                    </span>
                   ) : (
                     <span className="font-bold">It's a Tie!</span>
                   )}
@@ -456,7 +478,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
                   <div className="flex justify-center gap-4 flex-wrap">
                     {scores.map((score, idx) => (
                       <div key={idx} className="text-center">
-                        <div className={`text-sm font-medium text-player-${idx + 1}`}>Player {idx + 1}</div>
+                        <div className={`text-sm font-medium ${getPlayerTextClass(idx)}`}>Player {idx + 1}</div>
                         <div className="text-2xl font-bold">{score}</div>
                         <div className="text-xs text-muted-foreground">points</div>
                       </div>
@@ -470,7 +492,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
                   <div className={`grid gap-4 text-xs ${playerCount === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     {allFoundWords.map((words, idx) => (
                       <div key={idx} className="space-y-1">
-                        <div className={`font-medium text-player-${idx + 1}`}>Player {idx + 1} Words ({words.length})</div>
+                        <div className={`font-medium ${getPlayerTextClass(idx)}`}>Player {idx + 1} Words ({words.length})</div>
                         <div className="space-y-1 max-h-24 overflow-y-auto">
                           {words.sort().map((word, wordIdx) => (
                             <div key={wordIdx} className="bg-background/50 rounded px-2 py-1">
@@ -524,7 +546,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
           <div className="flex justify-center items-center gap-4 flex-wrap">
             {scores.map((score, idx) => (
               <div key={idx} className={`text-center ${currentPlayer === idx + 1 ? 'score-glow' : ''}`}>
-                <div className={`text-sm font-bold text-player-${idx + 1}`}>Player {idx + 1}</div>
+                <div className={`text-sm font-bold ${getPlayerTextClass(idx)}`}>Player {idx + 1}</div>
                 <div className="text-xl font-bold">{score}</div>
               </div>
             ))}
@@ -552,7 +574,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
               <>
                 <div className="text-xs text-muted-foreground">Turn {turn}</div>
                 <div className="text-sm font-semibold">
-                  <span className={currentPlayer === 1 ? 'text-player-1' : 'text-player-2'}>
+                  <span className={getPlayerTextClass(currentPlayer - 1)}>
                     Player {currentPlayer}'s Turn
                   </span>
                 </div>
@@ -588,8 +610,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
       <div className="flex justify-center items-start gap-4 flex-1 flex-wrap">
         {grids.map((grid, playerIdx) => (
           <div key={playerIdx} className="flex flex-col items-center">
-            <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === playerIdx + 1 ? `bg-player-${playerIdx + 1}/20 border border-player-${playerIdx + 1}/30` : 'bg-card'}`}>
-              <div className={`text-lg font-bold text-player-${playerIdx + 1}`}>Player {playerIdx + 1}</div>
+            <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === playerIdx + 1 ? getPlayerBgClass(playerIdx) : 'bg-card'}`}>
+              <div className={`text-lg font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
               <div className="text-2xl font-bold">{scores[playerIdx]}</div>
             </div>
             {/* Attack Indicators */}
