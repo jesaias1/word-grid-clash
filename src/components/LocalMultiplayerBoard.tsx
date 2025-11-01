@@ -198,11 +198,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
     if (isPlacingOnOpponentGrid && crossGridPlacements[currentPlayer - 1] <= 0) return;
 
     try {
-      // Update grids
-      const newGrids: [Grid, Grid] = [
-        grids[0].map(row => [...row]),
-        grids[1].map(row => [...row])
-      ];
+      // Update grids - copy all grids dynamically
+      const newGrids: Grid[] = grids.map(grid => grid.map(row => [...row]));
       
       newGrids[targetPlayerIndex][row][col] = selectedLetter;
 
@@ -340,6 +337,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
     const isWinner = gameEnded && winner === (playerIndex + 1);
     const canPlaceOnThisGrid = isCurrentPlayer || crossGridPlacements[currentPlayer - 1] > 0;
     
+    // Adjust cell size based on player count for better fit
+    const cellSize = playerCount === 3 ? 'w-12 h-12' : 'w-14 h-14';
+    
     return (
       <div className={`inline-grid gap-px p-2 rounded-lg border-2 ${
         isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20 border-primary/30' : 'bg-card border-border'
@@ -364,7 +364,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  w-14 h-14 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
+                  ${cellSize} cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
                   ${isLightSquare ? 'bg-muted/80' : 'bg-muted-foreground/10'}
                   ${cell ? getPlayerGradientClass(playerIndex) : ''}
                   ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg hover:bg-accent/20' : ''}
