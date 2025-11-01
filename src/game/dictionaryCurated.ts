@@ -111,8 +111,9 @@ function curate(raw: Set<string>, allow: Set<string>, block: Set<string>): Set<s
 
 export async function loadCuratedDictionary(): Promise<CuratedDict> {
   // Try local files first (commit these to /public)
-  const popular = (await fetchList('/words-popular.txt'))     // from top-english-wordlists (e.g., top 50k)
-                || (await fetchList('/words-en.txt'))         // any other main list you already ship
+  const popular = (await fetchList('/words.txt'))           // full dictionary (370k+ words)
+                || (await fetchList('/words-en.txt'))       // fallback
+                || (await fetchList('/words-popular.txt'))  // last resort
                 || new Set<string>();
 
   const allow   = (await fetchList('/words-allow.txt')) || new Set<string>();
