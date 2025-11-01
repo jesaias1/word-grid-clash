@@ -1,13 +1,12 @@
-import { getDictionary, isDictionaryHealthy } from './dictionary';
+import { getDictionary } from './dictionary';
 
 export const SCORE_OPTS = () => {
   const dict = getDictionary();
-  const healthy = isDictionaryHealthy();
   
   return {
     dictionary: dict,
-    useDictionary: healthy, // only filter if we have a good dictionary
+    useDictionary: true, // ALWAYS use dictionary validation
     dedupe: false,
-    minLen: 2
+    minLen: 3 // Minimum 3 letters for valid words
   };
 };

@@ -125,6 +125,6 @@ export async function loadCuratedDictionary(): Promise<CuratedDict> {
   }
 
   const curated = curate(popular, allow, block);
-  const healthy = curated.size > 5000; // threshold to consider "real"
+  const healthy = curated.size > 100; // Lower threshold - even small dictionaries are valid
   return { set: curated, healthy };
 }
