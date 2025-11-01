@@ -58,14 +58,17 @@ export default {
 				'letter-cooldown': 'hsl(var(--letter-cooldown))',
 				'player-1': 'hsl(var(--player-1))',
 				'player-2': 'hsl(var(--player-2))',
+				'player-3': 'hsl(var(--player-3))',
 				'player-1-secondary': 'hsl(var(--player-1-secondary))',
 				'player-2-secondary': 'hsl(var(--player-2-secondary))',
+				'player-3-secondary': 'hsl(var(--player-3-secondary))',
 				'score-glow': 'hsl(var(--score-glow))'
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-player-1': 'var(--gradient-player-1)',
 				'gradient-player-2': 'var(--gradient-player-2)',
+				'gradient-player-3': 'var(--gradient-player-3)',
 				'gradient-accent': 'var(--gradient-accent)',
 				'gradient-card': 'var(--gradient-card)'
 			},

@@ -9,7 +9,7 @@ import { scoreGrid } from '@/lib/scoring';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 
-type Player = 1 | 2;
+type Player = number;
 type Letter = string;
 type GridCell = Letter | null;
 type Grid = GridCell[][];
@@ -21,6 +21,7 @@ interface CooldownState {
 interface LocalMultiplayerBoardProps {
   onBackToMenu: () => void;
   boardSize?: number;
+  playerCount?: number;
 }
 
 const COOLDOWN_TURNS = 4;
@@ -51,7 +52,7 @@ const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{
   return tiles;
 };
 
-const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayerBoardProps) => {
+const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }: LocalMultiplayerBoardProps) => {
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
     if (!cell) return '';
@@ -61,47 +62,59 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     return cell;
   };
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-  const [crossGridPlacements, setCrossGridPlacements] = useState<[number, number]>([1, 1]); // Each player starts with 1 attack per game
+  const [crossGridPlacements, setCrossGridPlacements] = useState<number[]>(Array(playerCount).fill(1)); // Each player starts with 1 attack per game
   
   // Initialize game with starting tiles
   const initializeGame = () => {
     const letterPool = generateLetterPool();
     const startingTiles = generateStartingTiles(letterPool, boardSize);
-    const grid1: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
-    const grid2: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
-    
-    // Place starting tiles on both grids
-    startingTiles.forEach(({ row, col, letter }) => {
-      grid1[row][col] = letter;
-      grid2[row][col] = letter;
+    const grids: Grid[] = Array(playerCount).fill(null).map(() => {
+      const grid: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
+      // Place starting tiles on each grid
+      startingTiles.forEach(({ row, col, letter }) => {
+        grid[row][col] = letter;
+      });
+      return grid;
     });
     
     return {
       letterPool,
-      grids: [grid1, grid2] as [Grid, Grid]
+      grids
     };
   };
 
-  const [grids, setGrids] = useState<[Grid, Grid]>(() => {
+  const [grids, setGrids] = useState<Grid[]>(() => {
     const gameData = initializeGame();
     setAvailableLetters(gameData.letterPool);
     return gameData.grids;
   });
   const [currentPlayer, setCurrentPlayer] = useState<Player>(1);
   const [turn, setTurn] = useState(1);
-  const [scores, setScores] = useState<[number, number]>([0, 0]);
-  const [cooldowns, setCooldowns] = useState<[CooldownState, CooldownState]>([{}, {}]);
+  const [scores, setScores] = useState<number[]>(Array(playerCount).fill(0));
+  const [cooldowns, setCooldowns] = useState<CooldownState[]>(Array(playerCount).fill(null).map(() => ({})));
   const [selectedLetter, setSelectedLetter] = useState<Letter>('');
   const [gameEnded, setGameEnded] = useState(false);
   const [winner, setWinner] = useState<Player | null>(null);
-  const [usedWords, setUsedWords] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
-  const [scoredCells, setScoredCells] = useState<[Set<string>, Set<string>]>([new Set(), new Set()]);
+  const [usedWords, setUsedWords] = useState<Set<string>[]>(Array(playerCount).fill(null).map(() => new Set()));
+  const [scoredCells, setScoredCells] = useState<Set<string>[]>(Array(playerCount).fill(null).map(() => new Set()));
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [timeLeft, setTimeLeft] = useState(TURN_TIME);
-  const [allFoundWords, setAllFoundWords] = useState<[string[], string[]]>([[], []]);
-  const [lastBoardTotal, setLastBoardTotal] = useState<{ [playerId: string]: number }>({ '1': 0, '2': 0 });
-  const [roundScores, setRoundScores] = useState<{ [playerId: string]: number }>({ '1': 0, '2': 0 });
-  const [cumulativeScores, setCumulativeScores] = useState<{ [playerId: string]: number }>({ '1': 0, '2': 0 });
+  const [allFoundWords, setAllFoundWords] = useState<string[][]>(Array(playerCount).fill(null).map(() => []));
+  const [lastBoardTotal, setLastBoardTotal] = useState<{ [playerId: string]: number }>(() => {
+    const obj: { [key: string]: number } = {};
+    for (let i = 1; i <= playerCount; i++) obj[i.toString()] = 0;
+    return obj;
+  });
+  const [roundScores, setRoundScores] = useState<{ [playerId: string]: number }>(() => {
+    const obj: { [key: string]: number } = {};
+    for (let i = 1; i <= playerCount; i++) obj[i.toString()] = 0;
+    return obj;
+  });
+  const [cumulativeScores, setCumulativeScores] = useState<{ [playerId: string]: number }>(() => {
+    const obj: { [key: string]: number } = {};
+    for (let i = 1; i <= playerCount; i++) obj[i.toString()] = 0;
+    return obj;
+  });
 
   // Preload dictionary in the background
   useEffect(() => {
@@ -174,13 +187,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       newGrids[targetPlayerIndex][row][col] = selectedLetter;
 
       // Update cooldowns
-      const newCooldowns: [CooldownState, CooldownState] = [
-        { ...cooldowns[0] },
-        { ...cooldowns[1] }
-      ];
+      const newCooldowns: CooldownState[] = cooldowns.map(cd => ({ ...cd }));
 
-      // Decrease existing cooldowns for both players
-      [0, 1].forEach(playerIdx => {
+      // Decrease existing cooldowns for all players
+      cooldowns.forEach((_, playerIdx) => {
         Object.keys(newCooldowns[playerIdx]).forEach(letter => {
           if (newCooldowns[playerIdx][letter] > 0) {
             newCooldowns[playerIdx][letter]--;
@@ -191,65 +201,54 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
         });
       });
 
-      // Set cooldown for used letter for both players
-      newCooldowns[0][selectedLetter] = COOLDOWN_TURNS;
-      newCooldowns[1][selectedLetter] = COOLDOWN_TURNS;
+      // Set cooldown for used letter for all players
+      newCooldowns.forEach((_, idx) => {
+        newCooldowns[idx][selectedLetter] = COOLDOWN_TURNS;
+      });
 
       // Update cross-grid placements if placing on opponent's grid
-      const newCrossGridPlacements: [number, number] = [...crossGridPlacements];
+      const newCrossGridPlacements: number[] = [...crossGridPlacements];
       if (isPlacingOnOpponentGrid) {
         newCrossGridPlacements[currentPlayer - 1]--;
       }
 
-      // Calculate new scores using the sub-word scoring system
-      const result1 = calculateScore(newGrids[0], SCORE_OPTS());
-      const result2 = calculateScore(newGrids[1], SCORE_OPTS());
+      // Calculate new scores using the sub-word scoring system for all players
+      const playerResults = newGrids.map(grid => calculateScore(grid, SCORE_OPTS()));
+      const newTotals = playerResults.map(r => r.score);
       
-      const newTotal1 = result1.score;
-      const newTotal2 = result2.score;
+      // Calculate deltas for all players
+      const newRoundScores: { [playerId: string]: number } = {};
+      const newCumulativeScores: { [playerId: string]: number } = {};
+      const newLastBoardTotal: { [playerId: string]: number } = {};
       
-      // Delta scoring for player 1
-      const prevTotal1 = lastBoardTotal['1'] ?? 0;
-      const delta1 = Math.max(0, newTotal1 - prevTotal1);
-      
-      // Delta scoring for player 2
-      const prevTotal2 = lastBoardTotal['2'] ?? 0;
-      const delta2 = Math.max(0, newTotal2 - prevTotal2);
-      
-      // Update scoring state
-      const newRoundScores = {
-        '1': (roundScores['1'] ?? 0) + delta1,
-        '2': (roundScores['2'] ?? 0) + delta2
-      };
-      const newCumulativeScores = {
-        '1': (cumulativeScores['1'] ?? 0) + delta1,
-        '2': (cumulativeScores['2'] ?? 0) + delta2
-      };
-      const newLastBoardTotal = { '1': newTotal1, '2': newTotal2 };
-      
-      // Create scored cells sets
-      const scoredCells1 = new Set<string>();
-      const scoredCells2 = new Set<string>();
-      result1.words.forEach(word => {
-        word.path.forEach(cell => {
-          scoredCells1.add(`${cell.r}-${cell.c}`);
-        });
-      });
-      result2.words.forEach(word => {
-        word.path.forEach(cell => {
-          scoredCells2.add(`${cell.r}-${cell.c}`);
-        });
+      playerResults.forEach((result, idx) => {
+        const playerId = (idx + 1).toString();
+        const prevTotal = lastBoardTotal[playerId] ?? 0;
+        const delta = Math.max(0, result.score - prevTotal);
+        
+        newRoundScores[playerId] = (roundScores[playerId] ?? 0) + delta;
+        newCumulativeScores[playerId] = (cumulativeScores[playerId] ?? 0) + delta;
+        newLastBoardTotal[playerId] = result.score;
       });
       
-      // Convert to old format for compatibility
-      const score1 = { score: newCumulativeScores['1'], newUsedWords: new Set(result1.words.map(w => w.text)), scoredCells: scoredCells1, allFoundWords: result1.words.map(w => w.text) };
-      const score2 = { score: newCumulativeScores['2'], newUsedWords: new Set(result2.words.map(w => w.text)), scoredCells: scoredCells2, allFoundWords: result2.words.map(w => w.text) };
-
-      // Update used words
-      const newUsedWords: [Set<string>, Set<string>] = [score1.newUsedWords, score2.newUsedWords];
+      // Create scored cells sets for all players
+      const newScoredCells = playerResults.map(result => {
+        const cells = new Set<string>();
+        result.words.forEach(word => {
+          word.path.forEach(cell => {
+            cells.add(`${cell.r}-${cell.c}`);
+          });
+        });
+        return cells;
+      });
+      
+      // Update used words and found words
+      const newUsedWords = playerResults.map(result => new Set(result.words.map(w => w.text)));
+      const newAllFoundWords = playerResults.map(result => result.words.map(w => w.text));
+      
       setUsedWords(newUsedWords);
-      setScoredCells([score1.scoredCells, score2.scoredCells]);
-      setAllFoundWords([score1.allFoundWords, score2.allFoundWords]);
+      setScoredCells(newScoredCells);
+      setAllFoundWords(newAllFoundWords);
 
       // Check if game should end
       const areAllGridsFull = newGrids.every(grid => 
@@ -258,10 +257,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
 
       if (areAllGridsFull) {
         setGameEnded(true);
-        if (score1.score > score2.score) {
-          setWinner(1);
-        } else if (score2.score > score1.score) {
-          setWinner(2);
+        // Find winner (highest score)
+        const finalScores = Object.entries(newCumulativeScores).map(([id, score]) => ({ id: parseInt(id), score }));
+        const maxScore = Math.max(...finalScores.map(s => s.score));
+        const winners = finalScores.filter(s => s.score === maxScore);
+        if (winners.length === 1) {
+          setWinner(winners[0].id);
         }
         setTimeout(() => setShowWinnerDialog(true), 500);
       }
@@ -269,15 +270,15 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       // Update state
       setGrids(newGrids);
       setCooldowns(newCooldowns);
-      setScores([score1.score, score2.score]);
+      setScores(Object.values(newCumulativeScores));
       setCrossGridPlacements(newCrossGridPlacements);
       setSelectedLetter('');
       setLastBoardTotal(newLastBoardTotal);
       setRoundScores(newRoundScores);
       setCumulativeScores(newCumulativeScores);
       
-      // Pass turn
-      setCurrentPlayer(currentPlayer === 1 ? 2 : 1);
+      // Pass turn (cycle through players)
+      setCurrentPlayer(currentPlayer === playerCount ? 1 : currentPlayer + 1);
       setTurn(turn + 1);
       setTimeLeft(TURN_TIME);
 
@@ -287,7 +288,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
   };
 
   const passTurn = () => {
-    setCurrentPlayer(currentPlayer === 1 ? 2 : 1);
+    setCurrentPlayer(currentPlayer === playerCount ? 1 : currentPlayer + 1);
     setTurn(turn + 1);
     setTimeLeft(TURN_TIME);
   };
@@ -298,13 +299,15 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
     setGrids(gameData.grids);
     setCurrentPlayer(1);
     setTurn(1);
-    setScores([0, 0]);
-    setCooldowns([{}, {}]);
-    setCrossGridPlacements([1, 1]); // Exactly one attack per game for each player
+    setScores(Array(playerCount).fill(0));
+    setCooldowns(Array(playerCount).fill(null).map(() => ({})));
+    setCrossGridPlacements(Array(playerCount).fill(1)); // Exactly one attack per game for each player
     setSelectedLetter('');
-    setLastBoardTotal({ '1': 0, '2': 0 });
-    setRoundScores({ '1': 0, '2': 0 });
-    setCumulativeScores({ '1': 0, '2': 0 });
+    const initialScores: { [key: string]: number } = {};
+    for (let i = 1; i <= playerCount; i++) initialScores[i.toString()] = 0;
+    setLastBoardTotal(initialScores);
+    setRoundScores(initialScores);
+    setCumulativeScores(initialScores);
     setGameEnded(false);
     setWinner(null);
     setTimeLeft(TURN_TIME);
@@ -441,10 +444,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
             <DialogDescription asChild>
               <div className="text-center space-y-4">
                 <div className="text-lg">
-                  {winner === 1 ? (
-                    <span className="text-player-1 font-bold">Player 1 Wins!</span>
-                  ) : winner === 2 ? (
-                    <span className="text-player-2 font-bold">Player 2 Wins!</span>
+                  {winner ? (
+                    <span className={`text-player-${winner} font-bold`}>Player {winner} Wins!</span>
                   ) : (
                     <span className="font-bold">It's a Tie!</span>
                   )}
@@ -452,50 +453,36 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
                 
                 <div className="bg-muted rounded-lg p-4">
                   <div className="text-sm text-muted-foreground mb-2">Final Scores:</div>
-                  <div className="flex justify-center gap-8">
-                  <div className="text-center">
-                    <div className="text-sm font-medium text-player-1">Player 1</div>
-                    <div className="text-2xl font-bold">{scores[0]}</div>
-                    <div className="text-xs text-muted-foreground">points</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm font-medium text-player-2">Player 2</div>
-                    <div className="text-2xl font-bold">{scores[1]}</div>
-                    <div className="text-xs text-muted-foreground">points</div>
-                  </div>
+                  <div className="flex justify-center gap-4 flex-wrap">
+                    {scores.map((score, idx) => (
+                      <div key={idx} className="text-center">
+                        <div className={`text-sm font-medium text-player-${idx + 1}`}>Player {idx + 1}</div>
+                        <div className="text-2xl font-bold">{score}</div>
+                        <div className="text-xs text-muted-foreground">points</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
                 {/* Words Found Section */}
                 <div className="bg-muted rounded-lg p-4 max-h-48 overflow-y-auto">
                   <div className="text-sm text-muted-foreground mb-3">All Words Found:</div>
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div className="space-y-1">
-                      <div className="font-medium text-player-1">Player 1 Words ({allFoundWords[0].length})</div>
-                      <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {allFoundWords[0].sort().map((word, idx) => (
-                          <div key={idx} className="bg-background/50 rounded px-2 py-1">
-                            {word.toUpperCase()}
-                          </div>
-                        ))}
-                        {allFoundWords[0].length === 0 && (
-                          <div className="text-muted-foreground italic">No words found</div>
-                        )}
+                  <div className={`grid gap-4 text-xs ${playerCount === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {allFoundWords.map((words, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className={`font-medium text-player-${idx + 1}`}>Player {idx + 1} Words ({words.length})</div>
+                        <div className="space-y-1 max-h-24 overflow-y-auto">
+                          {words.sort().map((word, wordIdx) => (
+                            <div key={wordIdx} className="bg-background/50 rounded px-2 py-1">
+                              {word.toUpperCase()}
+                            </div>
+                          ))}
+                          {words.length === 0 && (
+                            <div className="text-muted-foreground italic">No words found</div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="font-medium text-player-2">Player 2 Words ({allFoundWords[1].length})</div>
-                      <div className="space-y-1 max-h-24 overflow-y-auto">
-                        {allFoundWords[1].sort().map((word, idx) => (
-                          <div key={idx} className="bg-background/50 rounded px-2 py-1">
-                            {word.toUpperCase()}
-                          </div>
-                        ))}
-                        {allFoundWords[1].length === 0 && (
-                          <div className="text-muted-foreground italic">No words found</div>
-                        )}
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
                 
@@ -534,15 +521,13 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Player Scores */}
         <Card className="p-3 bg-gradient-card">
-          <div className="flex justify-center items-center gap-8">
-            <div className={`text-center ${currentPlayer === 1 ? 'score-glow' : ''}`}>
-              <div className="text-sm font-bold text-player-1">Player 1</div>
-              <div className="text-xl font-bold">{scores[0]}</div>
-            </div>
-            <div className={`text-center ${currentPlayer === 2 ? 'score-glow' : ''}`}>
-              <div className="text-sm font-bold text-player-2">Player 2</div>
-              <div className="text-xl font-bold">{scores[1]}</div>
-            </div>
+          <div className="flex justify-center items-center gap-4 flex-wrap">
+            {scores.map((score, idx) => (
+              <div key={idx} className={`text-center ${currentPlayer === idx + 1 ? 'score-glow' : ''}`}>
+                <div className={`text-sm font-bold text-player-${idx + 1}`}>Player {idx + 1}</div>
+                <div className="text-xl font-bold">{score}</div>
+              </div>
+            ))}
           </div>
         </Card>
 
@@ -600,46 +585,27 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5 }: LocalMultiplayer
       {renderLetterCooldowns()}
 
       {/* Game Grids */}
-      <div className="flex justify-center items-start gap-6 flex-1">
-        {/* Player 1 Grid */}
-        <div className="flex flex-col items-center">
-          <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === 1 ? 'bg-player-1/20 border border-player-1/30' : 'bg-card'}`}>
-            <div className="text-lg font-bold text-player-1">Player 1</div>
-            <div className="text-2xl font-bold">{scores[0]}</div>
+      <div className="flex justify-center items-start gap-4 flex-1 flex-wrap">
+        {grids.map((grid, playerIdx) => (
+          <div key={playerIdx} className="flex flex-col items-center">
+            <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === playerIdx + 1 ? `bg-player-${playerIdx + 1}/20 border border-player-${playerIdx + 1}/30` : 'bg-card'}`}>
+              <div className={`text-lg font-bold text-player-${playerIdx + 1}`}>Player {playerIdx + 1}</div>
+              <div className="text-2xl font-bold">{scores[playerIdx]}</div>
+            </div>
+            {/* Attack Indicators */}
+            <div className="flex items-center gap-1 mb-2">
+              <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
+              {[0, 1, 2].map(i => (
+                <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
+                  i < crossGridPlacements[playerIdx] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
+                }`}>
+                  ✕
+                </div>
+              ))}
+            </div>
+            {renderGrid(playerIdx)}
           </div>
-          {/* Player 1 Attack Indicators */}
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
-            {[0, 1, 2].map(i => (
-              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
-                i < crossGridPlacements[0] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
-              }`}>
-                ✕
-              </div>
-            ))}
-          </div>
-          {renderGrid(0)}
-        </div>
-
-        {/* Player 2 Grid */}
-        <div className="flex flex-col items-center">
-          <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === 2 ? 'bg-player-2/20 border border-player-2/30' : 'bg-card'}`}>
-            <div className="text-lg font-bold text-player-2">Player 2</div>
-            <div className="text-2xl font-bold">{scores[1]}</div>
-          </div>
-          {/* Player 2 Attack Indicators */}
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
-            {[0, 1, 2].map(i => (
-              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
-                i < crossGridPlacements[1] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
-              }`}>
-                ✕
-              </div>
-            ))}
-          </div>
-          {renderGrid(1)}
-        </div>
+        ))}
       </div>
 
       {/* Compact Rules */}

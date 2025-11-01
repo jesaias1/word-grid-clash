@@ -44,8 +44,10 @@ All colors MUST be HSL.
     --letter-cooldown: 0 0% 40%;
     --player-1: 120 100% 50%;
     --player-2: 25 100% 60%;
+    --player-3: 200 100% 60%;
     --player-1-secondary: 160 80% 45%;
     --player-2-secondary: 280 100% 70%;
+    --player-3-secondary: 220 80% 50%;
     --score-glow: 120 100% 70%;
     --highlight-cell: 120 60% 35%;
 
@@ -53,6 +55,7 @@ All colors MUST be HSL.
     --gradient-primary: linear-gradient(135deg, hsl(120 100% 50%), hsl(160 80% 45%));
     --gradient-player-1: linear-gradient(135deg, hsl(120 100% 50%), hsl(160 80% 45%));
     --gradient-player-2: linear-gradient(135deg, hsl(25 100% 60%), hsl(280 100% 70%));
+    --gradient-player-3: linear-gradient(135deg, hsl(200 100% 60%), hsl(220 80% 50%));
     --gradient-accent: linear-gradient(45deg, hsl(140 100% 60%), hsl(120 100% 50%));
     --gradient-card: linear-gradient(145deg, hsl(120 15% 12%), hsl(120 15% 16%));
 

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import lettusLogo from '@/assets/lettus-logo.png';
 
-type GameMode = 'menu' | 'local' | 'local-multiplayer';
+type GameMode = 'menu' | 'local' | 'local-multiplayer-2' | 'local-multiplayer-3';
 
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
@@ -63,12 +63,20 @@ const Index = () => {
               Solo Game
             </Button>
             <Button 
-              onClick={() => setGameMode('local-multiplayer')} 
+              onClick={() => setGameMode('local-multiplayer-2')} 
               size="lg" 
               className="w-48"
               variant="secondary"
             >
-              Local Multiplayer
+              2 Player Local
+            </Button>
+            <Button 
+              onClick={() => setGameMode('local-multiplayer-3')} 
+              size="lg" 
+              className="w-48"
+              variant="secondary"
+            >
+              3 Player Local
             </Button>
           </div>
         </div>
@@ -90,8 +98,8 @@ const Index = () => {
     );
   }
 
-  // Local multiplayer game
-  if (gameMode === 'local-multiplayer') {
+  // Local 2-player game
+  if (gameMode === 'local-multiplayer-2') {
     return (
       <div>
         <div className="absolute top-4 left-4">
@@ -99,7 +107,21 @@ const Index = () => {
             Back to Menu
           </Button>
         </div>
-        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} />
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={2} />
+      </div>
+    );
+  }
+
+  // Local 3-player game
+  if (gameMode === 'local-multiplayer-3') {
+    return (
+      <div>
+        <div className="absolute top-4 left-4">
+          <Button onClick={handleBackToMenu} variant="outline" size="sm">
+            Back to Menu
+          </Button>
+        </div>
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={3} />
       </div>
     );
   }
