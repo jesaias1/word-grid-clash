@@ -22,9 +22,9 @@ interface LocalMultiplayerBoardProps {
   onBackToMenu: () => void;
   boardSize?: number;
   playerCount?: number;
+  cooldownTurns?: number;
 }
 
-const COOLDOWN_TURNS = 4;
 const TURN_TIME = 30;
 
 // Use the full alphabet for local multiplayer
@@ -52,7 +52,7 @@ const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{
   return tiles;
 };
 
-const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }: LocalMultiplayerBoardProps) => {
+const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, cooldownTurns = 4 }: LocalMultiplayerBoardProps) => {
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
     if (!cell) return '';
@@ -220,7 +220,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2 }:
 
       // Set cooldown for used letter for all players
       newCooldowns.forEach((_, idx) => {
-        newCooldowns[idx][selectedLetter] = COOLDOWN_TURNS;
+        newCooldowns[idx][selectedLetter] = cooldownTurns;
       });
 
       // Update cross-grid placements if placing on opponent's grid

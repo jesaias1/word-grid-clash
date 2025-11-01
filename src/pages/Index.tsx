@@ -11,6 +11,7 @@ type GameMode = 'menu' | 'local' | 'local-multiplayer-2' | 'local-multiplayer-3'
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
   const [boardSize, setBoardSize] = useState(5);
+  const [cooldownTurns, setCooldownTurns] = useState(4);
   const navigate = useNavigate();
 
   const handleBackToMenu = () => {
@@ -46,6 +47,34 @@ const Index = () => {
                       <div className="font-semibold text-lg">{size}×{size}</div>
                       <div className="text-xs text-muted-foreground">
                         {size === 5 ? 'Classic' : size === 7 ? 'Medium' : 'Large'}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          {/* Cooldown Duration Selection (for Multiplayer) */}
+          <Card className="p-6">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-center">Letter Cooldown Duration</h2>
+              <p className="text-xs text-muted-foreground text-center">Turns before a letter can be used again (multiplayer only)</p>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map(turns => (
+                  <button
+                    key={turns}
+                    onClick={() => setCooldownTurns(turns)}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      cooldownTurns === turns
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="font-semibold text-base">{turns}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {turns === 1 ? 'Easy' : turns === 2 ? 'Easier' : turns === 3 ? 'Normal' : turns === 4 ? 'Hard' : 'Harder'}
                       </div>
                     </div>
                   </button>
@@ -107,7 +136,7 @@ const Index = () => {
             Back to Menu
           </Button>
         </div>
-        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={2} />
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={2} cooldownTurns={cooldownTurns} />
       </div>
     );
   }
@@ -121,7 +150,7 @@ const Index = () => {
             Back to Menu
           </Button>
         </div>
-        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={3} />
+        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={3} cooldownTurns={cooldownTurns} />
       </div>
     );
   }
