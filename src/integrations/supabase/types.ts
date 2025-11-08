@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_sessions: {
+        Row: {
+          board_size: number
+          cooldown_turns: number
+          created_at: string
+          current_player: number
+          id: string
+          player1_name: string
+          player2_name: string | null
+          status: string
+          updated_at: string
+          winner_index: number | null
+        }
+        Insert: {
+          board_size?: number
+          cooldown_turns?: number
+          created_at?: string
+          current_player?: number
+          id?: string
+          player1_name: string
+          player2_name?: string | null
+          status?: string
+          updated_at?: string
+          winner_index?: number | null
+        }
+        Update: {
+          board_size?: number
+          cooldown_turns?: number
+          created_at?: string
+          current_player?: number
+          id?: string
+          player1_name?: string
+          player2_name?: string | null
+          status?: string
+          updated_at?: string
+          winner_index?: number | null
+        }
+        Relationships: []
+      }
+      game_state: {
+        Row: {
+          available_letters: Json
+          cooldowns: Json
+          created_at: string
+          grid_data: Json
+          id: string
+          player_index: number
+          score: number
+          session_id: string
+          turn_number: number
+          updated_at: string
+        }
+        Insert: {
+          available_letters: Json
+          cooldowns?: Json
+          created_at?: string
+          grid_data: Json
+          id?: string
+          player_index: number
+          score?: number
+          session_id: string
+          turn_number?: number
+          updated_at?: string
+        }
+        Update: {
+          available_letters?: Json
+          cooldowns?: Json
+          created_at?: string
+          grid_data?: Json
+          id?: string
+          player_index?: number
+          score?: number
+          session_id?: string
+          turn_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_state_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           created_at: string

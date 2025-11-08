@@ -91,6 +91,14 @@ const Index = () => {
               Solo Game
             </Button>
             <Button 
+              onClick={() => navigate('/online-setup')} 
+              size="lg" 
+              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300"
+              variant="default"
+            >
+              Online 1v1
+            </Button>
+            <Button 
               onClick={() => setGameMode('local-multiplayer-2')} 
               size="lg" 
               className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300"
