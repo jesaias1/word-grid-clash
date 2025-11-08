@@ -82,7 +82,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     return classes[playerIdx] || 'bg-card';
   };
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-  const [crossGridPlacements, setCrossGridPlacements] = useState<number[]>(Array(playerCount).fill(1)); // Each player starts with 1 attack per game
   
   // Initialize game with starting tiles
   const initializeGame = () => {
@@ -189,13 +188,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     if (!selectedLetter || gameEnded) return;
     
     const targetGrid = grids[targetPlayerIndex];
-    const isPlacingOnOpponentGrid = targetPlayerIndex !== (currentPlayer - 1);
     
     if (targetGrid[row][col] !== null) return; // Cell already occupied
     if (isLetterOnCooldown(selectedLetter)) return; // Letter on cooldown
-    
-    // Check if placing on opponent's grid and if cross-placements available
-    if (isPlacingOnOpponentGrid && crossGridPlacements[currentPlayer - 1] <= 0) return;
 
     try {
       // Update grids - copy all grids dynamically
@@ -222,12 +217,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       newCooldowns.forEach((_, idx) => {
         newCooldowns[idx][selectedLetter] = cooldownTurns;
       });
-
-      // Update cross-grid placements if placing on opponent's grid
-      const newCrossGridPlacements: number[] = [...crossGridPlacements];
-      if (isPlacingOnOpponentGrid) {
-        newCrossGridPlacements[currentPlayer - 1]--;
-      }
 
       // Calculate new scores using the sub-word scoring system for all players
       const playerResults = newGrids.map(grid => calculateScore(grid, SCORE_OPTS()));
@@ -288,7 +277,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       setGrids(newGrids);
       setCooldowns(newCooldowns);
       setScores(Object.values(newCumulativeScores));
-      setCrossGridPlacements(newCrossGridPlacements);
       setSelectedLetter('');
       setLastBoardTotal(newLastBoardTotal);
       setRoundScores(newRoundScores);
@@ -318,7 +306,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     setTurn(1);
     setScores(Array(playerCount).fill(0));
     setCooldowns(Array(playerCount).fill(null).map(() => ({})));
-    setCrossGridPlacements(Array(playerCount).fill(1)); // Exactly one attack per game for each player
     setSelectedLetter('');
     const initialScores: { [key: string]: number } = {};
     for (let i = 1; i <= playerCount; i++) initialScores[i.toString()] = 0;
@@ -335,7 +322,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const isCurrentPlayer = currentPlayer === (playerIndex + 1);
     const playerScoredCells = scoredCells[playerIndex];
     const isWinner = gameEnded && winner === (playerIndex + 1);
-    const canPlaceOnThisGrid = isCurrentPlayer || crossGridPlacements[currentPlayer - 1] > 0;
+    const canPlaceOnThisGrid = isCurrentPlayer;
     
     // Adjust cell size based on player count for better fit
     const cellSize = playerCount === 3 ? 'w-12 h-12' : 'w-14 h-14';
@@ -613,17 +600,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === playerIdx + 1 ? getPlayerBgClass(playerIdx) : 'bg-card'}`}>
               <div className={`text-lg font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
               <div className="text-2xl font-bold">{scores[playerIdx]}</div>
-            </div>
-            {/* Attack Indicators */}
-            <div className="flex items-center gap-1 mb-2">
-              <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
-              {[0, 1, 2].map(i => (
-                <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
-                  i < crossGridPlacements[playerIdx] ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
-                }`}>
-                  ✕
-                </div>
-              ))}
             </div>
             {renderGrid(playerIdx)}
           </div>

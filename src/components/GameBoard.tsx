@@ -121,8 +121,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
   const [allFoundWords, setAllFoundWords] = useState<[string[], string[]]>([[], []]);
-  const [crossGridPlacements, setCrossGridPlacements] = useState<number>(1); // Player starts with 1 cross-grid placement per game
-
   // Set available letters from game state
   useEffect(() => {
     setAvailableLetters(gameState.letterPool || []);
@@ -512,9 +510,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     
     if (targetGrid[row][col] !== null) return; // Cell already occupied
     if (isLetterOnCooldown(selectedLetter)) return; // Letter on shared cooldown
-    
-    // Check if placing on AI grid and if attack available (1 per game)
-    if (isPlacingOnAIGrid && crossGridPlacements <= 0) return;
 
     const dict = await loadDictionary();
 
@@ -583,11 +578,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       // Set cooldown for used letter (affects both players) AFTER decrement so it starts at full duration
       newSharedCooldowns[selectedLetter] = COOLDOWN_TURNS;
 
-      // Update cross-grid placements if placing on AI grid
-      if (isPlacingOnAIGrid) {
-        setCrossGridPlacements(prev => prev - 1);
-      }
-
       // Check if game should end
       const areAllGridsFull = newGrids.every(grid => 
         grid.every(row => row.every(cell => cell !== null))
@@ -641,7 +631,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     setSelectedLetter('');
     setShowWinnerDialog(false);
     setAllFoundWords([[], []]);
-    setCrossGridPlacements(1); // Exactly one attack per game
   };
 
 
@@ -650,7 +639,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     const isCurrentPlayer = gameState.currentPlayer === (playerIndex + 1);
     const scoredCells = gameState.scoredCells[playerIndex];
     const isWinner = gameState.gameEnded && gameState.winner === (playerIndex + 1);
-    const canPlaceOnThisGrid = isCurrentPlayer || (playerIndex === 1 && crossGridPlacements > 0);
+    const canPlaceOnThisGrid = isCurrentPlayer;
     
     return (
       <div className={`inline-grid gap-px p-2 rounded-lg border-2 ${
@@ -745,25 +734,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
             </span>
           </div>
         )}
-      </div>
-    );
-  };
-
-  const renderCrossGridIndicators = () => {
-    return (
-      <div className="flex justify-center mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium">Attack AI Grid:</span>
-          <div className="flex gap-1">
-            {[0, 1, 2].map(i => (
-              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
-                i < crossGridPlacements ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
-              }`}>
-                ✕
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     );
   };
@@ -1001,17 +971,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
             <div className="text-lg font-bold text-player-1">You</div>
             <div className="text-2xl font-bold">{gameState.scores[0]}</div>
           </div>
-          {/* Player Attack Indicators */}
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs font-medium text-muted-foreground">Attacks:</span>
-            {[0, 1, 2].map(i => (
-              <div key={i} className={`w-4 h-4 flex items-center justify-center text-xs font-bold border rounded ${
-                i < crossGridPlacements ? 'bg-destructive text-destructive-foreground border-destructive' : 'bg-muted text-muted-foreground border-muted-foreground'
-              }`}>
-                ✕
-              </div>
-            ))}
-          </div>
           {renderGrid(0)}
         </div>
 
@@ -1020,10 +979,6 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
           <div className={`mb-2 p-2 rounded-lg text-center ${gameState.currentPlayer === 2 ? 'bg-player-2/20 border border-player-2/30' : 'bg-card'}`}>
             <div className="text-lg font-bold text-player-2">AI Bot</div>
             <div className="text-2xl font-bold">{gameState.scores[1]}</div>
-          </div>
-          {/* AI doesn't have attacks, so show placeholder */}
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs font-medium text-muted-foreground">AI Grid</span>
           </div>
           {renderGrid(1)}
         </div>
