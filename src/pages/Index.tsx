@@ -21,31 +21,31 @@ const Index = () => {
   // Menu screen
   if (gameMode === 'menu') {
     return (
-      <div className="h-screen flex items-center justify-center p-4">
-        <div className="text-center space-y-6 max-w-md">
-          <div className="flex items-center justify-center mb-4">
-            <img src={lettusLogo} alt="Lettus Logo" className="w-[1230px] h-[480px] object-contain" />
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="text-center space-y-8 max-w-2xl w-full animate-fade-in">
+          <div className="flex items-center justify-center mb-8">
+            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[600px] object-contain drop-shadow-2xl" />
           </div>
-          <p className="text-lg text-muted-foreground">Choose your game mode</p>
+          <p className="text-xl text-muted-foreground font-medium">Choose your game mode</p>
           
           {/* Board Size Selection */}
-          <Card className="p-6">
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-center">Choose Board Size</h2>
-              <div className="grid grid-cols-3 gap-3">
+          <Card className="p-8 shadow-lg border-2">
+            <div className="space-y-5">
+              <h2 className="text-xl font-bold text-center text-foreground">Choose Board Size</h2>
+              <div className="grid grid-cols-3 gap-4">
                 {[5, 7, 10].map(size => (
                   <button
                     key={size}
                     onClick={() => setBoardSize(size)}
-                    className={`p-4 rounded-lg border-2 transition-all ${
+                    className={`p-6 rounded-xl border-2 transition-all duration-300 ${
                       boardSize === size
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:border-primary/50'
+                        ? 'border-primary bg-primary/15 text-primary shadow-glow scale-105'
+                        : 'border-border hover:border-primary/60 hover:bg-card/80 hover:scale-105'
                     }`}
                   >
                     <div className="text-center">
-                      <div className="font-semibold text-lg">{size}×{size}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="font-bold text-2xl mb-1">{size}×{size}</div>
+                      <div className="text-sm text-muted-foreground font-medium">
                         {size === 5 ? 'Classic' : size === 7 ? 'Medium' : 'Large'}
                       </div>
                     </div>
@@ -56,24 +56,24 @@ const Index = () => {
           </Card>
 
           {/* Cooldown Duration Selection (for Multiplayer) */}
-          <Card className="p-6">
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-center">Letter Cooldown Duration</h2>
-              <p className="text-xs text-muted-foreground text-center">Turns before a letter can be used again (multiplayer only)</p>
-              <div className="grid grid-cols-5 gap-2">
+          <Card className="p-8 shadow-lg border-2">
+            <div className="space-y-5">
+              <h2 className="text-xl font-bold text-center text-foreground">Letter Cooldown Duration</h2>
+              <p className="text-sm text-muted-foreground text-center font-medium">Turns before a letter can be used again (multiplayer only)</p>
+              <div className="grid grid-cols-5 gap-3">
                 {[1, 2, 3, 4, 5].map(turns => (
                   <button
                     key={turns}
                     onClick={() => setCooldownTurns(turns)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
+                    className={`p-4 rounded-xl border-2 transition-all duration-300 ${
                       cooldownTurns === turns
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:border-primary/50'
+                        ? 'border-primary bg-primary/15 text-primary shadow-glow scale-105'
+                        : 'border-border hover:border-primary/60 hover:bg-card/80 hover:scale-105'
                     }`}
                   >
                     <div className="text-center">
-                      <div className="font-semibold text-base">{turns}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="font-bold text-xl mb-1">{turns}</div>
+                      <div className="text-xs text-muted-foreground font-medium">
                         {turns === 1 ? 'Easy' : turns === 2 ? 'Easier' : turns === 3 ? 'Normal' : turns === 4 ? 'Hard' : 'Harder'}
                       </div>
                     </div>
@@ -83,18 +83,18 @@ const Index = () => {
             </div>
           </Card>
 
-          <div className="space-y-4">
+          <div className="space-y-4 pt-4">
             <Button 
               onClick={() => setGameMode('local')} 
               size="lg" 
-              className="w-48"
+              className="w-64 h-14 text-lg font-bold shadow-lg hover:shadow-glow transition-all duration-300"
             >
               Solo Game
             </Button>
             <Button 
               onClick={() => setGameMode('local-multiplayer-2')} 
               size="lg" 
-              className="w-48"
+              className="w-64 h-14 text-lg font-bold shadow-lg hover:shadow-glow transition-all duration-300"
               variant="secondary"
             >
               2 Player Local
@@ -102,7 +102,7 @@ const Index = () => {
             <Button 
               onClick={() => setGameMode('local-multiplayer-3')} 
               size="lg" 
-              className="w-48"
+              className="w-64 h-14 text-lg font-bold shadow-lg hover:shadow-glow transition-all duration-300"
               variant="secondary"
             >
               3 Player Local
@@ -117,8 +117,8 @@ const Index = () => {
   if (gameMode === 'local') {
     return (
       <div>
-        <div className="absolute top-4 left-4">
-          <Button onClick={handleBackToMenu} variant="outline" size="sm">
+        <div className="absolute top-6 left-6 z-10">
+          <Button onClick={handleBackToMenu} variant="outline" size="lg" className="shadow-lg">
             Back to Menu
           </Button>
         </div>
@@ -131,8 +131,8 @@ const Index = () => {
   if (gameMode === 'local-multiplayer-2') {
     return (
       <div>
-        <div className="absolute top-4 left-4">
-          <Button onClick={handleBackToMenu} variant="outline" size="sm">
+        <div className="absolute top-6 left-6 z-10">
+          <Button onClick={handleBackToMenu} variant="outline" size="lg" className="shadow-lg">
             Back to Menu
           </Button>
         </div>
@@ -145,8 +145,8 @@ const Index = () => {
   if (gameMode === 'local-multiplayer-3') {
     return (
       <div>
-        <div className="absolute top-4 left-4">
-          <Button onClick={handleBackToMenu} variant="outline" size="sm">
+        <div className="absolute top-6 left-6 z-10">
+          <Button onClick={handleBackToMenu} variant="outline" size="lg" className="shadow-lg">
             Back to Menu
           </Button>
         </div>

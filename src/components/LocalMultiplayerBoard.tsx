@@ -328,8 +328,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const cellSize = playerCount === 3 ? 'w-12 h-12' : 'w-14 h-14';
     
     return (
-      <div className={`inline-grid gap-px p-2 rounded-lg border-2 ${
-        isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20 border-primary/30' : 'bg-card border-border'
+      <div className={`inline-grid gap-1 p-3 rounded-xl border-2 shadow-lg ${
+        isCurrentPlayer ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
       } ${!canPlaceOnThisGrid ? 'opacity-50' : ''}`} style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
@@ -344,17 +344,17 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             
             const highlightStyle = isScored ? { 
               borderColor: 'hsl(var(--highlight-cell))',
-              boxShadow: '0 0 8px hsl(var(--highlight-cell) / 0.4)'
+              boxShadow: '0 0 12px hsl(var(--highlight-cell) / 0.5)'
             } : {};
             
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  ${cellSize} cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
-                  ${isLightSquare ? 'bg-muted/80' : 'bg-muted-foreground/10'}
+                  ${cellSize} cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell ? getPlayerGradientClass(playerIndex) : ''}
-                  ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg hover:bg-accent/20' : ''}
+                  ${canPlaceLetter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
                   ${!canPlaceOnThisGrid ? 'cursor-not-allowed' : ''}
                   ${winnerHighlight}
                 `}
@@ -362,7 +362,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                 onClick={() => canPlaceLetter && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
-                  <span className="font-bold text-base drop-shadow-lg text-white">
+                  <span className="font-bold text-lg drop-shadow-lg text-white">
                     {getCellDisplay(cell)}
                   </span>
                 )}
@@ -594,12 +594,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       {renderLetterCooldowns()}
 
       {/* Game Grids */}
-      <div className="flex justify-center items-start gap-4 flex-1 flex-wrap">
+      <div className="flex justify-center items-start gap-6 flex-1 flex-wrap">
         {grids.map((grid, playerIdx) => (
           <div key={playerIdx} className="flex flex-col items-center">
-            <div className={`mb-2 p-2 rounded-lg text-center ${currentPlayer === playerIdx + 1 ? getPlayerBgClass(playerIdx) : 'bg-card'}`}>
-              <div className={`text-lg font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
-              <div className="text-2xl font-bold">{scores[playerIdx]}</div>
+            <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === playerIdx + 1 ? `${getPlayerBgClass(playerIdx)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
+              <div className={`text-xl font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
+              <div className="text-3xl font-bold score-glow">{scores[playerIdx]}</div>
             </div>
             {renderGrid(playerIdx)}
           </div>
@@ -607,8 +607,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       </div>
 
       {/* Compact Rules */}
-      <div className="text-center">
-        <div className="text-xs text-muted-foreground">
+      <div className="text-center mt-4">
+        <div className="text-sm text-muted-foreground font-medium">
           30s per turn • Type letter then click to place • 3+ letter words • Score = letters in valid words
         </div>
       </div>

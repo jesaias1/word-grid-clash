@@ -8,58 +8,65 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Green gaming theme */
-    --background: 120 20% 8%;
-    --foreground: 60 100% 99%;
+    /* Modern Green Gaming Theme */
+    --background: 120 25% 6%;
+    --foreground: 120 15% 98%;
 
-    --card: 120 15% 12%;
-    --card-foreground: 60 100% 99%;
+    --card: 120 20% 11%;
+    --card-foreground: 120 15% 98%;
 
-    --popover: 120 15% 12%;
-    --popover-foreground: 60 100% 99%;
+    --popover: 120 20% 11%;
+    --popover-foreground: 120 15% 98%;
 
-    --primary: 120 100% 50%;
-    --primary-foreground: 120 20% 8%;
+    --primary: 130 95% 55%;
+    --primary-foreground: 120 25% 6%;
 
-    --secondary: 160 80% 45%;
-    --secondary-foreground: 120 20% 8%;
+    --secondary: 165 85% 50%;
+    --secondary-foreground: 120 25% 6%;
 
-    --muted: 120 15% 16%;
-    --muted-foreground: 120 10% 65%;
+    --muted: 120 18% 15%;
+    --muted-foreground: 120 8% 60%;
 
-    --accent: 140 100% 60%;
-    --accent-foreground: 120 20% 8%;
+    --accent: 145 100% 58%;
+    --accent-foreground: 120 25% 6%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 60 100% 99%;
+    --destructive: 0 75% 58%;
+    --destructive-foreground: 120 15% 98%;
 
-    --border: 120 15% 20%;
-    --input: 120 15% 16%;
-    --ring: 120 100% 50%;
+    --border: 120 20% 22%;
+    --input: 120 18% 15%;
+    --ring: 130 95% 55%;
 
-    /* Game-specific colors */
-    --grid-cell: 120 15% 14%;
-    --grid-border: 120 15% 25%;
-    --letter-tile: 120 100% 50%;
-    --letter-cooldown: 0 0% 40%;
-    --player-1: 120 100% 50%;
-    --player-2: 25 100% 60%;
-    --player-3: 200 100% 60%;
-    --player-1-secondary: 160 80% 45%;
-    --player-2-secondary: 280 100% 70%;
-    --player-3-secondary: 220 80% 50%;
-    --score-glow: 120 100% 70%;
-    --highlight-cell: 120 60% 35%;
+    /* Enhanced Game-specific colors */
+    --grid-cell: 120 22% 13%;
+    --grid-border: 130 25% 28%;
+    --letter-tile: 130 95% 55%;
+    --letter-cooldown: 0 5% 45%;
+    --player-1: 130 95% 55%;
+    --player-2: 30 100% 60%;
+    --player-3: 200 95% 65%;
+    --player-1-secondary: 165 85% 50%;
+    --player-2-secondary: 280 95% 72%;
+    --player-3-secondary: 220 85% 55%;
+    --score-glow: 130 100% 75%;
+    --highlight-cell: 130 70% 40%;
 
-    /* Player-specific gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(120 100% 50%), hsl(160 80% 45%));
-    --gradient-player-1: linear-gradient(135deg, hsl(120 100% 50%), hsl(160 80% 45%));
-    --gradient-player-2: linear-gradient(135deg, hsl(25 100% 60%), hsl(280 100% 70%));
-    --gradient-player-3: linear-gradient(135deg, hsl(200 100% 60%), hsl(220 80% 50%));
-    --gradient-accent: linear-gradient(45deg, hsl(140 100% 60%), hsl(120 100% 50%));
-    --gradient-card: linear-gradient(145deg, hsl(120 15% 12%), hsl(120 15% 16%));
+    /* Enhanced Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(130 95% 55%) 0%, hsl(165 85% 50%) 100%);
+    --gradient-player-1: linear-gradient(135deg, hsl(130 95% 55%) 0%, hsl(165 85% 50%) 100%);
+    --gradient-player-2: linear-gradient(135deg, hsl(30 100% 60%) 0%, hsl(280 95% 72%) 100%);
+    --gradient-player-3: linear-gradient(135deg, hsl(200 95% 65%) 0%, hsl(220 85% 55%) 100%);
+    --gradient-accent: linear-gradient(45deg, hsl(145 100% 58%) 0%, hsl(130 95% 55%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(120 20% 11%) 0%, hsl(120 22% 14%) 100%);
+    --gradient-background: radial-gradient(ellipse at top, hsl(130 30% 12%) 0%, hsl(120 25% 6%) 50%);
 
-    --radius: 0.75rem;
+    /* Shadows */
+    --shadow-sm: 0 2px 8px hsl(120 25% 3% / 0.3);
+    --shadow-md: 0 4px 16px hsl(120 25% 3% / 0.4);
+    --shadow-lg: 0 8px 24px hsl(120 25% 3% / 0.5);
+    --shadow-glow-primary: 0 0 20px hsl(130 95% 55% / 0.3);
+
+    --radius: 0.875rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -108,36 +115,38 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
-    background: linear-gradient(135deg, hsl(120 20% 8%), hsl(120 15% 12%));
+    @apply bg-background text-foreground font-sans antialiased;
+    background: var(--gradient-background);
     min-height: 100vh;
   }
 
   .grid-cell {
-    @apply bg-card border border-border transition-all duration-200;
+    @apply bg-card border border-border transition-all duration-300;
     background: hsl(var(--grid-cell));
     border-color: hsl(var(--grid-border));
+    box-shadow: var(--shadow-sm);
   }
 
   .grid-cell:hover {
-    @apply scale-105 shadow-lg;
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    @apply scale-105;
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.4), var(--shadow-md);
+    transform: translateY(-2px) scale(1.05);
   }
 
   .letter-tile {
     @apply font-bold text-lg text-center;
     background: var(--gradient-primary);
     color: hsl(var(--primary-foreground));
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   }
 
   .cooldown-indicator {
-    @apply text-xs opacity-60;
+    @apply text-xs opacity-70;
     color: hsl(var(--letter-cooldown));
   }
 
   .score-glow {
-    text-shadow: 0 0 10px hsl(var(--score-glow) / 0.5);
+    text-shadow: 0 0 12px hsl(var(--score-glow) / 0.6), 0 0 24px hsl(var(--score-glow) / 0.3);
   }
 
   /* Grid for 26 letters (13 columns) */

@@ -642,8 +642,8 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     const canPlaceOnThisGrid = isCurrentPlayer;
     
     return (
-      <div className={`inline-grid gap-px p-2 rounded-lg border-2 ${
-        isCurrentPlayer ? 'bg-gradient-card shadow-lg ring-2 ring-primary/20 border-primary/30' : 'bg-card border-border'
+      <div className={`inline-grid gap-1 p-3 rounded-xl border-2 shadow-lg ${
+        isCurrentPlayer ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
       } ${!canPlaceOnThisGrid ? 'opacity-50' : ''}`} style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
@@ -658,17 +658,17 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
             
             const highlightStyle = isScored ? { 
               borderColor: 'hsl(var(--highlight-cell))',
-              boxShadow: '0 0 8px hsl(var(--highlight-cell) / 0.4)'
+              boxShadow: '0 0 12px hsl(var(--highlight-cell) / 0.5)'
             } : {};
             
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  w-12 h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/30
-                  ${isLightSquare ? 'bg-muted/80' : 'bg-muted-foreground/10'}
+                  w-14 h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell ? (playerIndex === 0 ? 'bg-gradient-player-1' : 'bg-gradient-player-2') : ''}
-                  ${canPlaceLetter ? 'hover:scale-105 hover:shadow-lg hover:bg-accent/20' : ''}
+                  ${canPlaceLetter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
                   ${!canPlaceOnThisGrid ? 'cursor-not-allowed' : ''}
                   ${winnerHighlight}
                 `}
@@ -676,7 +676,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
                 onClick={() => !gameState.gameEnded && gameState.currentPlayer === 1 && placeLetter(rowIndex, colIndex, playerIndex)}
               >
                 {cell && (
-                  <span className="font-bold text-base drop-shadow-lg text-white">
+                  <span className="font-bold text-xl drop-shadow-lg text-white">
                     {getCellDisplay(cell)}
                   </span>
                 )}
@@ -693,11 +693,11 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2">
-        <div className="text-center mb-2">
-          <span className="text-xs font-semibold text-muted-foreground">All Letters (Click to Select)</span>
+      <div className="bg-card/95 backdrop-blur-sm border-2 rounded-xl p-4 mx-auto mb-4 shadow-md">
+        <div className="text-center mb-3">
+          <span className="text-sm font-bold text-muted-foreground">All Letters (Click to Select)</span>
         </div>
-        <div className="grid grid-cols-13 gap-1 justify-center max-w-3xl mx-auto">
+        <div className="grid grid-cols-13 gap-1.5 justify-center max-w-3xl mx-auto">
           {allLetters.map(letter => {
             const isOnCooldown = isLetterOnCooldown(letter);
             const isSelected = selectedLetter === letter;
@@ -709,27 +709,27 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
                 onClick={() => !isOnCooldown && !gameState.gameEnded && gameState.currentPlayer === 1 && setSelectedLetter(letter)}
                 disabled={isOnCooldown || gameState.gameEnded || gameState.currentPlayer !== 1}
                 className={`
-                  relative rounded font-bold transition-all duration-200 flex flex-col items-center justify-center
+                  relative rounded-lg font-bold transition-all duration-300 flex flex-col items-center justify-center
                   ${isOnCooldown ? 
-                    'w-12 h-12 bg-destructive/20 text-destructive border border-destructive/50 cursor-not-allowed' : 
-                    'w-8 h-8'}
-                  ${isSelected && !isOnCooldown ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
-                  ${!isOnCooldown && !isSelected ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border' : ''}
+                    'w-14 h-14 bg-destructive/20 text-destructive border-2 border-destructive/50 cursor-not-allowed' : 
+                    'w-10 h-10'}
+                  ${isSelected && !isOnCooldown ? 'bg-primary text-primary-foreground scale-110 shadow-glow' : ''}
+                  ${!isOnCooldown && !isSelected ? 'bg-muted hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-110 border-2 border-border hover:border-primary/50' : ''}
                 `}
               >
-                <span className={`${isOnCooldown ? 'text-sm' : 'text-xs'}`}>
+                <span className={`${isOnCooldown ? 'text-sm' : 'text-sm'}`}>
                   {letter}
                 </span>
                 {isOnCooldown && (
-                  <span className="text-xs font-normal">{cooldownTurns}</span>
+                  <span className="text-xs font-normal mt-0.5">{cooldownTurns}</span>
                 )}
               </button>
             );
           })}
         </div>
         {!gameState.gameEnded && gameState.currentPlayer === 1 && (
-          <div className="text-center mt-2">
-            <span className="text-xs text-muted-foreground">
+          <div className="text-center mt-3">
+            <span className="text-xs text-muted-foreground font-medium">
               {allLetters.filter(l => !isLetterOnCooldown(l)).length} letters available • Press any key to select
             </span>
           </div>
@@ -964,29 +964,29 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       {renderLetterCooldowns()}
 
       {/* Game Grids */}
-      <div className="flex justify-center items-start gap-4 flex-1">
+      <div className="flex justify-center items-start gap-8 flex-1">
         {/* Player Grid */}
         <div className="flex flex-col items-center">
-          <div className={`mb-2 p-2 rounded-lg text-center ${gameState.currentPlayer === 1 ? 'bg-player-1/20 border border-player-1/30' : 'bg-card'}`}>
-            <div className="text-lg font-bold text-player-1">You</div>
-            <div className="text-2xl font-bold">{gameState.scores[0]}</div>
+          <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${gameState.currentPlayer === 1 ? 'bg-player-1/20 border-2 border-player-1/40 scale-105' : 'bg-card/80 border border-border'}`}>
+            <div className="text-xl font-bold text-player-1">You</div>
+            <div className="text-3xl font-bold score-glow">{gameState.scores[0]}</div>
           </div>
           {renderGrid(0)}
         </div>
 
         {/* AI Grid */}
         <div className="flex flex-col items-center">
-          <div className={`mb-2 p-2 rounded-lg text-center ${gameState.currentPlayer === 2 ? 'bg-player-2/20 border border-player-2/30' : 'bg-card'}`}>
-            <div className="text-lg font-bold text-player-2">AI Bot</div>
-            <div className="text-2xl font-bold">{gameState.scores[1]}</div>
+          <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${gameState.currentPlayer === 2 ? 'bg-player-2/20 border-2 border-player-2/40 scale-105' : 'bg-card/80 border border-border'}`}>
+            <div className="text-xl font-bold text-player-2">AI Bot</div>
+            <div className="text-3xl font-bold score-glow">{gameState.scores[1]}</div>
           </div>
           {renderGrid(1)}
         </div>
       </div>
 
       {/* Compact Rules */}
-      <div className="text-center">
-        <div className="text-xs text-muted-foreground">
+      <div className="text-center mt-4">
+        <div className="text-sm text-muted-foreground font-medium">
           30s per turn • 3+ letter words • Each word once per player • First to {WINNING_SCORE} letters wins!
         </div>
       </div>
