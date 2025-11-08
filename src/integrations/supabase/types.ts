@@ -21,7 +21,9 @@ export type Database = {
           created_at: string
           current_player: number
           id: string
+          player1_id: string | null
           player1_name: string
+          player2_id: string | null
           player2_name: string | null
           status: string
           updated_at: string
@@ -33,7 +35,9 @@ export type Database = {
           created_at?: string
           current_player?: number
           id?: string
+          player1_id?: string | null
           player1_name: string
+          player2_id?: string | null
           player2_name?: string | null
           status?: string
           updated_at?: string
@@ -45,7 +49,9 @@ export type Database = {
           created_at?: string
           current_player?: number
           id?: string
+          player1_id?: string | null
           player1_name?: string
+          player2_id?: string | null
           player2_name?: string | null
           status?: string
           updated_at?: string

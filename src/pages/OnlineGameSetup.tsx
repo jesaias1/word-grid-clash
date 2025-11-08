@@ -53,6 +53,10 @@ const OnlineGameSetup = () => {
 
     setIsCreating(true);
     try {
+      // Sign in anonymously to get a user ID
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) throw authError;
+
       const initialGrid = generateStartingTiles(boardSize);
       const availableLetters = generateLetterPool();
 
@@ -60,6 +64,7 @@ const OnlineGameSetup = () => {
         .from('game_sessions')
         .insert({
           player1_name: username,
+          player1_id: authData.user.id,
           board_size: boardSize,
           cooldown_turns: cooldownTurns,
           status: 'waiting'
@@ -112,6 +117,10 @@ const OnlineGameSetup = () => {
 
     setIsJoining(true);
     try {
+      // Sign in anonymously to get a user ID
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) throw authError;
+
       const { data: session, error: fetchError } = await supabase
         .from('game_sessions')
         .select('*')
@@ -161,6 +170,7 @@ const OnlineGameSetup = () => {
         .from('game_sessions')
         .update({ 
           player2_name: username,
+          player2_id: authData.user.id,
           status: 'playing'
         })
         .eq('id', session.id);
