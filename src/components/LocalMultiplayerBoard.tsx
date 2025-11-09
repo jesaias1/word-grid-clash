@@ -303,6 +303,17 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   const passTurn = () => {
+    // Deduct 5 points for passing turn
+    const pointDeduction = 5;
+    const newScores = [...scores];
+    newScores[currentPlayer - 1] = scores[currentPlayer - 1] - pointDeduction;
+    setScores(newScores);
+    
+    // Update cumulative scores
+    const newCumulativeScores = { ...cumulativeScores };
+    newCumulativeScores[currentPlayer.toString()] = (cumulativeScores[currentPlayer.toString()] || 0) - pointDeduction;
+    setCumulativeScores(newCumulativeScores);
+    
     setCurrentPlayer(currentPlayer === playerCount ? 1 : currentPlayer + 1);
     setTurn(turn + 1);
     setTimeLeft(TURN_TIME);
