@@ -118,7 +118,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     if (!myState || !session) return;
 
     const pointDeduction = 5;
-    const newScore = Math.max(0, myState.score - pointDeduction);
+    const newScore = myState.score - pointDeduction;
 
     // Update database
     await supabase
