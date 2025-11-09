@@ -147,7 +147,17 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          // Time's up - pass turn
+          // Time's up - deduct points and pass turn
+          const pointDeduction = 5;
+          const newScores = [...scores];
+          newScores[currentPlayer - 1] = scores[currentPlayer - 1] - pointDeduction;
+          setScores(newScores);
+          
+          // Update cumulative scores
+          const newCumulativeScores = { ...cumulativeScores };
+          newCumulativeScores[currentPlayer.toString()] = (cumulativeScores[currentPlayer.toString()] || 0) - pointDeduction;
+          setCumulativeScores(newCumulativeScores);
+          
           passTurn();
           return TURN_TIME;
         }
@@ -156,7 +166,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentPlayer, gameEnded, timeLeft]);
+  }, [currentPlayer, gameEnded, timeLeft, scores, cumulativeScores]);
 
   // Keyboard input effect
   useEffect(() => {
