@@ -392,12 +392,35 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           </Card>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3 items-center">
           <Card className={`p-3 shadow-lg border-2 ${isMyTurn ? 'border-primary bg-primary/10 scale-105' : ''} transition-all`}>
             <div className="text-sm text-muted-foreground">You</div>
             <div className="font-bold text-xl">{myName}</div>
             <div className="text-2xl font-bold text-primary">{myState.score}</div>
           </Card>
+
+          {isMyTurn && session.status === 'playing' && (
+            <Card className={`p-4 shadow-lg border-2 transition-all ${
+              turnTimeRemaining <= WARNING_THRESHOLD 
+                ? 'border-destructive bg-destructive/10 animate-pulse' 
+                : 'border-primary bg-primary/5'
+            }`}>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground mb-1">Time Left</div>
+                <div className={`text-4xl font-bold ${
+                  turnTimeRemaining <= WARNING_THRESHOLD ? 'text-destructive' : 'text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {(!isMyTurn || session.status !== 'playing') && (
+            <div className="flex items-center justify-center">
+              <div className="text-2xl font-bold text-muted-foreground">VS</div>
+            </div>
+          )}
 
           <Card className={`p-3 shadow-lg border-2 ${!isMyTurn && session.status === 'playing' ? 'border-primary bg-primary/10 scale-105' : ''} transition-all`}>
             <div className="text-sm text-muted-foreground">Opponent</div>
@@ -405,23 +428,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             <div className="text-2xl font-bold text-primary">{opponentState?.score || 0}</div>
           </Card>
         </div>
-
-        {isMyTurn && session.status === 'playing' && (
-          <Card className={`p-3 shadow-lg border-2 transition-all ${
-            turnTimeRemaining <= WARNING_THRESHOLD 
-              ? 'border-destructive bg-destructive/10 animate-pulse' 
-              : 'border-primary bg-primary/5'
-          }`}>
-            <div className="text-center">
-              <div className="text-sm text-muted-foreground mb-1">Time Remaining</div>
-              <div className={`text-3xl font-bold ${
-                turnTimeRemaining <= WARNING_THRESHOLD ? 'text-destructive' : 'text-primary'
-              }`}>
-                {turnTimeRemaining}s
-              </div>
-            </div>
-          </Card>
-        )}
 
         {selectedLetter && isMyTurn && (
           <Card className="p-3 shadow-lg border-2 border-primary bg-primary/10">
