@@ -114,9 +114,39 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
   const isMyTurn = session?.current_player === myPlayerIndex;
 
+  const handleTurnTimeout = async () => {
+    if (!myState || !session) return;
+
+    const pointDeduction = 5;
+    const newScore = Math.max(0, myState.score - pointDeduction);
+
+    // Update database
+    await supabase
+      .from('game_state')
+      .update({ score: newScore })
+      .eq('id', myState.id);
+
+    const nextPlayer = session.current_player === 1 ? 2 : 1;
+    await supabase
+      .from('game_sessions')
+      .update({ current_player: nextPlayer })
+      .eq('id', sessionId);
+
+    // Update local state immediately
+    setMyState({ ...myState, score: newScore });
+
+    toast({
+      title: "⏰ Turn skipped",
+      description: `Time's up! -${pointDeduction} points`,
+      variant: "destructive"
+    });
+
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
+  };
+
   // Turn timer effect
   useEffect(() => {
-    if (!isMyTurn || session?.status !== 'playing') {
+    if (!isMyTurn || session?.status !== 'playing' || !myState) {
       setTurnTimeRemaining(TURN_TIME_LIMIT);
       return;
     }
@@ -132,33 +162,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isMyTurn, session?.status]);
-
-  const handleTurnTimeout = async () => {
-    if (!myState || !session) return;
-
-    const pointDeduction = 2;
-    const newScore = Math.max(0, myState.score - pointDeduction);
-
-    await supabase
-      .from('game_state')
-      .update({ score: newScore })
-      .eq('id', myState.id);
-
-    const nextPlayer = session.current_player === 1 ? 2 : 1;
-    await supabase
-      .from('game_sessions')
-      .update({ current_player: nextPlayer })
-      .eq('id', sessionId);
-
-    toast({
-      title: "⏰ Turn skipped",
-      description: `Time's up! -${pointDeduction} points`,
-      variant: "destructive"
-    });
-
-    setTurnTimeRemaining(TURN_TIME_LIMIT);
-  };
+  }, [isMyTurn, session?.status, session?.current_player, myState?.id]);
 
   const placeLetter = async (row: number, col: number) => {
     if (!isMyTurn || !selectedLetter || !myState) {
