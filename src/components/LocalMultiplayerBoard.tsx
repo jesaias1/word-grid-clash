@@ -594,17 +594,71 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       {renderLetterCooldowns()}
 
       {/* Game Grids */}
-      <div className="flex justify-center items-start gap-6 flex-1 flex-wrap">
-        {grids.map((grid, playerIdx) => (
-          <div key={playerIdx} className="flex flex-col items-center">
-            <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === playerIdx + 1 ? `${getPlayerBgClass(playerIdx)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
-              <div className={`text-xl font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
-              <div className="text-3xl font-bold score-glow">{scores[playerIdx]}</div>
+      {playerCount === 2 ? (
+        <div className="flex flex-col items-center gap-4">
+          {/* Player cards with timer in the middle */}
+          <div className="flex justify-center items-center gap-4">
+            {/* Player 1 */}
+            <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 1 ? `${getPlayerBgClass(0)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
+              <div className={`text-xl font-bold ${getPlayerTextClass(0)}`}>Player 1</div>
+              <div className="text-3xl font-bold score-glow">{scores[0]}</div>
             </div>
-            {renderGrid(playerIdx)}
+
+            {/* Timer */}
+            {!gameEnded && (
+              <Card className={`p-4 shadow-lg border-2 transition-all ${
+                timeLeft <= 10 
+                  ? 'border-destructive bg-destructive/10 animate-pulse' 
+                  : 'border-primary bg-primary/5'
+              }`}>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground mb-1">Time Left</div>
+                  <div className={`text-4xl font-bold ${
+                    timeLeft <= 10 ? 'text-destructive' : 'text-primary'
+                  }`}>
+                    {timeLeft}s
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* VS text when game ended */}
+            {gameEnded && (
+              <div className="flex items-center justify-center px-6">
+                <div className="text-3xl font-bold text-muted-foreground">VS</div>
+              </div>
+            )}
+
+            {/* Player 2 */}
+            <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 2 ? `${getPlayerBgClass(1)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
+              <div className={`text-xl font-bold ${getPlayerTextClass(1)}`}>Player 2</div>
+              <div className="text-3xl font-bold score-glow">{scores[1]}</div>
+            </div>
           </div>
-        ))}
-      </div>
+
+          {/* Grids side by side */}
+          <div className="flex justify-center items-start gap-6">
+            <div className="flex flex-col items-center">
+              {renderGrid(0)}
+            </div>
+            <div className="flex flex-col items-center">
+              {renderGrid(1)}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-center items-start gap-6 flex-1 flex-wrap">
+          {grids.map((grid, playerIdx) => (
+            <div key={playerIdx} className="flex flex-col items-center">
+              <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === playerIdx + 1 ? `${getPlayerBgClass(playerIdx)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
+                <div className={`text-xl font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
+                <div className="text-3xl font-bold score-glow">{scores[playerIdx]}</div>
+              </div>
+              {renderGrid(playerIdx)}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Compact Rules */}
       <div className="text-center mt-4">
