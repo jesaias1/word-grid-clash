@@ -18,6 +18,9 @@ type GridCell = { letter: Letter | null };
 type Grid = GridCell[][];
 type CooldownState = { [key: string]: number };
 
+const TURN_TIME_LIMIT = 30; // 30 seconds per turn
+const WARNING_THRESHOLD = 10; // Show warning at 10 seconds
+
 const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ sessionId }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -29,6 +32,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
   const [gameTime, setGameTime] = useState(0);
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -109,6 +113,52 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   }, []);
 
   const isMyTurn = session?.current_player === myPlayerIndex;
+
+  // Turn timer effect
+  useEffect(() => {
+    if (!isMyTurn || session?.status !== 'playing') {
+      setTurnTimeRemaining(TURN_TIME_LIMIT);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTurnTimeRemaining(prev => {
+        if (prev <= 1) {
+          handleTurnTimeout();
+          return TURN_TIME_LIMIT;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isMyTurn, session?.status]);
+
+  const handleTurnTimeout = async () => {
+    if (!myState || !session) return;
+
+    const pointDeduction = 2;
+    const newScore = Math.max(0, myState.score - pointDeduction);
+
+    await supabase
+      .from('game_state')
+      .update({ score: newScore })
+      .eq('id', myState.id);
+
+    const nextPlayer = session.current_player === 1 ? 2 : 1;
+    await supabase
+      .from('game_sessions')
+      .update({ current_player: nextPlayer })
+      .eq('id', sessionId);
+
+    toast({
+      title: "⏰ Turn skipped",
+      description: `Time's up! -${pointDeduction} points`,
+      variant: "destructive"
+    });
+
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
+  };
 
   const placeLetter = async (row: number, col: number) => {
     if (!isMyTurn || !selectedLetter || !myState) {
@@ -211,6 +261,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       .eq('id', sessionId);
 
     setSelectedLetter(null);
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
 
     toast({
       title: `+${result.score} points!`,
@@ -354,6 +405,23 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             <div className="text-2xl font-bold text-primary">{opponentState?.score || 0}</div>
           </Card>
         </div>
+
+        {isMyTurn && session.status === 'playing' && (
+          <Card className={`p-3 shadow-lg border-2 transition-all ${
+            turnTimeRemaining <= WARNING_THRESHOLD 
+              ? 'border-destructive bg-destructive/10 animate-pulse' 
+              : 'border-primary bg-primary/5'
+          }`}>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground mb-1">Time Remaining</div>
+              <div className={`text-3xl font-bold ${
+                turnTimeRemaining <= WARNING_THRESHOLD ? 'text-destructive' : 'text-primary'
+              }`}>
+                {turnTimeRemaining}s
+              </div>
+            </div>
+          </Card>
+        )}
 
         {selectedLetter && isMyTurn && (
           <Card className="p-3 shadow-lg border-2 border-primary bg-primary/10">
