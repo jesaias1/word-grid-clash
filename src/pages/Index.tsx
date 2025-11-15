@@ -22,13 +22,13 @@ const Index = () => {
   if (gameMode === 'menu') {
     return (
       <div className="min-h-screen flex items-center justify-center p-3 py-4">
-        <div className="text-center space-y-2.5 max-w-2xl w-full animate-fade-in">
-          <div className="flex items-center justify-center mb-1">
-            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[280px] object-contain drop-shadow-2xl" />
+        <div className="text-center space-y-2.5 max-w-2xl w-full animate-fade-in-up">
+          <div className="flex items-center justify-center mb-1 animate-float">
+            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[280px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
           </div>
           
           {/* Board Size Selection */}
-          <Card className="p-3 shadow-lg border-2">
+          <Card className="p-3 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30">
             <div className="space-y-2">
               <h2 className="text-sm font-bold text-center text-foreground">Board Size</h2>
               <div className="grid grid-cols-3 gap-2.5">
@@ -55,7 +55,7 @@ const Index = () => {
           </Card>
 
           {/* Cooldown Duration Selection (for Multiplayer) */}
-          <Card className="p-3 shadow-lg border-2">
+          <Card className="p-3 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30" style={{ animationDelay: '0.1s' }}>
             <div className="space-y-1.5">
               <h2 className="text-sm font-bold text-center text-foreground">Cooldown Duration</h2>
               <p className="text-[10px] text-muted-foreground text-center font-medium">Turns before letter reuse (multiplayer)</p>
@@ -86,31 +86,35 @@ const Index = () => {
             <Button 
               onClick={() => setGameMode('local')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300"
+              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              style={{ animationDelay: '0.2s' }}
             >
               Solo Game
             </Button>
             <Button 
               onClick={() => navigate('/online-setup')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300"
+              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="default"
+              style={{ animationDelay: '0.3s' }}
             >
               Online 1v1
             </Button>
             <Button 
               onClick={() => setGameMode('local-multiplayer-2')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300"
+              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
+              style={{ animationDelay: '0.4s' }}
             >
               2 Player Local
             </Button>
             <Button 
               onClick={() => setGameMode('local-multiplayer-3')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300"
+              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
+              style={{ animationDelay: '0.5s' }}
             >
               3 Player Local
             </Button>
