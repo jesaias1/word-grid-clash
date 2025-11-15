@@ -190,13 +190,13 @@ const OnlineGameSetup = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="text-center space-y-4 max-w-md w-full animate-fade-in">
-        <div className="flex items-center justify-center mb-2">
-          <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[240px] object-contain drop-shadow-2xl" />
+      <div className="text-center space-y-4 max-w-md w-full animate-fade-in-up">
+        <div className="flex items-center justify-center mb-2 animate-float">
+          <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[240px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
         </div>
 
-        <Card className="p-4 shadow-lg border-2">
-          <h2 className="text-lg font-bold mb-3 text-foreground">Online Multiplayer</h2>
+        <Card className="p-4 shadow-lg border-2 transition-all duration-300 hover:shadow-xl hover:border-primary/30">
+          <h2 className="text-lg font-bold mb-3 text-foreground animate-slide-in-left">Online Multiplayer</h2>
           
           <div className="space-y-3">
             <Input
@@ -211,7 +211,7 @@ const OnlineGameSetup = () => {
               <Button 
                 onClick={createGame}
                 disabled={isCreating || !username.trim()}
-                className="w-full h-10 font-bold"
+                className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
                 size="lg"
               >
                 {isCreating ? 'Creating...' : 'Create New Game'}
@@ -237,7 +237,7 @@ const OnlineGameSetup = () => {
                 onClick={joinGame}
                 disabled={isJoining || !username.trim() || !gameCode.trim()}
                 variant="secondary"
-                className="w-full h-10 font-bold"
+                className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
                 size="lg"
               >
                 {isJoining ? 'Joining...' : 'Join Game'}
@@ -249,7 +249,7 @@ const OnlineGameSetup = () => {
         <Button 
           onClick={() => navigate('/')}
           variant="outline"
-          className="shadow-lg"
+          className="shadow-lg transition-all duration-300 hover:scale-105"
         >
           Back to Menu
         </Button>
