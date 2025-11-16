@@ -82,11 +82,11 @@ const Index = () => {
             </div>
           </Card>
 
-          <div className="space-y-2 pt-1">
+          <div className="grid grid-cols-2 gap-3 pt-1 max-w-md mx-auto">
             <Button 
               onClick={() => setGameMode('local')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               style={{ animationDelay: '0.2s' }}
             >
               Solo Game
@@ -94,7 +94,7 @@ const Index = () => {
             <Button 
               onClick={() => navigate('/online-setup')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="default"
               style={{ animationDelay: '0.3s' }}
             >
@@ -103,7 +103,7 @@ const Index = () => {
             <Button 
               onClick={() => setGameMode('local-multiplayer-2')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
               style={{ animationDelay: '0.4s' }}
             >
@@ -112,7 +112,7 @@ const Index = () => {
             <Button 
               onClick={() => setGameMode('local-multiplayer-3')} 
               size="lg" 
-              className="w-48 h-10 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
               style={{ animationDelay: '0.5s' }}
             >
