@@ -970,6 +970,9 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
           <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${gameState.currentPlayer === 1 ? 'bg-player-1/20 border-2 border-player-1/40 scale-105' : 'bg-card/80 border border-border'}`}>
             <div className="text-xl font-bold text-player-1">You</div>
             <div className="text-3xl font-bold score-glow">{gameState.scores[0]}</div>
+            <div className="text-sm text-muted-foreground mt-1">
+              {gameState.roundScores['1'] > 0 ? `+${gameState.roundScores['1']}` : '0'} points this turn
+            </div>
           </div>
           {renderGrid(0)}
         </div>
@@ -979,6 +982,9 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
           <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${gameState.currentPlayer === 2 ? 'bg-player-2/20 border-2 border-player-2/40 scale-105' : 'bg-card/80 border border-border'}`}>
             <div className="text-xl font-bold text-player-2">AI Bot</div>
             <div className="text-3xl font-bold score-glow">{gameState.scores[1]}</div>
+            <div className="text-sm text-muted-foreground mt-1">
+              {gameState.roundScores['2'] > 0 ? `+${gameState.roundScores['2']}` : '0'} points this turn
+            </div>
           </div>
           {renderGrid(1)}
         </div>
