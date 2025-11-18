@@ -167,6 +167,19 @@ const OnlineGameSetup = () => {
         return;
       }
 
+      // Update session with player 2 info FIRST so RLS allows game_state insert
+      const { error: updateError } = await supabase
+        .from('game_sessions')
+        .update({ 
+          player2_name: username,
+          player2_id: authData.user.id,
+          status: 'playing'
+        })
+        .eq('id', session.id);
+
+      if (updateError) throw updateError;
+
+      // Now insert game state (RLS will allow it since player2_id is set)
       const initialGrid = generateStartingTiles(session.board_size);
       const availableLetters = generateLetterPool();
 
@@ -178,18 +191,6 @@ const OnlineGameSetup = () => {
         available_letters: availableLetters,
         cooldowns: {}
       });
-
-      // Update session with player 2 info and start the game
-      const { error: updateError } = await supabase
-        .from('game_sessions')
-        .update({ 
-          player2_name: username,
-          player2_id: authData.user.id,
-          status: 'playing'
-        })
-        .eq('id', session.id);
-
-      if (updateError) throw updateError;
 
       // Wait briefly to ensure the update propagates
       await new Promise(resolve => setTimeout(resolve, 300));
