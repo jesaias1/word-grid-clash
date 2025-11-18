@@ -179,7 +179,8 @@ const OnlineGameSetup = () => {
         cooldowns: {}
       });
 
-      await supabase
+      // Update session with player 2 info and start the game
+      const { error: updateError } = await supabase
         .from('game_sessions')
         .update({ 
           player2_name: username,
@@ -187,6 +188,11 @@ const OnlineGameSetup = () => {
           status: 'playing'
         })
         .eq('id', session.id);
+
+      if (updateError) throw updateError;
+
+      // Wait briefly to ensure the update propagates
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       navigate(`/online/${session.id}`);
     } catch (error) {
