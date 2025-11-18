@@ -220,48 +220,41 @@ const OnlineGameSetup = () => {
           
           <div className="space-y-3">
             <Input
-              placeholder="Enter your username"
+              placeholder="Your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="text-center"
               maxLength={20}
             />
 
-            <div className="space-y-2">
-              <Button 
-                onClick={createGame}
-                disabled={isCreating || !username.trim()}
-                className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
-                size="lg"
-              >
-                {isCreating ? 'Creating...' : 'Create New Game'}
-              </Button>
+            <Input
+              placeholder="Game code (to join)"
+              value={gameCode}
+              onChange={(e) => setGameCode(e.target.value)}
+              className="text-center"
+            />
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">Or</span>
-                </div>
-              </div>
+            <Button 
+              onClick={createGame}
+              disabled={isCreating || !username.trim()}
+              className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
+              size="lg"
+            >
+              {isCreating ? 'Creating...' : 'Create New Game'}
+            </Button>
 
-              <Input
-                placeholder="Enter game code to join"
-                value={gameCode}
-                onChange={(e) => setGameCode(e.target.value)}
-                className="text-center"
-              />
+            <Button 
+              onClick={joinGame}
+              disabled={isJoining || !username.trim() || !gameCode.trim()}
+              variant="secondary"
+              className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
+              size="lg"
+            >
+              {isJoining ? 'Joining...' : 'Join Game'}
+            </Button>
 
-              <Button 
-                onClick={joinGame}
-                disabled={isJoining || !username.trim() || !gameCode.trim()}
-                variant="secondary"
-                className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
-                size="lg"
-              >
-                {isJoining ? 'Joining...' : 'Join Game'}
-              </Button>
+            <div className="text-xs text-muted-foreground text-center mt-2 p-2 bg-muted/50 rounded">
+              💡 To test multiplayer: Use a different browser or incognito window for Player 2
             </div>
           </div>
         </Card>
