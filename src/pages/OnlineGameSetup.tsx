@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -14,6 +14,19 @@ const OnlineGameSetup = () => {
   const [isJoining, setIsJoining] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+
+  // Auto-populate game code from URL parameter
+  useEffect(() => {
+    const joinGameId = searchParams.get('join');
+    if (joinGameId) {
+      setGameCode(joinGameId);
+      toast({
+        title: "Ready to join!",
+        description: "Enter your username and click Join Game"
+      });
+    }
+  }, [searchParams, toast]);
 
   const boardSize = 5;
   const cooldownTurns = 4;
