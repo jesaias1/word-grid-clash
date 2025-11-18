@@ -84,7 +84,8 @@ const OnlineGameSetup = () => {
           player1_id: authData.user.id,
           board_size: boardSize,
           cooldown_turns: cooldownTurns,
-          status: 'waiting'
+          status: 'waiting',
+          current_player: 1  // Explicitly set Player 1 to start
         })
         .select()
         .single();
