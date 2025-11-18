@@ -300,36 +300,47 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     }
   };
 
-  const renderGrid = () => {
-    if (!myState) return null;
+  const renderGrid = (isOpponent: boolean = false) => {
+    const gridState = isOpponent ? opponentState : myState;
+    if (!gridState) return null;
     
-    const grid = myState.grid_data;
+    const grid = gridState.grid_data;
     const size = grid.length;
+    const canPlace = !isOpponent && isMyTurn && selectedLetter;
 
     return (
-      <div className="flex flex-col items-center gap-1.5">
-        <div className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}>
-          {grid.map((row: GridCell[], rowIndex: number) =>
-            row.map((cell, colIndex) => (
+      <div className={`inline-grid gap-1 p-3 rounded-xl border-2 shadow-lg ${
+        (!isOpponent && isMyTurn) || (isOpponent && !isMyTurn)
+          ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' 
+          : 'bg-card/80 border-border'
+      } ${isOpponent ? 'opacity-80' : ''}`} 
+      style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+        {grid.map((row: GridCell[], rowIndex: number) =>
+          row.map((cell, colIndex) => {
+            const isLightSquare = (rowIndex + colIndex) % 2 === 0;
+            
+            return (
               <button
                 key={`${rowIndex}-${colIndex}`}
-                onClick={() => placeLetter(rowIndex, colIndex)}
-                disabled={!isMyTurn || !selectedLetter}
+                onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
+                disabled={isOpponent || !canPlace}
                 className={`
-                  w-14 h-14 rounded-lg border-2 font-bold text-lg
-                  transition-all duration-200
-                  ${cell.letter 
-                    ? 'bg-primary/20 border-primary text-primary shadow-md' 
-                    : 'bg-card border-border hover:border-primary/40 hover:bg-card/80 hover:scale-105'
-                  }
-                  ${!isMyTurn || !selectedLetter ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                  w-14 h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
+                  ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
+                  ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
+                  ${isOpponent || !canPlace ? 'cursor-not-allowed' : ''}
                 `}
               >
-                {cell.letter}
+                {cell.letter && (
+                  <span className="font-bold text-lg drop-shadow-lg text-white">
+                    {cell.letter}
+                  </span>
+                )}
               </button>
-            ))
-          )}
-        </div>
+            );
+          })
+        )}
       </div>
     );
   };
@@ -380,18 +391,20 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
   const myName = myPlayerIndex === 1 ? session.player1_name : session.player2_name;
   const opponentName = myPlayerIndex === 1 ? session.player2_name : session.player1_name;
+  const myScore = myState.score;
+  const opponentScore = opponentState?.score || 0;
 
   return (
-    <div className="min-h-screen p-4 py-6">
+    <div className="min-h-screen p-2 space-y-2 max-w-5xl mx-auto flex flex-col">
       <AlertDialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl">
+            <AlertDialogTitle className="text-2xl text-center">
               {session.winner_index === myPlayerIndex ? '🎉 You Win!' : 
                session.winner_index ? '😔 You Lost' : '🤝 Draw!'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              Final Score: {myState.score} - {opponentState?.score || 0}
+            <AlertDialogDescription className="text-center text-base">
+              Final Score: {myScore} - {opponentScore}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -400,76 +413,148 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="max-w-6xl mx-auto space-y-4">
-        <div className="flex justify-between items-center">
-          <Button onClick={() => navigate('/')} variant="outline" className="shadow-lg">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          LETTUS - Online Multiplayer
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Play against your friend online
+        </p>
+      </div>
+
+      {/* Game Stats and Controls */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+        {/* Back Button */}
+        <Card className="p-3 bg-gradient-card">
+          <Button onClick={() => navigate('/')} variant="outline" className="w-full">
             Back to Menu
           </Button>
-          <Card className="px-4 py-2 shadow-lg">
-            <div className="text-center font-bold text-lg">{formatTime(gameTime)}</div>
-          </Card>
+        </Card>
+
+        {/* Timer and Turn Info */}
+        <Card className="p-3 bg-gradient-card">
+          <div className="text-center space-y-1">
+            {session.status === 'finished' ? (
+              <div className="space-y-1">
+                <div className="text-sm font-bold text-accent">
+                  {session.winner_index === myPlayerIndex ? 'You Win!' : 
+                   session.winner_index ? 'You Lost' : 'Tie!'}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-xs text-muted-foreground">Game Time</div>
+                <div className="text-sm font-semibold">
+                  {isMyTurn ? (
+                    <span className="text-primary">Your Turn</span>
+                  ) : (
+                    <span className="text-muted-foreground">Opponent's Turn</span>
+                  )}
+                </div>
+                <div className={`text-lg font-bold ${
+                  isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD 
+                    ? 'text-destructive animate-pulse' 
+                    : 'text-accent'
+                }`}>
+                  {formatTime(gameTime)}
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
+
+        {/* Selected Letter */}
+        <Card className="p-3 bg-gradient-card">
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground mb-1">Selected</div>
+            <div className="text-2xl font-bold text-accent">
+              {selectedLetter || '?'}
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Available Letters */}
+      {isMyTurn && session.status === 'playing' && (
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2">
+          <div className="text-center mb-2">
+            <span className="text-xs font-semibold text-muted-foreground">Available Letters</span>
+          </div>
+          {renderAvailableLetters()}
         </div>
+      )}
 
-        <div className="grid grid-cols-3 gap-3 items-center">
-          <Card className={`p-3 shadow-lg border-2 ${isMyTurn ? 'border-primary bg-primary/10 scale-105' : ''} transition-all`}>
-            <div className="text-sm text-muted-foreground">You</div>
-            <div className="font-bold text-xl">{myName}</div>
-            <div className="text-2xl font-bold text-primary">{myState.score}</div>
-          </Card>
+      {/* Game Grids */}
+      <div className="flex flex-col items-center gap-4">
+        {/* Player cards with timer in the middle */}
+        <div className="flex justify-center items-center gap-4">
+          {/* You */}
+          <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${
+            isMyTurn 
+              ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
+              : 'bg-card/80 border border-border'
+          }`}>
+            <div className="text-xl font-bold text-player-1">{myName}</div>
+            <div className="text-3xl font-bold score-glow">{myScore}</div>
+          </div>
 
-          {isMyTurn && session.status === 'playing' && (
+          {/* Timer */}
+          {session.status === 'playing' && (
             <Card className={`p-4 shadow-lg border-2 transition-all ${
-              turnTimeRemaining <= WARNING_THRESHOLD 
+              isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD
                 ? 'border-destructive bg-destructive/10 animate-pulse' 
                 : 'border-primary bg-primary/5'
             }`}>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">Time Left</div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  {isMyTurn ? 'Time Left' : 'Waiting'}
+                </div>
                 <div className={`text-4xl font-bold ${
-                  turnTimeRemaining <= WARNING_THRESHOLD ? 'text-destructive' : 'text-primary'
+                  isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD 
+                    ? 'text-destructive' 
+                    : 'text-primary'
                 }`}>
-                  {turnTimeRemaining}s
+                  {isMyTurn ? `${turnTimeRemaining}s` : '...'}
                 </div>
               </div>
             </Card>
           )}
 
-          {(!isMyTurn || session.status !== 'playing') && (
-            <div className="flex items-center justify-center">
-              <div className="text-2xl font-bold text-muted-foreground">VS</div>
+          {/* VS text when game ended */}
+          {session.status === 'finished' && (
+            <div className="flex items-center justify-center px-6">
+              <div className="text-3xl font-bold text-muted-foreground">VS</div>
             </div>
           )}
 
-          <Card className={`p-3 shadow-lg border-2 ${!isMyTurn && session.status === 'playing' ? 'border-primary bg-primary/10 scale-105' : ''} transition-all`}>
-            <div className="text-sm text-muted-foreground">Opponent</div>
-            <div className="font-bold text-xl">{opponentName || 'Waiting...'}</div>
-            <div className="text-2xl font-bold text-primary">{opponentState?.score || 0}</div>
-          </Card>
+          {/* Opponent */}
+          <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${
+            !isMyTurn && session.status === 'playing'
+              ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
+              : 'bg-card/80 border border-border'
+          }`}>
+            <div className="text-xl font-bold text-player-2">{opponentName}</div>
+            <div className="text-3xl font-bold score-glow">{opponentScore}</div>
+          </div>
         </div>
 
-        {selectedLetter && isMyTurn && (
-          <Card className="p-3 shadow-lg border-2 border-primary bg-primary/10">
-            <div className="text-center">
-              <div className="text-sm text-muted-foreground mb-1">Selected Letter</div>
-              <div className="text-3xl font-bold text-primary">{selectedLetter}</div>
-            </div>
-          </Card>
-        )}
+        {/* Grids side by side */}
+        <div className="flex justify-center items-start gap-6">
+          <div className="flex flex-col items-center">
+            {renderGrid(false)}
+          </div>
+          <div className="flex flex-col items-center">
+            {renderGrid(true)}
+          </div>
+        </div>
+      </div>
 
-        <Card className="p-4 shadow-lg border-2">
-          {renderGrid()}
-        </Card>
-
-        {isMyTurn ? (
-          <Card className="p-4 shadow-lg border-2">
-            <h3 className="text-center font-bold mb-3 text-foreground">Your Turn - Available Letters</h3>
-            {renderAvailableLetters()}
-          </Card>
-        ) : (
-          <Card className="p-4 shadow-lg border-2 bg-muted/50">
-            <p className="text-center text-muted-foreground font-medium">Waiting for {opponentName}'s move...</p>
-          </Card>
-        )}
+      {/* Compact Rules */}
+      <div className="text-center mt-4">
+        <div className="text-sm text-muted-foreground font-medium">
+          30s per turn • Click letter then cell to place • 3+ letter words • Score = letters in valid words
+        </div>
       </div>
     </div>
   );
