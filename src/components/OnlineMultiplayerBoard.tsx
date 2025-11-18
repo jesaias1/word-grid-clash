@@ -224,27 +224,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     );
 
     const result = calculateScore(gridForScoring, SCORE_OPTS());
-    const dict = getDictionary();
-
-    if (result.words.length === 0) {
-      toast({
-        title: "Invalid word",
-        description: "The placed letter doesn't form any valid words",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const allValid = result.words.every(w => dict.has(w.text));
-    if (!allValid) {
-      const invalidWords = result.words.filter(w => !dict.has(w.text)).map(w => w.text);
-      toast({
-        title: "Invalid word(s)",
-        description: `Not valid: ${invalidWords.join(', ')}`,
-        variant: "destructive"
-      });
-      return;
-    }
 
     const newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
     const newCooldowns = { ...myState.cooldowns };
