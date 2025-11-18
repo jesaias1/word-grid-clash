@@ -14,6 +14,7 @@ const OnlineGame = () => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!gameId) {
@@ -21,12 +22,44 @@ const OnlineGame = () => {
       return;
     }
 
-    const fetchSession = async () => {
+    let mounted = true;
+
+    const initializeGame = async () => {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!mounted) return;
+      
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+
+      // Set up real-time subscription FIRST
+      const channel = supabase
+        .channel('game-session-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'game_sessions',
+            filter: `id=eq.${gameId}`
+          },
+          (payload) => {
+            if (mounted) {
+              setSession(payload.new);
+            }
+          }
+        )
+        .subscribe();
+
+      // THEN fetch initial session data
       const { data, error } = await supabase
         .from('game_sessions')
         .select('*')
         .eq('id', gameId)
         .single();
+
+      if (!mounted) return;
 
       if (error || !data) {
         toast({
@@ -42,26 +75,11 @@ const OnlineGame = () => {
       setLoading(false);
     };
 
-    fetchSession();
-
-    const channel = supabase
-      .channel('game-session-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'game_sessions',
-          filter: `id=eq.${gameId}`
-        },
-        (payload) => {
-          setSession(payload.new);
-        }
-      )
-      .subscribe();
+    initializeGame();
 
     return () => {
-      supabase.removeChannel(channel);
+      mounted = false;
+      supabase.channel('game-session-changes').unsubscribe();
     };
   }, [gameId, navigate, toast]);
 
@@ -87,12 +105,15 @@ const OnlineGame = () => {
     );
   }
 
-  if (session?.status === 'waiting') {
+  // Only show waiting screen to Player 1 (the one who created the game)
+  const isPlayer1 = currentUserId && session?.player1_id === currentUserId;
+  
+  if (session?.status === 'waiting' && isPlayer1) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="p-6 max-w-md w-full shadow-lg border-2 text-center space-y-4 animate-fade-in">
           <h2 className="text-xl font-bold text-foreground">Waiting for Opponent</h2>
-          <p className="text-muted-foreground">Share this game code with a friend:</p>
+          <p className="text-muted-foreground">Share this game link with a friend:</p>
           
           <div className="bg-muted p-4 rounded-lg">
             <code className="text-lg font-mono font-bold text-primary break-all">{gameId}</code>
@@ -124,6 +145,18 @@ const OnlineGame = () => {
             Back to Menu
           </Button>
         </Card>
+      </div>
+    );
+  }
+
+  // If Player 2 arrives while status is still 'waiting', show a loading state
+  if (session?.status === 'waiting' && !isPlayer1) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Joining game...</p>
+        </div>
       </div>
     );
   }

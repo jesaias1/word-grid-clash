@@ -36,6 +36,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
   useEffect(() => {
     const fetchGameData = async () => {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: sessionData } = await supabase
         .from('game_sessions')
         .select('*')
@@ -45,15 +49,25 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       if (sessionData) {
         setSession(sessionData);
         
+        // Determine player index by comparing user ID
+        let playerIndex: number;
+        if (user.id === sessionData.player1_id) {
+          playerIndex = 1;
+        } else if (user.id === sessionData.player2_id) {
+          playerIndex = 2;
+        } else {
+          console.error('User is not part of this game');
+          return;
+        }
+        
+        setMyPlayerIndex(playerIndex);
+        
         const { data: states } = await supabase
           .from('game_state')
           .select('*')
           .eq('session_id', sessionId);
 
         if (states && states.length > 0) {
-          const playerIndex = states.length === 1 ? 1 : 2;
-          setMyPlayerIndex(playerIndex);
-          
           const myStateData = states.find(s => s.player_index === playerIndex);
           const opponentStateData = states.find(s => s.player_index !== playerIndex);
           
