@@ -288,7 +288,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const canPlace = !isOpponent && isMyTurn && selectedLetter;
 
     return (
-      <div className={`inline-grid gap-1 p-3 rounded-xl border-2 shadow-lg ${
+      <div className={`inline-grid gap-0.5 sm:gap-1 p-2 sm:p-3 rounded-xl border-2 shadow-lg ${
         (!isOpponent && isMyTurn) || (isOpponent && !isMyTurn)
           ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' 
           : 'bg-card/80 border-border'
@@ -304,7 +304,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
                 disabled={isOpponent || !canPlace}
                 className={`
-                  w-14 h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  w-10 h-10 sm:w-14 sm:h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -312,7 +312,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 `}
               >
                 {cell.letter && (
-                  <span className="font-bold text-lg drop-shadow-lg text-white">
+                  <span className="font-bold text-sm sm:text-lg drop-shadow-lg text-white">
                     {cell.letter}
                   </span>
                 )}
@@ -330,13 +330,13 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const letters = myState.available_letters;
     
     return (
-      <div className="flex flex-wrap gap-2 justify-center max-w-2xl mx-auto">
+      <div className="flex flex-wrap gap-1 sm:gap-2 justify-center max-w-2xl mx-auto">
         {letters.map((letter: string, index: number) => (
           <button
             key={`${letter}-${index}`}
             onClick={() => setSelectedLetter(letter)}
             className={`
-              w-12 h-12 rounded-xl border-2 font-bold text-base
+              w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 font-bold text-sm sm:text-base
               transition-all duration-200
               ${selectedLetter === letter
                 ? 'bg-primary border-primary text-primary-foreground shadow-glow scale-110'
@@ -374,7 +374,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const opponentScore = opponentState?.score || 0;
 
   return (
-    <div className="min-h-screen p-2 space-y-2 max-w-5xl mx-auto flex flex-col">
+    <div className="min-h-screen p-2 sm:p-4 space-y-2 sm:space-y-4 max-w-7xl mx-auto flex flex-col">
       <AlertDialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -394,7 +394,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - Online Multiplayer
         </h1>
         <p className="text-xs text-muted-foreground">
@@ -403,16 +403,16 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       </div>
 
       {/* Game Stats and Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1 sm:gap-2">
         {/* Back Button */}
-        <Card className="p-3 bg-gradient-card">
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full">
-            Back to Menu
+        <Card className="p-2 sm:p-3 bg-gradient-card">
+          <Button onClick={() => navigate('/')} variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-10">
+            Back
           </Button>
         </Card>
 
         {/* Timer and Turn Info */}
-        <Card className="p-3 bg-gradient-card">
+        <Card className="p-2 sm:p-3 bg-gradient-card">
           <div className="text-center space-y-1">
             {session.status === 'finished' ? (
               <div className="space-y-1">
@@ -444,10 +444,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </Card>
 
         {/* Selected Letter */}
-        <Card className="p-3 bg-gradient-card">
+        <Card className="p-2 sm:p-3 bg-gradient-card">
           <div className="text-center">
             <div className="text-xs text-muted-foreground mb-1">Selected</div>
-            <div className="text-2xl font-bold text-accent">
+            <div className="text-xl sm:text-2xl font-bold text-accent">
               {selectedLetter || '?'}
             </div>
           </div>
@@ -456,7 +456,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Available Letters */}
       {isMyTurn && session.status === 'playing' && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 sm:p-3 mx-auto">
           <div className="text-center mb-2">
             <span className="text-xs font-semibold text-muted-foreground">Available Letters</span>
           </div>
@@ -465,31 +465,31 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       )}
 
       {/* Game Grids */}
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-2 sm:gap-4">
         {/* Player cards with timer in the middle */}
-        <div className="flex justify-center items-center gap-4">
+        <div className="flex justify-center items-center gap-2 sm:gap-4 w-full max-w-2xl">
           {/* You */}
-          <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${
+          <div className={`p-2 sm:p-4 rounded-xl text-center shadow-md transition-all duration-300 flex-1 ${
             isMyTurn 
               ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
               : 'bg-card/80 border border-border'
           }`}>
-            <div className="text-xl font-bold text-player-1">{myName}</div>
-            <div className="text-3xl font-bold score-glow">{myScore}</div>
+            <div className="text-sm sm:text-xl font-bold text-player-1 truncate">{myName}</div>
+            <div className="text-2xl sm:text-3xl font-bold score-glow">{myScore}</div>
           </div>
 
           {/* Timer */}
           {session.status === 'playing' && (
-            <Card className={`p-4 shadow-lg border-2 transition-all ${
+            <Card className={`p-2 sm:p-4 shadow-lg border-2 transition-all ${
               isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD
                 ? 'border-destructive bg-destructive/10 animate-pulse' 
                 : 'border-primary bg-primary/5'
             }`}>
               <div className="text-center">
                 <div className="text-xs text-muted-foreground mb-1">
-                  {isMyTurn ? 'Time Left' : 'Waiting'}
+                  {isMyTurn ? 'Time' : 'Wait'}
                 </div>
-                <div className={`text-4xl font-bold ${
+                <div className={`text-2xl sm:text-4xl font-bold ${
                   isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD 
                     ? 'text-destructive' 
                     : 'text-primary'
@@ -502,28 +502,28 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
           {/* VS text when game ended */}
           {session.status === 'finished' && (
-            <div className="flex items-center justify-center px-6">
-              <div className="text-3xl font-bold text-muted-foreground">VS</div>
+            <div className="flex items-center justify-center px-2 sm:px-6">
+              <div className="text-2xl sm:text-3xl font-bold text-muted-foreground">VS</div>
             </div>
           )}
 
           {/* Opponent */}
-          <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${
+          <div className={`p-2 sm:p-4 rounded-xl text-center shadow-md transition-all duration-300 flex-1 ${
             !isMyTurn && session.status === 'playing'
               ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
               : 'bg-card/80 border border-border'
           }`}>
-            <div className="text-xl font-bold text-player-2">{opponentName}</div>
-            <div className="text-3xl font-bold score-glow">{opponentScore}</div>
+            <div className="text-sm sm:text-xl font-bold text-player-2 truncate">{opponentName}</div>
+            <div className="text-2xl sm:text-3xl font-bold score-glow">{opponentScore}</div>
           </div>
         </div>
 
-        {/* Grids side by side */}
-        <div className="flex justify-center items-start gap-6">
-          <div className="flex flex-col items-center">
+        {/* Grids - side by side on desktop, stacked on mobile */}
+        <div className="flex flex-col sm:flex-row justify-center items-start gap-2 sm:gap-6 w-full">
+          <div className="flex flex-col items-center w-full sm:w-auto">
             {renderGrid(false)}
           </div>
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center w-full sm:w-auto">
             {renderGrid(true)}
           </div>
         </div>
