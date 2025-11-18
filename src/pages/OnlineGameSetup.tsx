@@ -40,16 +40,20 @@ const OnlineGameSetup = () => {
       Array(size).fill(null).map(() => ({ letter: null as string | null }))
     );
     
-    const vowels = ['A', 'E', 'I', 'O', 'U'];
-    const consonants = 'BCDFGHJKLMNPQRSTVWXYZ'.split('');
+    const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
-    const getRandomLetter = (useVowel: boolean) => {
-      const pool = useVowel ? vowels : consonants;
-      return pool[Math.floor(Math.random() * pool.length)];
-    };
-
-    grid[0][0] = { letter: getRandomLetter(true) };
-    grid[size - 1][size - 1] = { letter: getRandomLetter(false) };
+    // Pick 5 random letters from the pool for starting tiles
+    const startingLetters = [];
+    for (let i = 0; i < Math.min(5, size); i++) {
+      const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
+      startingLetters.push(letter);
+    }
+    
+    // Place one letter in each row at random column
+    for (let row = 0; row < Math.min(5, size); row++) {
+      const col = Math.floor(Math.random() * size);
+      grid[row][col] = { letter: startingLetters[row] };
+    }
     
     return grid;
   };
