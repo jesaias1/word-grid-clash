@@ -213,7 +213,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       return false;
     });
 
-    if (!hasAdjacentLetter) {
+    // Check if board is empty (no letters placed yet) - first move can be anywhere
+    const hasBoardLetters = grid.some(row => row.some(cell => cell.letter !== null));
+    
+    if (hasBoardLetters && !hasAdjacentLetter) {
       playFeedback('invalid');
       toast({
         title: "Invalid placement",
@@ -455,11 +458,31 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       .single();
 
     if (newSession) {
-      // Create initial game states for both players
-      const initialGrid = Array(session.board_size).fill(null).map(() =>
-        Array(session.board_size).fill(null).map(() => ({ letter: null }))
-      );
-      
+      // Generate initial grid with starting tiles (same for both players)
+      const generateStartingTiles = (size: number) => {
+        const grid = Array(size).fill(null).map(() => 
+          Array(size).fill(null).map(() => ({ letter: null as string | null }))
+        );
+        
+        const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        
+        // Pick 5 random letters from the pool for starting tiles
+        const startingLetters = [];
+        for (let i = 0; i < Math.min(5, size); i++) {
+          const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
+          startingLetters.push(letter);
+        }
+        
+        // Place one letter in each row at random column
+        for (let row = 0; row < Math.min(5, size); row++) {
+          const col = Math.floor(Math.random() * size);
+          grid[row][col] = { letter: startingLetters[row] };
+        }
+        
+        return grid;
+      };
+
+      const initialGrid = generateStartingTiles(session.board_size);
       const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
       await supabase.from('game_state').insert([
