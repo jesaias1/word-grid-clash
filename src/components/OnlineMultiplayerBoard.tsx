@@ -256,6 +256,11 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
     const newScore = myState.score + result.score;
     const newTurnNumber = myState.turn_number + 1;
+    
+    // Add newly found words to the words_found list
+    const existingWords = myState.words_found || [];
+    const newWords = result.words.map(w => w.text);
+    const allWordsFound = [...existingWords, ...newWords];
 
     await supabase
       .from('game_state')
@@ -264,7 +269,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         score: newScore,
         available_letters: newAvailableLetters,
         cooldowns: newCooldowns,
-        turn_number: newTurnNumber
+        turn_number: newTurnNumber,
+        words_found: allWordsFound
       })
       .eq('id', myState.id);
 
@@ -420,21 +426,135 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const myScore = myState.score;
   const opponentScore = opponentState?.score || 0;
 
+  const handlePlayAgain = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Generate a random 5-character invite code
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let inviteCode = '';
+    for (let i = 0; i < 5; i++) {
+      inviteCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    // Create new game session with same players
+    const { data: newSession } = await supabase
+      .from('game_sessions')
+      .insert({
+        player1_id: session.player1_id,
+        player1_name: session.player1_name,
+        player2_id: session.player2_id,
+        player2_name: session.player2_name,
+        invite_code: inviteCode,
+        status: 'playing',
+        board_size: session.board_size,
+        cooldown_turns: session.cooldown_turns,
+        current_player: 1
+      })
+      .select()
+      .single();
+
+    if (newSession) {
+      // Create initial game states for both players
+      const initialGrid = Array(session.board_size).fill(null).map(() =>
+        Array(session.board_size).fill(null).map(() => ({ letter: null }))
+      );
+      
+      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+      await supabase.from('game_state').insert([
+        {
+          session_id: newSession.id,
+          player_index: 1,
+          grid_data: initialGrid,
+          available_letters: allLetters,
+          cooldowns: {},
+          score: 0,
+          turn_number: 0,
+          words_found: []
+        },
+        {
+          session_id: newSession.id,
+          player_index: 2,
+          grid_data: initialGrid,
+          available_letters: allLetters,
+          cooldowns: {},
+          score: 0,
+          turn_number: 0,
+          words_found: []
+        }
+      ]);
+
+      navigate(`/online/${inviteCode}`);
+    }
+  };
+
   return (
     <div className="min-h-screen p-2 sm:p-4 space-y-2 sm:space-y-4 max-w-7xl mx-auto flex flex-col">
       <AlertDialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl text-center">
               {session.winner_index === myPlayerIndex ? '🎉 You Win!' : 
                session.winner_index ? '😔 You Lost' : '🤝 Draw!'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-base">
-              Final Score: {myScore} - {opponentScore}
+            <AlertDialogDescription className="text-center text-base space-y-4">
+              <div className="text-xl font-bold">
+                Final Score: {myScore} - {opponentScore}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mt-6">
+                {/* Your words */}
+                <div className="text-left">
+                  <h3 className="font-bold text-lg text-foreground mb-2">{myName}</h3>
+                  <div className="bg-muted/50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                    {(myState?.words_found || []).length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {(myState.words_found || []).map((word: string, idx: number) => (
+                          <span key={idx} className="bg-primary/20 text-primary px-2 py-1 rounded text-sm">
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">No words found</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(myState?.words_found || []).length} words
+                  </p>
+                </div>
+
+                {/* Opponent's words */}
+                <div className="text-left">
+                  <h3 className="font-bold text-lg text-foreground mb-2">{opponentName}</h3>
+                  <div className="bg-muted/50 rounded-lg p-3 max-h-48 overflow-y-auto">
+                    {(opponentState?.words_found || []).length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {(opponentState.words_found || []).map((word: string, idx: number) => (
+                          <span key={idx} className="bg-secondary/20 text-secondary px-2 py-1 rounded text-sm">
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">No words found</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(opponentState?.words_found || []).length} words
+                  </p>
+                </div>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button onClick={() => navigate('/')}>Back to Menu</Button>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <Button onClick={handlePlayAgain} variant="default" className="w-full sm:w-auto">
+              Play Again
+            </Button>
+            <Button onClick={() => navigate('/')} variant="outline" className="w-full sm:w-auto">
+              Back to Menu
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
