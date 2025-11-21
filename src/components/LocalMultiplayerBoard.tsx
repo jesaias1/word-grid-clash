@@ -54,7 +54,7 @@ const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{
 };
 
 const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, cooldownTurns = 4 }: LocalMultiplayerBoardProps) => {
-  const { playSound } = useSoundEffects(true);
+  const { playFeedback } = useSoundEffects(true, true);
   
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
@@ -166,7 +166,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         }
         // Warning sound at 5 seconds
         if (prev === 6) {
-          playSound('timerWarning');
+          playFeedback('timerWarning');
         }
         return prev - 1;
       });
@@ -207,17 +207,17 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const targetGrid = grids[targetPlayerIndex];
     
     if (targetGrid[row][col] !== null) {
-      playSound('invalid');
+      playFeedback('invalid');
       return; // Cell already occupied
     }
     if (isLetterOnCooldown(selectedLetter)) {
-      playSound('invalid');
+      playFeedback('invalid');
       return; // Letter on cooldown
     }
 
     try {
       // Play placement sound
-      playSound('place');
+      playFeedback('place');
       
       // Update grids - copy all grids dynamically
       const newGrids: Grid[] = grids.map(grid => grid.map(row => [...row]));
@@ -268,7 +268,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       
       // Play score sound if any player scored
       if (anyScored) {
-        playSound('score');
+        playFeedback('score');
       }
       
       // Create scored cells sets for all players
@@ -297,7 +297,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
       if (areAllGridsFull) {
         setGameEnded(true);
-        playSound('gameEnd');
+        playFeedback('gameEnd');
         // Find winner (highest score)
         const finalScores = Object.entries(newCumulativeScores).map(([id, score]) => ({ id: parseInt(id), score }));
         const maxScore = Math.max(...finalScores.map(s => s.score));
@@ -321,7 +321,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       setCurrentPlayer(currentPlayer === playerCount ? 1 : currentPlayer + 1);
       setTurn(turn + 1);
       setTimeLeft(TURN_TIME);
-      playSound('turnChange');
+      playFeedback('turnChange');
 
     } catch (error) {
       console.error('Error placing letter:', error);
@@ -440,7 +440,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                 onClick={() => {
                   if (!isOnCooldown && !gameEnded) {
                     setSelectedLetter(letter);
-                    playSound('select');
+                    playFeedback('select');
                   }
                 }}
                 disabled={isOnCooldown || gameEnded}

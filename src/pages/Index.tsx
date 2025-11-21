@@ -15,7 +15,7 @@ const Index = () => {
   const [boardSize, setBoardSize] = useState(5);
   const [cooldownTurns, setCooldownTurns] = useState(4);
   const navigate = useNavigate();
-  const { playSound } = useSoundEffects(true);
+  const { playFeedback } = useSoundEffects(true, true);
 
   const handleBackToMenu = () => {
     setGameMode('menu');
@@ -41,7 +41,7 @@ const Index = () => {
                     key={size}
                     onClick={() => {
                       setBoardSize(size);
-                      playSound('click');
+                      playFeedback('click');
                     }}
                     className={`p-2 rounded-xl border-2 transition-all duration-300 ${
                       boardSize === size
@@ -72,7 +72,7 @@ const Index = () => {
                     key={turns}
                     onClick={() => {
                       setCooldownTurns(turns);
-                      playSound('click');
+                      playFeedback('click');
                     }}
                     className={`p-1.5 rounded-xl border-2 transition-all duration-300 ${
                       cooldownTurns === turns
@@ -95,9 +95,9 @@ const Index = () => {
           <div className="grid grid-cols-2 gap-3 pt-1 max-w-md mx-auto">
             <Button 
               onClick={() => {
-                playSound('click');
+                playFeedback('click');
                 setGameMode('local');
-              }} 
+              }}
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               style={{ animationDelay: '0.2s' }}
@@ -106,9 +106,9 @@ const Index = () => {
             </Button>
             <Button 
               onClick={() => {
-                playSound('click');
+                playFeedback('click');
                 navigate('/online-setup');
-              }} 
+              }}
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="default"
@@ -118,9 +118,9 @@ const Index = () => {
             </Button>
             <Button 
               onClick={() => {
-                playSound('click');
+                playFeedback('click');
                 setGameMode('local-multiplayer-2');
-              }} 
+              }}
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
@@ -130,9 +130,9 @@ const Index = () => {
             </Button>
             <Button 
               onClick={() => {
-                playSound('click');
+                playFeedback('click');
                 setGameMode('local-multiplayer-3');
-              }} 
+              }}
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
