@@ -70,7 +70,7 @@ const OnlineGame = () => {
 
   const copyGameLink = () => {
     const code = session?.invite_code || gameId;
-    const gameUrl = `${window.location.origin}/online/${code}`;
+    const gameUrl = `https://word-grid-clash.lovable.app/online/${code}`;
     navigator.clipboard.writeText(gameUrl);
     setCopied(true);
     toast({
