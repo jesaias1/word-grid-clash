@@ -16,7 +16,7 @@ const OnlineGameSetup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
-  const { playSound } = useSoundEffects(true);
+  const { playFeedback } = useSoundEffects(true, true);
 
   // Auto-populate game code from URL parameter
   useEffect(() => {
@@ -289,7 +289,7 @@ const OnlineGameSetup = () => {
 
             <Button 
               onClick={() => {
-                playSound('click');
+                playFeedback('click');
                 createGame();
               }}
               disabled={isCreating || !username.trim()}
@@ -301,7 +301,7 @@ const OnlineGameSetup = () => {
 
             <Button 
               onClick={() => {
-                playSound('click');
+                playFeedback('click');
                 joinGame();
               }}
               disabled={isJoining || !username.trim() || !gameCode.trim()}
@@ -320,7 +320,7 @@ const OnlineGameSetup = () => {
 
         <Button 
           onClick={() => {
-            playSound('click');
+            playFeedback('click');
             navigate('/');
           }}
           variant="outline"

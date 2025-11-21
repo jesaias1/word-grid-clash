@@ -74,7 +74,7 @@ interface GameBoardProps {
 }
 
 const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
-  const { playSound } = useSoundEffects(true);
+  const { playFeedback } = useSoundEffects(true, true);
   
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
@@ -158,7 +158,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
         }
         // Warning sound at 5 seconds
         if (prev.timeLeft === 6) {
-          playSound('timerWarning');
+          playFeedback('timerWarning');
         }
         return { ...prev, timeLeft: prev.timeLeft - 1 };
       });
@@ -491,13 +491,13 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
       if (allLetters.includes(letter) && !isLetterOnCooldown(letter)) {
         setSelectedLetter(letter);
-        playSound('select');
+        playFeedback('select');
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState.gameEnded, gameState.currentPlayer, gameState.sharedCooldowns, playSound]);
+  }, [gameState.gameEnded, gameState.currentPlayer, gameState.sharedCooldowns, playFeedback]);
 
   
 
@@ -517,18 +517,18 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     const isPlacingOnAIGrid = targetPlayerIndex === 1; // AI is player 2
     
     if (targetGrid[row][col] !== null) {
-      playSound('invalid');
+      playFeedback('invalid');
       return; // Cell already occupied
     }
     if (isLetterOnCooldown(selectedLetter)) {
-      playSound('invalid');
+      playFeedback('invalid');
       return; // Letter on shared cooldown
     }
 
     const dict = await loadDictionary();
 
     // Play placement sound
-    playSound('place');
+    playFeedback('place');
 
     setGameState(prev => {
       const newGrids: [Grid, Grid] = [
@@ -567,7 +567,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       
       // Play score sound if player scored
       if (delta1 > 0) {
-        playSound('score');
+        playFeedback('score');
       }
       
       // Create scored cells sets
@@ -639,12 +639,12 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       
       // Show winner dialog if game ended
       if (gameEnded) {
-        playSound('gameEnd');
+        playFeedback('gameEnd');
         setTimeout(() => setShowWinnerDialog(true), 500);
       }
       
       // Play turn change sound
-      playSound('turnChange');
+      playFeedback('turnChange');
       
       return newState;
     });
@@ -735,7 +735,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
                 onClick={() => {
                   if (!isOnCooldown && !gameState.gameEnded && gameState.currentPlayer === 1) {
                     setSelectedLetter(letter);
-                    playSound('select');
+                    playFeedback('select');
                   }
                 }}
                 disabled={isOnCooldown || gameState.gameEnded || gameState.currentPlayer !== 1}
