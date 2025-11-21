@@ -74,6 +74,7 @@ export type Database = {
           session_id: string
           turn_number: number
           updated_at: string
+          words_found: Json | null
         }
         Insert: {
           available_letters: Json
@@ -86,6 +87,7 @@ export type Database = {
           session_id: string
           turn_number?: number
           updated_at?: string
+          words_found?: Json | null
         }
         Update: {
           available_letters?: Json
@@ -98,6 +100,7 @@ export type Database = {
           session_id?: string
           turn_number?: number
           updated_at?: string
+          words_found?: Json | null
         }
         Relationships: [
           {
