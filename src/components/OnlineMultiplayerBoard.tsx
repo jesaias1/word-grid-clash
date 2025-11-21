@@ -304,7 +304,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
                 disabled={isOpponent || !canPlace}
                 className={`
-                  w-10 h-10 sm:w-14 sm:h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -537,12 +537,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           </div>
         </div>
 
-        {/* Grids - side by side on desktop, stacked on mobile */}
-        <div className="flex flex-col sm:flex-row justify-center items-start gap-2 sm:gap-6 w-full">
-          <div className="flex flex-col items-center w-full sm:w-auto">
+        {/* Grids - side by side, wrapping if needed on very small screens */}
+        <div className="flex flex-row flex-wrap sm:flex-nowrap justify-center items-start gap-2 sm:gap-6 w-full">
+          <div className="flex flex-col items-center w-1/2 sm:w-auto max-w-[50vw] sm:max-w-none">
             {renderGrid(false)}
           </div>
-          <div className="flex flex-col items-center w-full sm:w-auto">
+          <div className="flex flex-col items-center w-1/2 sm:w-auto max-w-[50vw] sm:max-w-none">
             {renderGrid(true)}
           </div>
         </div>

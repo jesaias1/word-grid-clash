@@ -23,6 +23,7 @@ const OnlineGame = () => {
     }
 
     let mounted = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const initializeGame = async () => {
       // Get current user
@@ -56,15 +57,48 @@ const OnlineGame = () => {
         error = idError;
       }
 
+      if (!mounted) return;
+
+      if (error || !data) {
+        toast({
+          title: "Game not found",
+          description: "This game doesn't exist",
+          variant: "destructive"
+        });
+        navigate('/online-setup');
+        return;
+      }
+
       setSession(data);
       setLoading(false);
+
+      // Subscribe to session updates so host leaves waiting screen when opponent joins
+      channel = supabase
+        .channel(`game-session-${data.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'game_sessions',
+            filter: `id=eq.${data.id}`
+          },
+          (payload) => {
+            if (mounted) {
+              setSession(payload.new);
+            }
+          }
+        )
+        .subscribe();
     };
 
     initializeGame();
 
     return () => {
       mounted = false;
-      supabase.channel('game-session-changes').unsubscribe();
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [gameId, navigate, toast]);
 
