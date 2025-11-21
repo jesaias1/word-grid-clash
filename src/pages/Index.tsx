@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { RulesDialog } from '@/components/RulesDialog';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer-2' | 'local-multiplayer-3';
 
@@ -14,6 +15,7 @@ const Index = () => {
   const [boardSize, setBoardSize] = useState(5);
   const [cooldownTurns, setCooldownTurns] = useState(4);
   const navigate = useNavigate();
+  const { playSound } = useSoundEffects(true);
 
   const handleBackToMenu = () => {
     setGameMode('menu');
@@ -37,7 +39,10 @@ const Index = () => {
                 {[5, 7, 10].map(size => (
                   <button
                     key={size}
-                    onClick={() => setBoardSize(size)}
+                    onClick={() => {
+                      setBoardSize(size);
+                      playSound('click');
+                    }}
                     className={`p-2 rounded-xl border-2 transition-all duration-300 ${
                       boardSize === size
                         ? 'border-primary bg-primary/15 text-primary shadow-glow scale-105'
@@ -65,7 +70,10 @@ const Index = () => {
                 {[1, 2, 3, 4, 5].map(turns => (
                   <button
                     key={turns}
-                    onClick={() => setCooldownTurns(turns)}
+                    onClick={() => {
+                      setCooldownTurns(turns);
+                      playSound('click');
+                    }}
                     className={`p-1.5 rounded-xl border-2 transition-all duration-300 ${
                       cooldownTurns === turns
                         ? 'border-primary bg-primary/15 text-primary shadow-glow scale-105'
@@ -86,7 +94,10 @@ const Index = () => {
 
           <div className="grid grid-cols-2 gap-3 pt-1 max-w-md mx-auto">
             <Button 
-              onClick={() => setGameMode('local')} 
+              onClick={() => {
+                playSound('click');
+                setGameMode('local');
+              }} 
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               style={{ animationDelay: '0.2s' }}
@@ -94,7 +105,10 @@ const Index = () => {
               Solo Game
             </Button>
             <Button 
-              onClick={() => navigate('/online-setup')} 
+              onClick={() => {
+                playSound('click');
+                navigate('/online-setup');
+              }} 
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="default"
@@ -103,7 +117,10 @@ const Index = () => {
               Online 1v1
             </Button>
             <Button 
-              onClick={() => setGameMode('local-multiplayer-2')} 
+              onClick={() => {
+                playSound('click');
+                setGameMode('local-multiplayer-2');
+              }} 
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
@@ -112,7 +129,10 @@ const Index = () => {
               2 Player Local
             </Button>
             <Button 
-              onClick={() => setGameMode('local-multiplayer-3')} 
+              onClick={() => {
+                playSound('click');
+                setGameMode('local-multiplayer-3');
+              }} 
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"

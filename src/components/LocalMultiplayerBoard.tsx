@@ -8,6 +8,7 @@ import { loadDictionary } from '@/lib/dictionary';
 import { scoreGrid } from '@/lib/scoring';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 type Player = number;
 type Letter = string;
@@ -53,6 +54,8 @@ const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{
 };
 
 const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, cooldownTurns = 4 }: LocalMultiplayerBoardProps) => {
+  const { playSound } = useSoundEffects(true);
+  
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
     if (!cell) return '';
@@ -161,6 +164,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           passTurn();
           return TURN_TIME;
         }
+        // Warning sound at 5 seconds
+        if (prev === 6) {
+          playSound('timerWarning');
+        }
         return prev - 1;
       });
     }, 1000);
@@ -199,10 +206,19 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     
     const targetGrid = grids[targetPlayerIndex];
     
-    if (targetGrid[row][col] !== null) return; // Cell already occupied
-    if (isLetterOnCooldown(selectedLetter)) return; // Letter on cooldown
+    if (targetGrid[row][col] !== null) {
+      playSound('invalid');
+      return; // Cell already occupied
+    }
+    if (isLetterOnCooldown(selectedLetter)) {
+      playSound('invalid');
+      return; // Letter on cooldown
+    }
 
     try {
+      // Play placement sound
+      playSound('place');
+      
       // Update grids - copy all grids dynamically
       const newGrids: Grid[] = grids.map(grid => grid.map(row => [...row]));
       
@@ -237,15 +253,23 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       const newCumulativeScores: { [playerId: string]: number } = {};
       const newLastBoardTotal: { [playerId: string]: number } = {};
       
+      let anyScored = false;
       playerResults.forEach((result, idx) => {
         const playerId = (idx + 1).toString();
         const prevTotal = lastBoardTotal[playerId] ?? 0;
         const delta = Math.max(0, result.score - prevTotal);
         
+        if (delta > 0) anyScored = true;
+        
         newRoundScores[playerId] = (roundScores[playerId] ?? 0) + delta;
         newCumulativeScores[playerId] = (cumulativeScores[playerId] ?? 0) + delta;
         newLastBoardTotal[playerId] = result.score;
       });
+      
+      // Play score sound if any player scored
+      if (anyScored) {
+        playSound('score');
+      }
       
       // Create scored cells sets for all players
       const newScoredCells = playerResults.map(result => {
@@ -273,6 +297,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
       if (areAllGridsFull) {
         setGameEnded(true);
+        playSound('gameEnd');
         // Find winner (highest score)
         const finalScores = Object.entries(newCumulativeScores).map(([id, score]) => ({ id: parseInt(id), score }));
         const maxScore = Math.max(...finalScores.map(s => s.score));
@@ -296,6 +321,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       setCurrentPlayer(currentPlayer === playerCount ? 1 : currentPlayer + 1);
       setTurn(turn + 1);
       setTimeLeft(TURN_TIME);
+      playSound('turnChange');
 
     } catch (error) {
       console.error('Error placing letter:', error);
@@ -411,7 +437,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             return (
               <button
                 key={letter}
-                onClick={() => !isOnCooldown && !gameEnded && setSelectedLetter(letter)}
+                onClick={() => {
+                  if (!isOnCooldown && !gameEnded) {
+                    setSelectedLetter(letter);
+                    playSound('select');
+                  }
+                }}
                 disabled={isOnCooldown || gameEnded}
                 className={`
                   w-8 h-8 rounded font-bold text-sm transition-all duration-200

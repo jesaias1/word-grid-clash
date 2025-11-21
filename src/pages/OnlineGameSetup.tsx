@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import lettusLogo from '@/assets/lettus-logo.png';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 const OnlineGameSetup = () => {
   const [username, setUsername] = useState('');
@@ -15,6 +16,7 @@ const OnlineGameSetup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const { playSound } = useSoundEffects(true);
 
   // Auto-populate game code from URL parameter
   useEffect(() => {
@@ -286,7 +288,10 @@ const OnlineGameSetup = () => {
             />
 
             <Button 
-              onClick={createGame}
+              onClick={() => {
+                playSound('click');
+                createGame();
+              }}
               disabled={isCreating || !username.trim()}
               className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
               size="lg"
@@ -295,7 +300,10 @@ const OnlineGameSetup = () => {
             </Button>
 
             <Button 
-              onClick={joinGame}
+              onClick={() => {
+                playSound('click');
+                joinGame();
+              }}
               disabled={isJoining || !username.trim() || !gameCode.trim()}
               variant="secondary"
               className="w-full h-10 font-bold transition-all duration-300 hover:scale-105 hover:shadow-glow"
@@ -311,7 +319,10 @@ const OnlineGameSetup = () => {
         </Card>
 
         <Button 
-          onClick={() => navigate('/')}
+          onClick={() => {
+            playSound('click');
+            navigate('/');
+          }}
           variant="outline"
           className="shadow-lg transition-all duration-300 hover:scale-105"
         >

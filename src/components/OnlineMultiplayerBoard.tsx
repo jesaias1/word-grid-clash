@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getDictionary } from '@/game/dictionary';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
+import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -24,6 +25,7 @@ const WARNING_THRESHOLD = 10; // Show warning at 10 seconds
 const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ sessionId }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { playSound } = useSoundEffects(true);
 
   const [session, setSession] = useState<any>(null);
   const [myPlayerIndex, setMyPlayerIndex] = useState<number | null>(null);
@@ -89,6 +91,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       }, (payload) => {
         setSession(payload.new);
         if (payload.new.status === 'finished') {
+          playSound('gameEnd');
           setShowWinnerDialog(true);
         }
       })
@@ -171,6 +174,9 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           handleTurnTimeout();
           return TURN_TIME_LIMIT;
         }
+        if (prev === 6) {
+          playSound('timerWarning');
+        }
         return prev - 1;
       });
     }, 1000);
@@ -181,6 +187,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const placeLetter = async (row: number, col: number) => {
     if (!isMyTurn || !selectedLetter || !myState) {
       if (!isMyTurn) {
+        playSound('invalid');
         toast({
           title: "Not your turn",
           description: "Wait for your opponent to play",
@@ -191,7 +198,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     }
 
     const grid = myState.grid_data;
-    if (grid[row][col].letter !== null) return;
+    if (grid[row][col].letter !== null) {
+      playSound('invalid');
+      return;
+    }
 
     const hasAdjacentLetter = [
       [row - 1, col], [row + 1, col],
@@ -204,6 +214,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     });
 
     if (!hasAdjacentLetter) {
+      playSound('invalid');
       toast({
         title: "Invalid placement",
         description: "Letters must be placed adjacent to existing letters",
@@ -224,6 +235,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     );
 
     const result = calculateScore(gridForScoring, SCORE_OPTS());
+
+    // Play sound effects
+    playSound('place');
+    if (result.score > 0) {
+      playSound('score');
+    }
 
     const newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
     const newCooldowns = { ...myState.cooldowns };
@@ -259,6 +276,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
     setSelectedLetter(null);
     setTurnTimeRemaining(TURN_TIME_LIMIT);
+    playSound('turnChange');
 
     toast({
       title: `+${result.score} points!`,
@@ -341,7 +359,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           return (
             <button
               key={letter}
-              onClick={() => canSelect && setSelectedLetter(letter)}
+              onClick={() => {
+                if (canSelect) {
+                  setSelectedLetter(letter);
+                  playSound('select');
+                }
+              }}
               disabled={!canSelect}
               className={`
                 w-10 h-10 sm:w-12 sm:h-12 rounded font-bold text-sm sm:text-base transition-all duration-200 relative
