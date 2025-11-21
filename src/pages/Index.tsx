@@ -5,6 +5,7 @@ import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import lettusLogo from '@/assets/lettus-logo.png';
+import { RulesDialog } from '@/components/RulesDialog';
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer-2' | 'local-multiplayer-3';
 
@@ -22,6 +23,7 @@ const Index = () => {
   if (gameMode === 'menu') {
     return (
       <div className="min-h-screen flex items-center justify-center p-3 py-4">
+        <RulesDialog />
         <div className="text-center space-y-2.5 max-w-2xl w-full animate-fade-in-up">
           <div className="flex items-center justify-center mb-1 animate-float">
             <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[280px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
