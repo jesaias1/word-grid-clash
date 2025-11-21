@@ -141,6 +141,20 @@ const Index = () => {
               3 Player Local
             </Button>
           </div>
+
+          {/* Game History Button */}
+          <Button 
+            onClick={() => {
+              playFeedback('click');
+              navigate('/history');
+            }}
+            size="lg" 
+            variant="outline"
+            className="w-full max-w-md mx-auto h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+            style={{ animationDelay: '0.6s' }}
+          >
+            View Game History
+          </Button>
         </div>
       </div>
     );
