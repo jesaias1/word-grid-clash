@@ -232,8 +232,15 @@ const OnlineGameSetup = () => {
 
       if (updateError) throw updateError;
 
-      // Now insert game state (RLS will allow it since player2_id is set)
-      const initialGrid = generateStartingTiles(session.board_size);
+      // Get player 1's grid so both players have the same starting board
+      const { data: player1State } = await supabase
+        .from('game_state')
+        .select('grid_data')
+        .eq('session_id', session.id)
+        .eq('player_index', 1)
+        .single();
+
+      const initialGrid = player1State?.grid_data || generateStartingTiles(session.board_size);
       const availableLetters = generateLetterPool();
 
       await supabase.from('game_state').insert({
