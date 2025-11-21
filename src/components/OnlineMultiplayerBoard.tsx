@@ -283,7 +283,14 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       description: result.words.map(w => `${w.text} (${w.text.length})`).join(', ')
     });
 
-    if (newAvailableLetters.length === 0 && Object.keys(newCooldowns).length === 0) {
+    // Check if both players have finished
+    const iFinished = newAvailableLetters.length === 0 && Object.keys(newCooldowns).length === 0;
+    const opponentFinished = opponentState && 
+      opponentState.available_letters.length === 0 && 
+      Object.keys(opponentState.cooldowns || {}).length === 0;
+
+    if (iFinished && opponentFinished) {
+      // Both players finished - end game
       const opponentScore = opponentState?.score || 0;
       const winnerId = newScore > opponentScore ? myPlayerIndex : (newScore < opponentScore ? (myPlayerIndex === 1 ? 2 : 1) : null);
       
