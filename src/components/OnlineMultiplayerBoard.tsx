@@ -325,28 +325,45 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   };
 
   const renderAvailableLetters = () => {
-    if (!myState || !isMyTurn) return null;
+    if (!myState) return null;
 
-    const letters = myState.available_letters;
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const cooldowns = myState.cooldowns || {};
     
     return (
       <div className="flex flex-wrap gap-1 sm:gap-2 justify-center max-w-2xl mx-auto">
-        {letters.map((letter: string, index: number) => (
-          <button
-            key={`${letter}-${index}`}
-            onClick={() => setSelectedLetter(letter)}
-            className={`
-              w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 font-bold text-sm sm:text-base
-              transition-all duration-200
-              ${selectedLetter === letter
-                ? 'bg-primary border-primary text-primary-foreground shadow-glow scale-110'
-                : 'bg-card border-border hover:border-primary/60 hover:scale-105 hover:shadow-md'
-              }
-            `}
-          >
-            {letter}
-          </button>
-        ))}
+        {allLetters.map((letter: string) => {
+          const cooldown = cooldowns[letter] || 0;
+          const isOnCooldown = cooldown > 0;
+          const isSelected = selectedLetter === letter;
+          const canSelect = !isOnCooldown && isMyTurn;
+          
+          return (
+            <button
+              key={letter}
+              onClick={() => canSelect && setSelectedLetter(letter)}
+              disabled={!canSelect}
+              className={`
+                w-10 h-10 sm:w-12 sm:h-12 rounded font-bold text-sm sm:text-base transition-all duration-200 relative
+                ${isSelected && canSelect
+                  ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
+                  : isOnCooldown
+                    ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed'
+                    : canSelect
+                      ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
+                      : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
+                }
+              `}
+            >
+              {letter}
+              {isOnCooldown && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-bold">{cooldown}</span>
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
     );
   };
@@ -455,10 +472,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       </div>
 
       {/* Available Letters */}
-      {isMyTurn && session.status === 'playing' && (
+      {session.status === 'playing' && (
         <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 sm:p-3 mx-auto">
           <div className="text-center mb-2">
-            <span className="text-xs font-semibold text-muted-foreground">Available Letters</span>
+            <span className="text-xs font-semibold text-muted-foreground">
+              {isMyTurn ? 'Select a Letter' : 'Opponent\'s Turn'}
+            </span>
           </div>
           {renderAvailableLetters()}
         </div>

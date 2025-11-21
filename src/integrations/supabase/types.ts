@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           current_player: number
           id: string
+          invite_code: string | null
           player1_id: string | null
           player1_name: string
           player2_id: string | null
@@ -35,6 +36,7 @@ export type Database = {
           created_at?: string
           current_player?: number
           id?: string
+          invite_code?: string | null
           player1_id?: string | null
           player1_name: string
           player2_id?: string | null
@@ -49,6 +51,7 @@ export type Database = {
           created_at?: string
           current_player?: number
           id?: string
+          invite_code?: string | null
           player1_id?: string | null
           player1_name?: string
           player2_id?: string | null
