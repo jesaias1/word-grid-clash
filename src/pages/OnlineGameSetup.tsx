@@ -35,6 +35,15 @@ const OnlineGameSetup = () => {
     return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   };
 
+  const generateInviteCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed ambiguous chars like I, O, 0, 1
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return code;
+  };
+
   const generateStartingTiles = (size: number) => {
     const grid = Array(size).fill(null).map(() => 
       Array(size).fill(null).map(() => ({ letter: null as string | null }))
@@ -77,6 +86,25 @@ const OnlineGameSetup = () => {
       const initialGrid = generateStartingTiles(boardSize);
       const availableLetters = generateLetterPool();
 
+      // Generate unique invite code
+      let inviteCode = generateInviteCode();
+      let codeExists = true;
+      
+      // Ensure code is unique
+      while (codeExists) {
+        const { data } = await supabase
+          .from('game_sessions')
+          .select('id')
+          .eq('invite_code', inviteCode)
+          .single();
+        
+        if (!data) {
+          codeExists = false;
+        } else {
+          inviteCode = generateInviteCode();
+        }
+      }
+
       const { data: session, error: sessionError } = await supabase
         .from('game_sessions')
         .insert({
@@ -85,7 +113,8 @@ const OnlineGameSetup = () => {
           board_size: boardSize,
           cooldown_turns: cooldownTurns,
           status: 'waiting',
-          current_player: 1  // Explicitly set Player 1 to start
+          current_player: 1,  // Explicitly set Player 1 to start
+          invite_code: inviteCode
         })
         .select()
         .single();
@@ -101,7 +130,7 @@ const OnlineGameSetup = () => {
         cooldowns: {}
       });
 
-      navigate(`/online/${session.id}`);
+      navigate(`/online/${inviteCode}`);
     } catch (error) {
       console.error('Error creating game:', error);
       toast({
@@ -139,11 +168,28 @@ const OnlineGameSetup = () => {
       const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
       if (authError) throw authError;
 
-      const { data: session, error: fetchError } = await supabase
+      // Try to find game by invite code first, then by ID
+      let session, fetchError;
+      
+      const { data: codeData, error: codeError } = await supabase
         .from('game_sessions')
         .select('*')
-        .eq('id', gameCode)
+        .eq('invite_code', gameCode.toUpperCase())
         .single();
+      
+      if (codeData) {
+        session = codeData;
+        fetchError = codeError;
+      } else {
+        const { data: idData, error: idError } = await supabase
+          .from('game_sessions')
+          .select('*')
+          .eq('id', gameCode)
+          .single();
+        
+        session = idData;
+        fetchError = idError;
+      }
 
       if (fetchError || !session) {
         toast({
@@ -200,7 +246,7 @@ const OnlineGameSetup = () => {
       // Wait briefly to ensure the update propagates
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      navigate(`/online/${session.id}`);
+      navigate(`/online/${session.invite_code || session.id}`);
     } catch (error) {
       console.error('Error joining game:', error);
       toast({

@@ -33,42 +33,27 @@ const OnlineGame = () => {
         setCurrentUserId(user.id);
       }
 
-      // Set up real-time subscription FIRST
-      const channel = supabase
-        .channel('game-session-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'game_sessions',
-            filter: `id=eq.${gameId}`
-          },
-          (payload) => {
-            if (mounted) {
-              setSession(payload.new);
-            }
-          }
-        )
-        .subscribe();
-
-      // THEN fetch initial session data
-      const { data, error } = await supabase
+      // Try to find game by invite code first, then by ID
+      let data, error;
+      
+      const { data: codeData, error: codeError } = await supabase
         .from('game_sessions')
         .select('*')
-        .eq('id', gameId)
+        .eq('invite_code', gameId.toUpperCase())
         .single();
-
-      if (!mounted) return;
-
-      if (error || !data) {
-        toast({
-          title: "Game not found",
-          description: "This game doesn't exist",
-          variant: "destructive"
-        });
-        navigate('/online-setup');
-        return;
+      
+      if (codeData) {
+        data = codeData;
+        error = codeError;
+      } else {
+        const { data: idData, error: idError } = await supabase
+          .from('game_sessions')
+          .select('*')
+          .eq('id', gameId)
+          .single();
+        
+        data = idData;
+        error = idError;
       }
 
       setSession(data);
@@ -84,7 +69,8 @@ const OnlineGame = () => {
   }, [gameId, navigate, toast]);
 
   const copyGameLink = () => {
-    const gameUrl = `${window.location.origin}/online-setup?join=${gameId}`;
+    const code = session?.invite_code || gameId;
+    const gameUrl = `${window.location.origin}/online/${code}`;
     navigator.clipboard.writeText(gameUrl);
     setCopied(true);
     toast({
@@ -116,7 +102,7 @@ const OnlineGame = () => {
           <p className="text-muted-foreground">Share this game link with a friend:</p>
           
           <div className="bg-muted p-4 rounded-lg">
-            <code className="text-lg font-mono font-bold text-primary break-all">{gameId}</code>
+            <code className="text-3xl font-mono font-bold text-primary tracking-wider">{session?.invite_code || gameId}</code>
           </div>
 
           <Button 
