@@ -102,6 +102,30 @@ const OnlineGame = () => {
     };
   }, [gameId, navigate, toast]);
 
+  // Fallback polling in case realtime updates are missed
+  useEffect(() => {
+    if (!session?.id || session.status !== 'waiting') return;
+
+    let cancelled = false;
+
+    const interval = setInterval(async () => {
+      const { data, error } = await supabase
+        .from('game_sessions')
+        .select('*')
+        .eq('id', session.id)
+        .single();
+
+      if (!cancelled && !error && data) {
+        setSession(data);
+      }
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [session?.id, session?.status]);
+
   const copyGameLink = () => {
     const code = session?.invite_code || gameId;
     const gameUrl = `https://word-grid-clash.lovable.app/online/${code}`;
