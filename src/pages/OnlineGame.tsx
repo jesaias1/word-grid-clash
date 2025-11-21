@@ -142,7 +142,7 @@ const OnlineGame = () => {
     return null;
   }
 
-  return <OnlineMultiplayerBoard sessionId={gameId!} />;
+  return <OnlineMultiplayerBoard sessionId={session.id} />;
 };
 
 export default OnlineGame;
