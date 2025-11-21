@@ -135,16 +135,11 @@ const OnlineGame = () => {
     );
   }
 
-  // If Player 2 arrives while status is still 'waiting', show a loading state
+  // If Player 2 arrives while status is still 'waiting', redirect to setup to join
   if (session?.status === 'waiting' && !isPlayer1) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Joining game...</p>
-        </div>
-      </div>
-    );
+    const code = session?.invite_code || gameId;
+    navigate(`/online-setup?join=${code}`);
+    return null;
   }
 
   return <OnlineMultiplayerBoard sessionId={gameId!} />;
