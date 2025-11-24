@@ -9,6 +9,7 @@ import { scoreGrid } from '@/lib/scoring';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 
 type Player = number;
 type Letter = string;
@@ -55,6 +56,7 @@ const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{
 
 const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, cooldownTurns = 4 }: LocalMultiplayerBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
+  const { celebrate } = useVictoryCelebration();
   
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
@@ -304,6 +306,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         const winners = finalScores.filter(s => s.score === maxScore);
         if (winners.length === 1) {
           setWinner(winners[0].id);
+          celebrate();
         }
         setTimeout(() => setShowWinnerDialog(true), 500);
       }
