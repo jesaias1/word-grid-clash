@@ -9,6 +9,7 @@ import { getDictionary } from '@/game/dictionary';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -26,6 +27,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const { toast } = useToast();
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
+  const { celebrate } = useVictoryCelebration();
 
   const [session, setSession] = useState<any>(null);
   const [myPlayerIndex, setMyPlayerIndex] = useState<number | null>(null);
@@ -92,6 +94,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         setSession(payload.new);
         if (payload.new.status === 'finished') {
           playFeedback('gameEnd');
+          // Check if current player won
+          if (payload.new.winner_index === myPlayerIndex) {
+            celebrate();
+          }
           setShowWinnerDialog(true);
         }
       })

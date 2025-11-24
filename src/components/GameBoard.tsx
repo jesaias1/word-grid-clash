@@ -8,6 +8,7 @@ import { scoreGrid } from '@/lib/scoring';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -75,6 +76,7 @@ interface GameBoardProps {
 
 const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
+  const { celebrate } = useVictoryCelebration();
   
   // Helper function to safely get display value from cell
   const getCellDisplay = (cell: GridCell): string => {
@@ -466,6 +468,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
         
         // Show winner dialog if game ended
         if (gameEnded) {
+          if (winner !== null) celebrate();
           setTimeout(() => setShowWinnerDialog(true), 500);
         }
         
@@ -640,6 +643,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       // Show winner dialog if game ended
       if (gameEnded) {
         playFeedback('gameEnd');
+        if (winner !== null) celebrate();
         setTimeout(() => setShowWinnerDialog(true), 500);
       }
       

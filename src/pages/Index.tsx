@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameBoard from '@/components/GameBoard';
 import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
+import TutorialMode from '@/components/TutorialMode';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { RulesDialog } from '@/components/RulesDialog';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { GraduationCap } from 'lucide-react';
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer-2' | 'local-multiplayer-3';
 
@@ -14,8 +16,17 @@ const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
   const [boardSize, setBoardSize] = useState(5);
   const [cooldownTurns, setCooldownTurns] = useState(4);
+  const [showTutorial, setShowTutorial] = useState(false);
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
+
+  // Check if user has seen tutorial
+  useEffect(() => {
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeenTutorial) {
+      setShowTutorial(true);
+    }
+  }, []);
 
   const handleBackToMenu = () => {
     setGameMode('menu');
@@ -25,6 +36,14 @@ const Index = () => {
   if (gameMode === 'menu') {
     return (
       <div className="min-h-screen flex items-center justify-center p-3 py-4">
+        {showTutorial && (
+          <TutorialMode
+            onComplete={() => {
+              setShowTutorial(false);
+              localStorage.setItem('hasSeenTutorial', 'true');
+            }}
+          />
+        )}
         <RulesDialog />
         <div className="text-center space-y-2.5 max-w-2xl w-full animate-fade-in-up">
           <div className="flex items-center justify-center mb-1 animate-float">
@@ -142,19 +161,34 @@ const Index = () => {
             </Button>
           </div>
 
-          {/* Game History Button */}
-          <Button 
-            onClick={() => {
-              playFeedback('click');
-              navigate('/history');
-            }}
-            size="lg" 
-            variant="outline"
-            className="w-full max-w-md mx-auto h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-            style={{ animationDelay: '0.6s' }}
-          >
-            View Game History
-          </Button>
+          {/* Game History and Tutorial Buttons */}
+          <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+            <Button 
+              onClick={() => {
+                playFeedback('click');
+                navigate('/history');
+              }}
+              size="lg" 
+              variant="outline"
+              className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              style={{ animationDelay: '0.6s' }}
+            >
+              Game History
+            </Button>
+            <Button 
+              onClick={() => {
+                playFeedback('click');
+                setShowTutorial(true);
+              }}
+              size="lg" 
+              variant="outline"
+              className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              style={{ animationDelay: '0.7s' }}
+            >
+              <GraduationCap className="w-4 h-4 mr-2" />
+              Tutorial
+            </Button>
+          </div>
         </div>
       </div>
     );
