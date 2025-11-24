@@ -364,16 +364,30 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   };
 
   const renderAvailableLetters = () => {
-    if (!myState) return null;
+    if (!myState || !opponentState) return null;
 
     const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    const cooldowns = myState.cooldowns || {};
+    
+    // Merge cooldowns from both players - use the highest cooldown value for each letter
+    const myCooldowns = myState.cooldowns || {};
+    const opponentCooldowns = opponentState.cooldowns || {};
+    const mergedCooldowns: CooldownState = {};
+    
+    allLetters.forEach(letter => {
+      const myCooldown = myCooldowns[letter] || 0;
+      const oppCooldown = opponentCooldowns[letter] || 0;
+      const maxCooldown = Math.max(myCooldown, oppCooldown);
+      if (maxCooldown > 0) {
+        mergedCooldowns[letter] = maxCooldown;
+      }
+    });
+    
     const availableLetters = myState.available_letters || [];
     
     return (
       <div className="flex flex-wrap gap-1 sm:gap-2 justify-center max-w-2xl mx-auto">
         {allLetters.map((letter: string) => {
-          const cooldown = cooldowns[letter] || 0;
+          const cooldown = mergedCooldowns[letter] || 0;
           const isOnCooldown = cooldown > 0;
           const isAvailable = availableLetters.includes(letter);
           const isSelected = selectedLetter === letter;
@@ -405,8 +419,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             >
               {letter}
               {isOnCooldown && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold">{cooldown}</span>
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/80 rounded">
+                  <span className="text-xs sm:text-sm font-bold text-destructive">{cooldown}</span>
                 </div>
               )}
             </button>
@@ -720,7 +734,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
 
         {/* Grids - side by side on all screens */}
-        <div className="flex flex-row justify-center items-start gap-2 sm:gap-4 w-full">
+        <div className="flex flex-row justify-center items-start gap-1 sm:gap-2 w-full">
           <div className="flex flex-col items-center min-w-0 flex-1">
             {renderGrid(false)}
           </div>
