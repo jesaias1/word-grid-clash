@@ -251,17 +251,24 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       playFeedback('score');
     }
 
-    const newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
-    const newCooldowns = { ...myState.cooldowns };
-    newCooldowns[selectedLetter] = session.cooldown_turns;
-
-    Object.keys(newCooldowns).forEach(letter => {
-      newCooldowns[letter] = Math.max(0, newCooldowns[letter] - 1);
-      if (newCooldowns[letter] === 0) {
-        delete newCooldowns[letter];
-        newAvailableLetters.push(letter);
+    // First, decrement existing cooldowns (from previous turns)
+    const newCooldowns: CooldownState = {};
+    Object.keys(myState.cooldowns || {}).forEach(letter => {
+      const decremented = Math.max(0, myState.cooldowns[letter] - 1);
+      if (decremented > 0) {
+        newCooldowns[letter] = decremented;
       }
     });
+
+    // Then add the newly placed letter with FULL cooldown duration
+    newCooldowns[selectedLetter] = session.cooldown_turns;
+    console.log('Setting cooldowns:', { 
+      selectedLetter, 
+      cooldownValue: session.cooldown_turns,
+      allCooldowns: newCooldowns 
+    });
+
+    const newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
 
     const newScore = myState.score + result.score;
     const newTurnNumber = myState.turn_number + 1;
@@ -344,7 +351,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
                 disabled={isOpponent || !canPlace}
                 className={`
-                  w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  w-7 h-7 sm:w-10 sm:h-10 md:w-14 md:h-14 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -352,7 +359,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 `}
               >
                 {cell.letter && (
-                  <span className="font-bold text-sm sm:text-lg drop-shadow-lg text-white">
+                  <span className="font-bold text-xs sm:text-base md:text-lg drop-shadow-lg text-white">
                     {cell.letter}
                   </span>
                 )}
@@ -389,7 +396,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
               }}
               disabled={!canSelect}
               className={`
-                w-10 h-10 sm:w-12 sm:h-12 rounded font-bold text-sm sm:text-base transition-all duration-200 relative
+                w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded font-bold text-xs sm:text-sm md:text-base transition-all duration-200 relative
                 ${isSelected && canSelect
                   ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
                   : isOnCooldown
@@ -716,12 +723,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           </div>
         </div>
 
-        {/* Grids - side by side, wrapping if needed on very small screens */}
-        <div className="flex flex-row flex-wrap sm:flex-nowrap justify-center items-start gap-2 sm:gap-6 w-full">
-          <div className="flex flex-col items-center w-1/2 sm:w-auto max-w-[50vw] sm:max-w-none">
+        {/* Grids - side by side on all screens */}
+        <div className="flex flex-row justify-center items-start gap-1 sm:gap-4 w-full">
+          <div className="flex flex-col items-center flex-1 max-w-[48%] sm:max-w-none">
             {renderGrid(false)}
           </div>
-          <div className="flex flex-col items-center w-1/2 sm:w-auto max-w-[50vw] sm:max-w-none">
+          <div className="flex flex-col items-center flex-1 max-w-[48%] sm:max-w-none">
             {renderGrid(true)}
           </div>
         </div>
