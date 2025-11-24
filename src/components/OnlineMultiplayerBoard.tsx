@@ -536,7 +536,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   };
 
   return (
-    <div className="min-h-screen p-1 sm:p-2 space-y-1 sm:space-y-2 max-w-7xl mx-auto flex flex-col">
+    <div className="min-h-screen p-1 sm:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col">
       <AlertDialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
         <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <AlertDialogHeader>
@@ -606,7 +606,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       </AlertDialog>
 
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center mb-0">
         <h1 className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - Online
         </h1>
@@ -654,15 +654,15 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Available Letters */}
       {session.status === 'playing' && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-auto">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-auto">
           {renderAvailableLetters()}
         </div>
       )}
 
       {/* Game Grids */}
-      <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+      <div className="flex flex-col items-center gap-0">
         {/* Player cards with timer in the middle */}
-        <div className="flex justify-center items-center gap-1 sm:gap-2 w-full max-w-2xl">
+        <div className="flex justify-center items-center gap-1 sm:gap-2 w-full max-w-2xl mb-0.5 sm:mb-1">
           {/* You */}
           <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${
             isMyTurn 

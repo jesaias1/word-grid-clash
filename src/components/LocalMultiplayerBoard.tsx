@@ -378,7 +378,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const cellSize = playerCount === 3 ? 'w-12 h-12' : 'w-14 h-14';
     
     return (
-      <div className={`inline-grid gap-1 p-3 rounded-xl border-2 shadow-lg ${
+      <div className={`inline-grid gap-1 p-2 rounded-xl border-2 shadow-lg ${
         isCurrentPlayer ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
       } ${!canPlaceOnThisGrid ? 'opacity-50' : ''}`} style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
         {grid.map((row, rowIndex) =>
@@ -429,7 +429,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const availableToSelect = availableLetters.filter(letter => !isLetterOnCooldown(letter));
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 mx-auto mb-2">
+      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1.5 mx-auto mb-1">
         <div className="text-center mb-2">
           <span className="text-xs font-semibold text-muted-foreground">Available Letters</span>
         </div>
@@ -495,7 +495,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   return (
-    <div className="min-h-screen p-2 space-y-2 max-w-5xl mx-auto flex flex-col">
+    <div className="min-h-screen p-1 sm:p-2 space-y-1 max-w-5xl mx-auto flex flex-col">
       {/* Winner Dialog */}
       <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
         <DialogContent className="max-w-lg">
@@ -572,19 +572,19 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       </Dialog>
 
       {/* Header */}
-      <div className="text-center">
-        <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <div className="text-center mb-0">
+        <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - Local Multiplayer
         </h1>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[10px] sm:text-xs text-muted-foreground">
           Pass the device between players
         </p>
       </div>
 
       {/* Game Stats and Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 sm:gap-2">
         {/* Player Scores */}
-        <Card className="p-3 bg-gradient-card">
+        <Card className="p-1.5 sm:p-2 bg-gradient-card">
           <div className="flex justify-center items-center gap-4 flex-wrap">
             {scores.map((score, idx) => (
               <div key={idx} className={`text-center ${currentPlayer === idx + 1 ? 'score-glow' : ''}`}>
@@ -596,7 +596,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         </Card>
 
         {/* Timer and Turn Info */}
-        <Card className="p-3 bg-gradient-card">
+        <Card className="p-1.5 sm:p-2 bg-gradient-card">
           <div className="text-center space-y-1">
             {gameEnded ? (
               <div className="space-y-1">
@@ -629,7 +629,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         </Card>
 
         {/* Selected Letter */}
-        <Card className="p-3 bg-gradient-card">
+        <Card className="p-1.5 sm:p-2 bg-gradient-card">
           <div className="text-center">
             <div className="text-xs text-muted-foreground mb-1">Selected</div>
             <div className="text-2xl font-bold text-accent">
@@ -650,25 +650,25 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
       {/* Game Grids */}
       {playerCount === 2 ? (
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-1 sm:gap-2">
           {/* Player cards with timer in the middle */}
-          <div className="flex justify-center items-center gap-4">
+          <div className="flex justify-center items-center gap-1 sm:gap-2">
             {/* Player 1 */}
-            <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 1 ? `${getPlayerBgClass(0)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
-              <div className={`text-xl font-bold ${getPlayerTextClass(0)}`}>Player 1</div>
-              <div className="text-3xl font-bold score-glow">{scores[0]}</div>
+            <div className={`p-1.5 sm:p-2 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 1 ? `${getPlayerBgClass(0)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
+              <div className={`text-sm sm:text-lg font-bold ${getPlayerTextClass(0)}`}>Player 1</div>
+              <div className="text-xl sm:text-2xl font-bold score-glow">{scores[0]}</div>
             </div>
 
             {/* Timer */}
             {!gameEnded && (
-              <Card className={`p-4 shadow-lg border-2 transition-all ${
+              <Card className={`p-1.5 sm:p-2 shadow-lg border-2 transition-all ${
                 timeLeft <= 10 
                   ? 'border-destructive bg-destructive/10 animate-pulse' 
                   : 'border-primary bg-primary/5'
               }`}>
                 <div className="text-center">
-                  <div className="text-xs text-muted-foreground mb-1">Time Left</div>
-                  <div className={`text-4xl font-bold ${
+                  <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Time</div>
+                  <div className={`text-2xl sm:text-3xl font-bold ${
                     timeLeft <= 10 ? 'text-destructive' : 'text-primary'
                   }`}>
                     {timeLeft}s
@@ -679,20 +679,20 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
             {/* VS text when game ended */}
             {gameEnded && (
-              <div className="flex items-center justify-center px-6">
-                <div className="text-3xl font-bold text-muted-foreground">VS</div>
+              <div className="flex items-center justify-center px-2 sm:px-4">
+                <div className="text-xl sm:text-2xl font-bold text-muted-foreground">VS</div>
               </div>
             )}
 
             {/* Player 2 */}
-            <div className={`p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 2 ? `${getPlayerBgClass(1)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
-              <div className={`text-xl font-bold ${getPlayerTextClass(1)}`}>Player 2</div>
-              <div className="text-3xl font-bold score-glow">{scores[1]}</div>
+            <div className={`p-1.5 sm:p-2 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 2 ? `${getPlayerBgClass(1)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
+              <div className={`text-sm sm:text-lg font-bold ${getPlayerTextClass(1)}`}>Player 2</div>
+              <div className="text-xl sm:text-2xl font-bold score-glow">{scores[1]}</div>
             </div>
           </div>
 
           {/* Grids side by side */}
-          <div className="flex justify-center items-start gap-6">
+          <div className="flex justify-center items-start gap-1 sm:gap-2">
             <div className="flex flex-col items-center">
               {renderGrid(0)}
             </div>
@@ -702,12 +702,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           </div>
         </div>
       ) : (
-        <div className="flex justify-center items-start gap-6 flex-1 flex-wrap">
+        <div className="flex justify-center items-start gap-1 sm:gap-2 flex-1 flex-wrap">
           {grids.map((grid, playerIdx) => (
             <div key={playerIdx} className="flex flex-col items-center">
-              <div className={`mb-4 p-4 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === playerIdx + 1 ? `${getPlayerBgClass(playerIdx)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
-                <div className={`text-xl font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
-                <div className="text-3xl font-bold score-glow">{scores[playerIdx]}</div>
+              <div className={`mb-1 sm:mb-2 p-1.5 sm:p-2 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === playerIdx + 1 ? `${getPlayerBgClass(playerIdx)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
+                <div className={`text-sm sm:text-lg font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
+                <div className="text-xl sm:text-2xl font-bold score-glow">{scores[playerIdx]}</div>
               </div>
               {renderGrid(playerIdx)}
             </div>
