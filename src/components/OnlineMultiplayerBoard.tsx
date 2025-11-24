@@ -270,6 +270,37 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const newWords = result.words.map(w => w.text);
     const allWordsFound = [...existingWords, ...newWords];
 
+    // Also decrement opponent's cooldowns since a turn has passed
+    if (opponentState) {
+      const opponentNewCooldowns: CooldownState = {};
+      const opponentLettersToAddBack: string[] = [];
+      
+      Object.keys(opponentState.cooldowns || {}).forEach(letter => {
+        const decremented = opponentState.cooldowns[letter] - 1;
+        if (decremented > 0) {
+          opponentNewCooldowns[letter] = decremented;
+        } else {
+          opponentLettersToAddBack.push(letter);
+        }
+      });
+      
+      let opponentNewAvailableLetters = [...(opponentState.available_letters || [])];
+      opponentLettersToAddBack.forEach(letter => {
+        if (!opponentNewAvailableLetters.includes(letter)) {
+          opponentNewAvailableLetters.push(letter);
+        }
+      });
+      
+      // Update opponent's state
+      await supabase
+        .from('game_state')
+        .update({
+          available_letters: opponentNewAvailableLetters,
+          cooldowns: opponentNewCooldowns
+        })
+        .eq('id', opponentState.id);
+    }
+
     await supabase
       .from('game_state')
       .update({
@@ -408,7 +439,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 ${isSelected && canSelect
                   ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
                   : isOnCooldown
-                    ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed'
+                    ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
                     : !isAvailable
                       ? 'bg-muted/30 text-muted-foreground/30 cursor-not-allowed opacity-40'
                       : canSelect
@@ -419,8 +450,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             >
               {letter}
               {isOnCooldown && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/80 rounded">
-                  <span className="text-xs sm:text-sm font-bold text-destructive">{cooldown}</span>
+                <div className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-[10px] sm:text-xs font-bold shadow-lg">
+                  {cooldown}
                 </div>
               )}
             </button>
