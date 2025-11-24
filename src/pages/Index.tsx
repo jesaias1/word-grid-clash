@@ -28,7 +28,7 @@ const Index = () => {
         <RulesDialog />
         <div className="text-center space-y-2.5 max-w-2xl w-full animate-fade-in-up">
           <div className="flex items-center justify-center mb-1 animate-float">
-            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[280px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
+            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[480px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
           </div>
           
           {/* Board Size Selection */}
