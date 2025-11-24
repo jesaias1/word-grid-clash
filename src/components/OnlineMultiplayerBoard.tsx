@@ -223,10 +223,15 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     );
 
     const result = calculateScore(gridForScoring, SCORE_OPTS());
+    
+    // Track words found and only score new words
+    const existingWords = new Set(myState.words_found || []);
+    const newWordsFound = result.words.filter(w => !existingWords.has(w.text));
+    const newScore = newWordsFound.reduce((s, w) => s + w.text.length, 0);
 
     // Play sound effects
     playFeedback('place');
-    if (result.score > 0) {
+    if (newScore > 0) {
       playFeedback('score');
     }
 
@@ -262,13 +267,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       lettersToAddBack 
     });
 
-    const newScore = myState.score + result.score;
+    const updatedScore = myState.score + newScore;
     const newTurnNumber = myState.turn_number + 1;
     
-    // Add newly found words to the words_found list
-    const existingWords = myState.words_found || [];
-    const newWords = result.words.map(w => w.text);
-    const allWordsFound = [...existingWords, ...newWords];
+    // Add only the NEW words to the words_found list
+    const newWordTexts = newWordsFound.map(w => w.text);
+    const allWordsFound = [...(myState.words_found || []), ...newWordTexts];
 
     // Also decrement opponent's cooldowns since a turn has passed
     if (opponentState) {
@@ -305,7 +309,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       .from('game_state')
       .update({
         grid_data: newGrid,
-        score: newScore,
+        score: updatedScore,
         available_letters: newAvailableLetters,
         cooldowns: newCooldowns,
         turn_number: newTurnNumber,
@@ -323,10 +327,18 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     setTurnTimeRemaining(TURN_TIME_LIMIT);
     playFeedback('turnChange');
 
-    toast({
-      title: `+${result.score} points!`,
-      description: result.words.map(w => `${w.text} (${w.text.length})`).join(', ')
-    });
+    if (newScore > 0) {
+      toast({
+        title: `+${newScore} points!`,
+        description: newWordTexts.map(w => `${w} (${w.length})`).join(', ')
+      });
+    } else if (result.words.length > 0) {
+      toast({
+        title: "No new words",
+        description: "You've already scored these words!",
+        variant: "destructive"
+      });
+    }
 
     // Check if both players have finished
     const iFinished = newAvailableLetters.length === 0 && Object.keys(newCooldowns).length === 0;
@@ -337,7 +349,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     if (iFinished && opponentFinished) {
       // Both players finished - end game
       const opponentScore = opponentState?.score || 0;
-      const winnerId = newScore > opponentScore ? myPlayerIndex : (newScore < opponentScore ? (myPlayerIndex === 1 ? 2 : 1) : null);
+      const winnerId = updatedScore > opponentScore ? myPlayerIndex : (updatedScore < opponentScore ? (myPlayerIndex === 1 ? 2 : 1) : null);
       
       await supabase
         .from('game_sessions')
