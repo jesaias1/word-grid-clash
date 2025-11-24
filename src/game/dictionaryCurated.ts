@@ -59,9 +59,25 @@ const BAD_SUFFIX = [
   'ADVT','ADV','LLC','INC','LTD','CO','CORP','GMBH','SRO','PTY','PLC','SRL','PVT',
 ];
 
+// Common abbreviations and technical terms to block
+const COMMON_ABBRS = new Set([
+  'TTY','AET','KEB','CPU','GPU','RAM','ROM','USB','DVD','LCD','LED','HDMI','API','URL',
+  'HTML','CSS','JSON','XML','SQL','HTTP','FTP','SSH','TCP','UDP','VPN','DNS','SMTP',
+  'PDF','ZIP','RAR','EXE','DLL','SYS','BAT','CMD','TXT','DOC','XLS','PPT',
+  'CEO','CFO','CTO','COO','CIO','EVP','SVP','VIP','CEO','MBA','PhD','MD','RN','PA',
+  'FBI','CIA','NSA','IRS','EPA','FDA','NASA','NATO','UN','EU','UK','US','USA',
+  'GMT','UTC','EST','PST','CST','MST','PDT','EDT','CDT','MDT',
+  'JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC',
+  'MON','TUE','WED','THU','FRI','SAT','SUN',
+  'AM','PM','BC','AD','CE','BCE',
+  'ETC','IE','EG','VS','VIA','ASAP','RSVP','FAQ','TBD','TBA','TBC',
+  'FYI','BTW','IMO','IMHO','LOL','OMG','WTF','BRB','AFK','IDK',
+]);
+
 const BAD_RX = [
   /[A-Z]{4,}[^AEIOUY]{4,}/,  // 4+ consonants cluster
   /[QXJ]{2,}/,               // doubled rare letters
+  /^[BCDFGHJKLMNPQRSTVWXYZ]{3,}$/,  // 3+ letter words with no vowels (except Y)
 ];
 
 const FALLBACK_SEED = [
@@ -94,7 +110,10 @@ function curate(raw: Set<string>, allow: Set<string>, block: Set<string>): Set<s
   const out = new Set<string>();
 
   const isBlocked = (w: string) =>
-    block.has(w) || BAD_SUFFIX.some(s => w.endsWith(s)) || BAD_RX.some(rx => rx.test(w));
+    block.has(w) || 
+    COMMON_ABBRS.has(w) ||
+    BAD_SUFFIX.some(s => w.endsWith(s)) || 
+    BAD_RX.some(rx => rx.test(w));
 
   for (const w of raw) {
     if (isBlocked(w)) continue;

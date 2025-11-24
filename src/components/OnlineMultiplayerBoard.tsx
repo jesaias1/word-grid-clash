@@ -742,7 +742,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
 
         {/* Grids - side by side on all screens */}
-        <div className="flex flex-row justify-center items-start gap-1 sm:gap-2 w-full">
+        <div className="flex flex-row justify-center items-start gap-0 sm:gap-0.5 w-full">
           <div className={`flex flex-col items-center min-w-0 flex-1 transition-all duration-500 ${
             isMyTurn ? 'scale-102 animate-fade-in' : 'opacity-90'
           }`}>
