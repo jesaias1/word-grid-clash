@@ -536,7 +536,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   };
 
   return (
-    <div className="min-h-screen p-2 sm:p-4 space-y-2 sm:space-y-4 max-w-7xl mx-auto flex flex-col">
+    <div className="min-h-screen p-1 sm:p-2 space-y-1 sm:space-y-2 max-w-7xl mx-auto flex flex-col">
       <AlertDialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
         <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <AlertDialogHeader>
@@ -607,60 +607,45 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          LETTUS - Online Multiplayer
+        <h1 className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          LETTUS - Online
         </h1>
-        <p className="text-xs text-muted-foreground">
-          Play against your friend online
-        </p>
       </div>
 
       {/* Game Stats and Controls */}
       <div className="grid grid-cols-3 gap-1 sm:gap-2">
         {/* Back Button */}
-        <Card className="p-2 sm:p-3 bg-gradient-card">
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full text-xs sm:text-sm h-8 sm:h-10">
+        <Card className="p-1 sm:p-2 bg-gradient-card">
+          <Button onClick={() => navigate('/')} variant="outline" className="w-full text-xs h-7 sm:h-8">
             Back
           </Button>
         </Card>
 
         {/* Timer and Turn Info */}
-        <Card className="p-2 sm:p-3 bg-gradient-card">
-          <div className="text-center space-y-1">
+        <Card className="p-1 sm:p-2 bg-gradient-card">
+          <div className="text-center">
             {session.status === 'finished' ? (
-              <div className="space-y-1">
-                <div className="text-sm font-bold text-accent">
-                  {session.winner_index === myPlayerIndex ? 'You Win!' : 
-                   session.winner_index ? 'You Lost' : 'Tie!'}
-                </div>
+              <div className="text-xs sm:text-sm font-bold text-accent">
+                {session.winner_index === myPlayerIndex ? 'You Win!' : 
+                 session.winner_index ? 'You Lost' : 'Tie!'}
               </div>
             ) : (
-              <>
-                <div className="text-xs text-muted-foreground">Game Time</div>
-                <div className="text-sm font-semibold">
-                  {isMyTurn ? (
-                    <span className="text-primary">Your Turn</span>
-                  ) : (
-                    <span className="text-muted-foreground">Opponent's Turn</span>
-                  )}
-                </div>
-                <div className={`text-lg font-bold ${
-                  isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD 
-                    ? 'text-destructive animate-pulse' 
-                    : 'text-accent'
-                }`}>
-                  {formatTime(gameTime)}
-                </div>
-              </>
+              <div className="text-xs sm:text-sm font-semibold">
+                {isMyTurn ? (
+                  <span className="text-primary animate-pulse">Your Turn</span>
+                ) : (
+                  <span className="text-muted-foreground">Opponent's Turn</span>
+                )}
+              </div>
             )}
           </div>
         </Card>
 
         {/* Selected Letter */}
-        <Card className="p-2 sm:p-3 bg-gradient-card">
+        <Card className="p-1 sm:p-2 bg-gradient-card">
           <div className="text-center">
-            <div className="text-xs text-muted-foreground mb-1">Selected</div>
-            <div className="text-xl sm:text-2xl font-bold text-accent">
+            <div className="text-xs text-muted-foreground">Selected</div>
+            <div className="text-lg sm:text-xl font-bold text-accent">
               {selectedLetter || '?'}
             </div>
           </div>
@@ -669,42 +654,34 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Available Letters */}
       {session.status === 'playing' && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-2 sm:p-3 mx-auto">
-          <div className="text-center mb-2">
-            <span className="text-xs font-semibold text-muted-foreground">
-              {isMyTurn ? 'Select a Letter' : 'Opponent\'s Turn'}
-            </span>
-          </div>
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-auto">
           {renderAvailableLetters()}
         </div>
       )}
 
       {/* Game Grids */}
-      <div className="flex flex-col items-center gap-2 sm:gap-4">
+      <div className="flex flex-col items-center gap-1 sm:gap-2">
         {/* Player cards with timer in the middle */}
-        <div className="flex justify-center items-center gap-2 sm:gap-4 w-full max-w-2xl">
+        <div className="flex justify-center items-center gap-1 sm:gap-2 w-full max-w-2xl">
           {/* You */}
-          <div className={`p-2 sm:p-4 rounded-xl text-center shadow-md transition-all duration-300 flex-1 ${
+          <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${
             isMyTurn 
-              ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
-              : 'bg-card/80 border border-border'
+              ? 'bg-player-1/20 border-2 border-player-1/30 scale-105 animate-fade-in' 
+              : 'bg-card/80 border border-border opacity-70'
           }`}>
-            <div className="text-sm sm:text-xl font-bold text-player-1 truncate">{myName}</div>
-            <div className="text-2xl sm:text-3xl font-bold score-glow">{myScore}</div>
+            <div className="text-xs sm:text-sm font-bold text-player-1 truncate">{myName}</div>
+            <div className="text-xl sm:text-2xl font-bold score-glow">{myScore}</div>
           </div>
 
           {/* Timer */}
           {session.status === 'playing' && (
-            <Card className={`p-2 sm:p-4 shadow-lg border-2 transition-all ${
+            <Card className={`p-1 sm:p-2 shadow-lg border-2 transition-all ${
               isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD
                 ? 'border-destructive bg-destructive/10 animate-pulse' 
                 : 'border-primary bg-primary/5'
             }`}>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground mb-1">
-                  {isMyTurn ? 'Time' : 'Wait'}
-                </div>
-                <div className={`text-2xl sm:text-4xl font-bold ${
+                <div className={`text-lg sm:text-2xl font-bold ${
                   isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD 
                     ? 'text-destructive' 
                     : 'text-primary'
@@ -717,37 +694,34 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
           {/* VS text when game ended */}
           {session.status === 'finished' && (
-            <div className="flex items-center justify-center px-2 sm:px-6">
-              <div className="text-2xl sm:text-3xl font-bold text-muted-foreground">VS</div>
+            <div className="flex items-center justify-center px-2">
+              <div className="text-xl sm:text-2xl font-bold text-muted-foreground">VS</div>
             </div>
           )}
 
           {/* Opponent */}
-          <div className={`p-2 sm:p-4 rounded-xl text-center shadow-md transition-all duration-300 flex-1 ${
+          <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${
             !isMyTurn && session.status === 'playing'
-              ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
-              : 'bg-card/80 border border-border'
+              ? 'bg-player-2/20 border-2 border-player-2/30 scale-105 animate-fade-in' 
+              : 'bg-card/80 border border-border opacity-70'
           }`}>
-            <div className="text-sm sm:text-xl font-bold text-player-2 truncate">{opponentName}</div>
-            <div className="text-2xl sm:text-3xl font-bold score-glow">{opponentScore}</div>
+            <div className="text-xs sm:text-sm font-bold text-player-2 truncate">{opponentName}</div>
+            <div className="text-xl sm:text-2xl font-bold score-glow">{opponentScore}</div>
           </div>
         </div>
 
         {/* Grids - side by side on all screens */}
         <div className="flex flex-row justify-center items-start gap-1 sm:gap-2 w-full">
-          <div className="flex flex-col items-center min-w-0 flex-1">
+          <div className={`flex flex-col items-center min-w-0 flex-1 transition-all duration-500 ${
+            isMyTurn ? 'scale-102 animate-fade-in' : 'opacity-90'
+          }`}>
             {renderGrid(false)}
           </div>
-          <div className="flex flex-col items-center min-w-0 flex-1">
+          <div className={`flex flex-col items-center min-w-0 flex-1 transition-all duration-500 ${
+            !isMyTurn && session.status === 'playing' ? 'scale-102 animate-fade-in' : 'opacity-90'
+          }`}>
             {renderGrid(true)}
           </div>
-        </div>
-      </div>
-
-      {/* Compact Rules */}
-      <div className="text-center mt-4">
-        <div className="text-sm text-muted-foreground font-medium">
-          30s per turn • Click letter then cell to place • 3+ letter words • Score = letters in valid words
         </div>
       </div>
     </div>
