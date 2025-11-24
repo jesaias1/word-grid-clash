@@ -251,24 +251,39 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       playFeedback('score');
     }
 
-    // First, decrement existing cooldowns (from previous turns)
+    // Remove the placed letter from available letters
+    const newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
+    
+    // Start with existing cooldowns, decrement them, and add letters back when cooldown reaches 0
     const newCooldowns: CooldownState = {};
+    const lettersToAddBack: string[] = [];
+    
     Object.keys(myState.cooldowns || {}).forEach(letter => {
-      const decremented = Math.max(0, myState.cooldowns[letter] - 1);
+      const decremented = myState.cooldowns[letter] - 1;
       if (decremented > 0) {
         newCooldowns[letter] = decremented;
+      } else {
+        // Cooldown finished, add letter back to available letters
+        lettersToAddBack.push(letter);
       }
     });
-
-    // Then add the newly placed letter with FULL cooldown duration
+    
+    // Add the newly placed letter with FULL cooldown duration
     newCooldowns[selectedLetter] = session.cooldown_turns;
+    
+    // Add back letters whose cooldown has expired
+    lettersToAddBack.forEach(letter => {
+      if (!newAvailableLetters.includes(letter)) {
+        newAvailableLetters.push(letter);
+      }
+    });
+    
     console.log('Setting cooldowns:', { 
       selectedLetter, 
       cooldownValue: session.cooldown_turns,
-      allCooldowns: newCooldowns 
+      allCooldowns: newCooldowns,
+      lettersToAddBack 
     });
-
-    const newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
 
     const newScore = myState.score + result.score;
     const newTurnNumber = myState.turn_number + 1;
@@ -724,11 +739,11 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
 
         {/* Grids - side by side on all screens */}
-        <div className="flex flex-row justify-center items-start gap-1 sm:gap-4 w-full">
-          <div className="flex flex-col items-center flex-1 max-w-[48%] sm:max-w-none">
+        <div className="flex flex-row justify-center items-start gap-2 sm:gap-4 w-full">
+          <div className="flex flex-col items-center min-w-0 flex-1">
             {renderGrid(false)}
           </div>
-          <div className="flex flex-col items-center flex-1 max-w-[48%] sm:max-w-none">
+          <div className="flex flex-col items-center min-w-0 flex-1">
             {renderGrid(true)}
           </div>
         </div>
