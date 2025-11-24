@@ -230,10 +230,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       playFeedback('score');
     }
 
-    // Remove the placed letter from available letters
-    const newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
-    
-    // Start with existing cooldowns, decrement them, and add letters back when cooldown reaches 0
+    // Process existing cooldowns first - decrement and collect expired letters
     const newCooldowns: CooldownState = {};
     const lettersToAddBack: string[] = [];
     
@@ -247,10 +244,11 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       }
     });
     
-    // Add the newly placed letter with FULL cooldown duration
+    // Now set the newly placed letter's cooldown
     newCooldowns[selectedLetter] = session.cooldown_turns;
     
-    // Add back letters whose cooldown has expired
+    // Start with current available letters, remove the placed one, add back expired ones
+    let newAvailableLetters = myState.available_letters.filter((l: string) => l !== selectedLetter);
     lettersToAddBack.forEach(letter => {
       if (!newAvailableLetters.includes(letter)) {
         newAvailableLetters.push(letter);
@@ -370,14 +368,16 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
     const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     const cooldowns = myState.cooldowns || {};
+    const availableLetters = myState.available_letters || [];
     
     return (
       <div className="flex flex-wrap gap-1 sm:gap-2 justify-center max-w-2xl mx-auto">
         {allLetters.map((letter: string) => {
           const cooldown = cooldowns[letter] || 0;
           const isOnCooldown = cooldown > 0;
+          const isAvailable = availableLetters.includes(letter);
           const isSelected = selectedLetter === letter;
-          const canSelect = !isOnCooldown && isMyTurn;
+          const canSelect = isAvailable && !isOnCooldown && isMyTurn;
           
           return (
             <button
@@ -395,9 +395,11 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                   ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
                   : isOnCooldown
                     ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed'
-                    : canSelect
-                      ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
-                      : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
+                    : !isAvailable
+                      ? 'bg-muted/30 text-muted-foreground/30 cursor-not-allowed opacity-40'
+                      : canSelect
+                        ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
+                        : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
                 }
               `}
             >
