@@ -803,7 +803,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   };
 
   return (
-    <div className="min-h-screen p-2 space-y-2 max-w-5xl mx-auto flex flex-col">
+    <div className="min-h-screen p-1 sm:p-2 space-y-1 max-w-5xl mx-auto flex flex-col">
       {/* Winner Dialog */}
       <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
         <DialogContent className="max-w-lg">

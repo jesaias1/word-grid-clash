@@ -35,7 +35,7 @@ const Index = () => {
   // Menu screen
   if (gameMode === 'menu') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-3 py-4">
+      <div className="min-h-screen flex items-center justify-center p-2 py-2">
         {showTutorial && (
           <TutorialMode
             onComplete={() => {
@@ -45,14 +45,14 @@ const Index = () => {
           />
         )}
         <RulesDialog />
-        <div className="text-center space-y-2.5 max-w-2xl w-full animate-fade-in-up">
-          <div className="flex items-center justify-center mb-1 animate-float">
-            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[480px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
+        <div className="text-center space-y-1.5 max-w-2xl w-full animate-fade-in-up">
+          <div className="flex items-center justify-center mb-0.5 animate-float">
+            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[380px] sm:w-[480px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
           </div>
           
           {/* Board Size Selection */}
-          <Card className="p-3 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30">
-            <div className="space-y-2">
+          <Card className="p-2 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30">
+            <div className="space-y-1.5">
               <h2 className="text-sm font-bold text-center text-foreground">Board Size</h2>
               <div className="grid grid-cols-3 gap-2.5">
                 {[5, 7, 10].map(size => (
@@ -81,8 +81,8 @@ const Index = () => {
           </Card>
 
           {/* Cooldown Duration Selection (for Multiplayer) */}
-          <Card className="p-3 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30" style={{ animationDelay: '0.1s' }}>
-            <div className="space-y-1.5">
+          <Card className="p-2 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30" style={{ animationDelay: '0.1s' }}>
+            <div className="space-y-1">
               <h2 className="text-sm font-bold text-center text-foreground">Cooldown Duration</h2>
               <p className="text-[10px] text-muted-foreground text-center font-medium">Turns before letter reuse (multiplayer)</p>
               <div className="grid grid-cols-5 gap-1.5">
@@ -111,7 +111,7 @@ const Index = () => {
             </div>
           </Card>
 
-          <div className="grid grid-cols-2 gap-3 pt-1 max-w-md mx-auto">
+          <div className="grid grid-cols-2 gap-2 pt-0.5 max-w-md mx-auto">
             <Button 
               onClick={() => {
                 playFeedback('click');
@@ -162,7 +162,7 @@ const Index = () => {
           </div>
 
           {/* Game History and Tutorial Buttons */}
-          <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+          <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
             <Button 
               onClick={() => {
                 playFeedback('click');
