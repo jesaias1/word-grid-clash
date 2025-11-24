@@ -209,28 +209,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       return;
     }
 
-    const hasAdjacentLetter = [
-      [row - 1, col], [row + 1, col],
-      [row, col - 1], [row, col + 1]
-    ].some(([r, c]) => {
-      if (r >= 0 && r < grid.length && c >= 0 && c < grid[0].length) {
-        return grid[r][c].letter !== null;
-      }
-      return false;
-    });
-
-    // Check if board is empty (no letters placed yet) - first move can be anywhere
-    const hasBoardLetters = grid.some(row => row.some(cell => cell.letter !== null));
-    
-    if (hasBoardLetters && !hasAdjacentLetter) {
-      playFeedback('invalid');
-      toast({
-        title: "Invalid placement",
-        description: "Letters must be placed adjacent to existing letters",
-        variant: "destructive"
-      });
-      return;
-    }
+    // Allow placing letters anywhere on the board
 
     const newGrid = grid.map((rowArr: GridCell[], r: number) =>
       rowArr.map((cell, c) => 
