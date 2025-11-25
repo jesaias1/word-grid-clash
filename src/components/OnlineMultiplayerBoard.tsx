@@ -458,11 +458,16 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                         ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
                         : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
                 }
+                ${cooldown === 1 ? 'ring-2 ring-yellow-500/70 animate-pulse' : ''}
               `}
             >
               {letter}
               {isOnCooldown && (
-                <div className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background">
+                <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background ${
+                  cooldown === 1 
+                    ? 'bg-yellow-500 text-yellow-950' 
+                    : 'bg-destructive text-destructive-foreground'
+                }`}>
                   {cooldown}
                 </div>
               )}
@@ -754,7 +759,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
 
         {/* Grids - side by side on all screens */}
-        <div className="flex flex-row justify-center items-start gap-0 w-full">
+        <div className="flex flex-row justify-center items-start gap-2 sm:gap-3 w-full">
           <div className={`flex flex-col items-center transition-all duration-500 ${
             isMyTurn ? 'scale-102 animate-fade-in' : 'opacity-90'
           }`}>
