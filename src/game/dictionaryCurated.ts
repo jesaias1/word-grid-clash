@@ -72,12 +72,21 @@ const COMMON_ABBRS = new Set([
   'AM','PM','BC','AD','CE','BCE',
   'ETC','IE','EG','VS','VIA','ASAP','RSVP','FAQ','TBD','TBA','TBC',
   'FYI','BTW','IMO','IMHO','LOL','OMG','WTF','BRB','AFK','IDK',
+  // Additional nonsense/abbreviations
+  'QI','XI','XU','QAT','QOPH','QADI','QAID','QANAT','QWERTY','ZZZ','ZZS',
+  'AA','BB','CC','DD','EE','FF','GG','HH','II','JJ','KK','LL','MM','NN','OO','PP','QQ','RR','SS','TT','UU','VV','WW','XX','YY','ZZ',
+  'AAHS','AALS','BRR','CWM','HMM','MMM','PST','SHH','TSK','UGH','UMM','ZZZ',
+  'JNR','SNR','MRS','MR','MS','DR','ST','AVE','BLVD','RD','LN','CT','PL','SQ','TER',
+  'KG','KM','CM','MM','ML','MG','LB','OZ','FT','YD','MI','MPH','KPH',
+  'ATM','PIN','SIM','SMS','MMS','GPS','NFC','WIFI','CDMA','GSM',
 ]);
 
 const BAD_RX = [
   /[A-Z]{4,}[^AEIOUY]{4,}/,  // 4+ consonants cluster
   /[QXJ]{2,}/,               // doubled rare letters
   /^[BCDFGHJKLMNPQRSTVWXYZ]{3,}$/,  // 3+ letter words with no vowels (except Y)
+  /^[BCDFGHJKLMNPQRSTVWXYZ]{4,}$/,  // 4+ letter words with no vowels
+  /(.)\1{2,}/,               // 3+ repeated letters (like AAA, BBB)
 ];
 
 const FALLBACK_SEED = [

@@ -332,12 +332,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         title: `+${newScore} points!`,
         description: newWordTexts.map(w => `${w} (${w.length})`).join(', ')
       });
-    } else if (result.words.length > 0) {
-      toast({
-        title: "No new words",
-        description: "You've already scored these words!",
-        variant: "destructive"
-      });
     }
 
     // Check if both players have finished
@@ -358,6 +352,11 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           winner_index: winnerId
         })
         .eq('id', sessionId);
+      
+      // Trigger celebration if this player won
+      if (winnerId === myPlayerIndex) {
+        celebrate();
+      }
     }
   };
 
@@ -458,7 +457,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                         ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
                         : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
                 }
-                ${cooldown === 1 ? 'ring-2 ring-yellow-500/70 animate-pulse' : ''}
+                ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
               `}
             >
               {letter}
