@@ -370,7 +370,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const canPlace = !isOpponent && isMyTurn && selectedLetter;
 
     return (
-      <div className={`inline-grid gap-0.5 sm:gap-1 p-2 sm:p-3 rounded-xl border-2 shadow-lg ${
+      <div className={`inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 rounded-xl border-2 shadow-lg ${
         (!isOpponent && isMyTurn) || (isOpponent && !isMyTurn)
           ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' 
           : 'bg-card/80 border-border'
@@ -755,12 +755,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
         {/* Grids - side by side on all screens */}
         <div className="flex flex-row justify-center items-start gap-0 w-full">
-          <div className={`flex flex-col items-center min-w-0 flex-1 transition-all duration-500 ${
+          <div className={`flex flex-col items-center transition-all duration-500 ${
             isMyTurn ? 'scale-102 animate-fade-in' : 'opacity-90'
           }`}>
             {renderGrid(false)}
           </div>
-          <div className={`flex flex-col items-center min-w-0 flex-1 transition-all duration-500 ${
+          <div className={`flex flex-col items-center transition-all duration-500 ${
             !isMyTurn && session.status === 'playing' ? 'scale-102 animate-fade-in' : 'opacity-90'
           }`}>
             {renderGrid(true)}
