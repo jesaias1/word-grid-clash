@@ -20,6 +20,9 @@ type GridCell = { letter: Letter | null };
 type Grid = GridCell[][];
 type CooldownState = { [key: string]: number };
 
+const isGridFull = (grid: Grid): boolean =>
+  grid.every(row => row.every(cell => cell.letter !== null));
+
 const TURN_TIME_LIMIT = 30; // 30 seconds per turn
 const WARNING_THRESHOLD = 10; // Show warning at 10 seconds
 
@@ -126,16 +129,18 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(stateChannel);
     };
-  }, [sessionId, myPlayerIndex]);
+  }, [sessionId, myPlayerIndex, playFeedback, celebrate]);
 
-  // Auto-pass turn if current player has no available letters
+  // Auto-pass turn if current player has no moves left
   useEffect(() => {
     if (!session || !myState || session.status !== 'playing') return;
     
     const isCurrentPlayerTurn = session.current_player === myPlayerIndex;
+    const gridFull = isGridFull(myState.grid_data);
     const hasNoLetters = myState.available_letters.length === 0;
+    const hasNoMoves = gridFull || hasNoLetters;
     
-    if (isCurrentPlayerTurn && hasNoLetters) {
+    if (isCurrentPlayerTurn && hasNoMoves) {
       // Automatically pass turn
       const nextPlayer = session.current_player === 1 ? 2 : 1;
       supabase
@@ -145,7 +150,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       
       toast({
         title: "Turn passed",
-        description: "No more letters available",
+        description: "No more moves available",
       });
     }
   }, [session, myState, myPlayerIndex, sessionId, toast]);
@@ -210,7 +215,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isMyTurn, session?.status, session?.current_player, myState?.id]);
+  }, [isMyTurn, session?.status, session?.current_player, myState?.id, playFeedback]);
 
   const placeLetter = async (row: number, col: number) => {
     if (!isMyTurn || !selectedLetter || !myState) {
@@ -225,7 +230,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       return;
     }
 
-    const grid = myState.grid_data;
+    const grid = myState.grid_data as Grid;
     if (grid[row][col].letter !== null) {
       playFeedback('invalid');
       return;
@@ -233,7 +238,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
     // Allow placing letters anywhere on the board
 
-    const newGrid = grid.map((rowArr: GridCell[], r: number) =>
+    const newGrid: Grid = grid.map((rowArr: GridCell[], r: number) =>
       rowArr.map((cell, c) => 
         r === row && c === col ? { letter: selectedLetter } : cell
       )
@@ -356,16 +361,31 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       });
     }
 
-    // Check if both players have finished
-    const iFinished = newAvailableLetters.length === 0 && Object.keys(newCooldowns).length === 0;
-    const opponentFinished = opponentState && 
-      opponentState.available_letters.length === 0 && 
-      Object.keys(opponentState.cooldowns || {}).length === 0;
+    // Check if both players have finished (no moves left or full boards)
+    const myGridFull = isGridFull(newGrid);
+    const opponentGridFull = opponentState ? isGridFull(opponentState.grid_data as Grid) : false;
+
+    const iFinished =
+      myGridFull ||
+      (newAvailableLetters.length === 0 && Object.keys(newCooldowns).length === 0);
+
+    const opponentFinished = opponentState
+      ? opponentGridFull ||
+        (opponentState.available_letters.length === 0 &&
+          Object.keys(opponentState.cooldowns || {}).length === 0)
+      : false;
 
     if (iFinished && opponentFinished) {
       // Both players finished - end game
       const opponentScore = opponentState?.score || 0;
-      const winnerId = updatedScore > opponentScore ? myPlayerIndex : (updatedScore < opponentScore ? (myPlayerIndex === 1 ? 2 : 1) : null);
+      const winnerId =
+        updatedScore > opponentScore
+          ? myPlayerIndex
+          : updatedScore < opponentScore
+            ? myPlayerIndex === 1
+              ? 2
+              : 1
+            : null;
       
       await supabase
         .from('game_sessions')
@@ -381,7 +401,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const gridState = isOpponent ? opponentState : myState;
     if (!gridState) return null;
     
-    const grid = gridState.grid_data;
+    const grid = gridState.grid_data as Grid;
     const size = grid.length;
     const canPlace = !isOpponent && isMyTurn && selectedLetter;
 
@@ -479,7 +499,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             >
               {letter}
               {isOnCooldown && (
-                <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background ${
+                <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text[10px] font-bold shadow-lg border border-background ${
                   cooldown === 1 
                     ? 'bg-yellow-500 text-yellow-950' 
                     : 'bg-destructive text-destructive-foreground'
@@ -547,14 +567,14 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     if (newSession) {
       // Generate initial grid with starting tiles (same for both players)
       const generateStartingTiles = (size: number) => {
-        const grid = Array(size).fill(null).map(() => 
+        const grid: Grid = Array(size).fill(null).map(() => 
           Array(size).fill(null).map(() => ({ letter: null as string | null }))
         );
         
         const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         
         // Pick 5 random letters from the pool for starting tiles
-        const startingLetters = [];
+        const startingLetters: string[] = [];
         for (let i = 0; i < Math.min(5, size); i++) {
           const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
           startingLetters.push(letter);
