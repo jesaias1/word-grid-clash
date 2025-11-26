@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,7 +35,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const [opponentState, setOpponentState] = useState<any>(null);
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
   const [gameTime, setGameTime] = useState(0);
-  const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [showVictoryDialog, setShowVictoryDialog] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
 
   useEffect(() => {
@@ -94,11 +94,11 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         setSession(payload.new);
         if (payload.new.status === 'finished') {
           playFeedback('gameEnd');
+          setShowVictoryDialog(true);
           // Check if current player won
           if (payload.new.winner_index === myPlayerIndex) {
             celebrate();
           }
-          setShowWinnerDialog(true);
         }
       })
       .subscribe();
@@ -127,6 +127,28 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       supabase.removeChannel(stateChannel);
     };
   }, [sessionId, myPlayerIndex]);
+
+  // Auto-pass turn if current player has no available letters
+  useEffect(() => {
+    if (!session || !myState || session.status !== 'playing') return;
+    
+    const isCurrentPlayerTurn = session.current_player === myPlayerIndex;
+    const hasNoLetters = myState.available_letters.length === 0;
+    
+    if (isCurrentPlayerTurn && hasNoLetters) {
+      // Automatically pass turn
+      const nextPlayer = session.current_player === 1 ? 2 : 1;
+      supabase
+        .from('game_sessions')
+        .update({ current_player: nextPlayer })
+        .eq('id', sessionId);
+      
+      toast({
+        title: "Turn passed",
+        description: "No more letters available",
+      });
+    }
+  }, [session, myState, myPlayerIndex, sessionId, toast]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -352,11 +374,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           winner_index: winnerId
         })
         .eq('id', sessionId);
-      
-      // Trigger celebration if this player won
-      if (winnerId === myPlayerIndex) {
-        celebrate();
-      }
     }
   };
 
@@ -499,7 +516,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const myScore = myState.score;
   const opponentScore = opponentState?.score || 0;
 
-  const handlePlayAgain = async () => {
+  const handleRematch = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -584,73 +601,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
   return (
     <div className="min-h-screen p-1 sm:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col">
-      <AlertDialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
-        <AlertDialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl text-center">
-              {session.winner_index === myPlayerIndex ? '🎉 You Win!' : 
-               session.winner_index ? '😔 You Lost' : '🤝 Draw!'}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-base space-y-4">
-              <div className="text-xl font-bold">
-                Final Score: {myScore} - {opponentScore}
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                {/* Your words */}
-                <div className="text-left">
-                  <h3 className="font-bold text-lg text-foreground mb-2">{myName}</h3>
-                  <div className="bg-muted/50 rounded-lg p-3 max-h-48 overflow-y-auto">
-                    {(myState?.words_found || []).length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {(myState.words_found || []).map((word: string, idx: number) => (
-                          <span key={idx} className="bg-primary/20 text-primary px-2 py-1 rounded text-sm">
-                            {word}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">No words found</p>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {(myState?.words_found || []).length} words
-                  </p>
-                </div>
-
-                {/* Opponent's words */}
-                <div className="text-left">
-                  <h3 className="font-bold text-lg text-foreground mb-2">{opponentName}</h3>
-                  <div className="bg-muted/50 rounded-lg p-3 max-h-48 overflow-y-auto">
-                    {(opponentState?.words_found || []).length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {(opponentState.words_found || []).map((word: string, idx: number) => (
-                          <span key={idx} className="bg-secondary/20 text-secondary px-2 py-1 rounded text-sm">
-                            {word}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-sm">No words found</p>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {(opponentState?.words_found || []).length} words
-                  </p>
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <Button onClick={handlePlayAgain} variant="default" className="w-full sm:w-auto">
-              Play Again
-            </Button>
-            <Button onClick={() => navigate('/')} variant="outline" className="w-full sm:w-auto">
-              Back to Menu
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Header */}
       <div className="text-center mb-0">
@@ -771,6 +721,73 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           </div>
         </div>
       </div>
+
+      {/* Victory Dialog */}
+      <Dialog open={showVictoryDialog} onOpenChange={setShowVictoryDialog}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-3xl text-center">
+              {session.winner_index === myPlayerIndex ? '🎉 Victory! 🎉' : '😔 Defeat'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Final Scores */}
+            <div className="flex justify-around text-center">
+              <div>
+                <p className="text-sm text-muted-foreground">{myName}</p>
+                <p className="text-3xl font-bold">{myScore}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{opponentName}</p>
+                <p className="text-3xl font-bold">{opponentScore}</p>
+              </div>
+            </div>
+
+            {/* Words Found */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold mb-2 text-center">{myName}'s Words</h3>
+                <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                  {(myState?.words_found || []).length > 0 ? (
+                    (myState.words_found || []).map((word: string, idx: number) => (
+                      <div key={idx} className="text-sm bg-accent/50 rounded px-2 py-1">
+                        {word} <span className="text-muted-foreground">({word.length})</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center">No words</p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-2 text-center">{opponentName}'s Words</h3>
+                <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                  {(opponentState?.words_found || []).length > 0 ? (
+                    (opponentState.words_found || []).map((word: string, idx: number) => (
+                      <div key={idx} className="text-sm bg-accent/50 rounded px-2 py-1">
+                        {word} <span className="text-muted-foreground">({word.length})</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center">No words</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 justify-center">
+              <Button onClick={handleRematch} size="lg">
+                🔄 Rematch
+              </Button>
+              <Button onClick={() => navigate('/')} variant="outline" size="lg">
+                Home
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
