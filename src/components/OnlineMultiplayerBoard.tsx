@@ -683,7 +683,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                     ? 'text-destructive' 
                     : 'text-primary'
                 }`}>
-                  {isMyTurn ? `${turnTimeRemaining}s` : '...'}
+                  {turnTimeRemaining}s
                 </div>
               </div>
             </Card>
