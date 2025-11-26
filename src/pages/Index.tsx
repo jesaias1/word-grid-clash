@@ -6,7 +6,6 @@ import TutorialMode from '@/components/TutorialMode';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import lettusLogo from '@/assets/lettus-logo.png';
-import { RulesDialog } from '@/components/RulesDialog';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { GraduationCap } from 'lucide-react';
 
@@ -44,7 +43,6 @@ const Index = () => {
             }}
           />
         )}
-        <RulesDialog />
         <div className="text-center space-y-1.5 max-w-2xl w-full animate-fade-in-up">
           <div className="flex items-center justify-center mb-0.5 animate-float">
             <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[380px] sm:w-[480px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
