@@ -27,56 +27,55 @@ export const useSoundEffects = (enabled: boolean = true, hapticsEnabled: boolean
 
       switch (type) {
         case 'select':
-          // Short beep for letter selection
-          oscillator.frequency.setValueAtTime(600, now);
-          gainNode.gain.setValueAtTime(0.1, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+          // Subtle beep for letter selection
+          oscillator.frequency.setValueAtTime(500, now);
+          gainNode.gain.setValueAtTime(0.03, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          oscillator.start(now);
+          oscillator.stop(now + 0.06);
+          break;
+
+        case 'place':
+          // Soft click for placing letter
+          oscillator.frequency.setValueAtTime(380, now);
+          oscillator.frequency.exponentialRampToValueAtTime(220, now + 0.04);
+          gainNode.gain.setValueAtTime(0.05, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          oscillator.start(now);
+          oscillator.stop(now + 0.05);
+          break;
+
+        case 'score':
+          // Gentle success chime
+          oscillator.frequency.setValueAtTime(523, now); // C5
+          oscillator.frequency.setValueAtTime(659, now + 0.08); // E5
+          gainNode.gain.setValueAtTime(0.04, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+          oscillator.start(now);
+          oscillator.stop(now + 0.2);
+          break;
+
+        case 'turnChange':
+          // Subtle transition
+          oscillator.frequency.setValueAtTime(320, now);
+          oscillator.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+          gainNode.gain.setValueAtTime(0.035, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           oscillator.start(now);
           oscillator.stop(now + 0.1);
           break;
 
-        case 'place':
-          // Click sound for placing letter
-          oscillator.frequency.setValueAtTime(400, now);
-          oscillator.frequency.exponentialRampToValueAtTime(200, now + 0.05);
-          gainNode.gain.setValueAtTime(0.15, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        case 'timerWarning':
+          // Gentle alert
+          oscillator.frequency.setValueAtTime(650, now);
+          gainNode.gain.setValueAtTime(0.05, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
           oscillator.start(now);
           oscillator.stop(now + 0.08);
           break;
 
-        case 'score':
-          // Success chime for scoring
-          oscillator.frequency.setValueAtTime(523, now); // C5
-          oscillator.frequency.setValueAtTime(659, now + 0.1); // E5
-          oscillator.frequency.setValueAtTime(784, now + 0.2); // G5
-          gainNode.gain.setValueAtTime(0.15, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-          oscillator.start(now);
-          oscillator.stop(now + 0.3);
-          break;
-
-        case 'turnChange':
-          // Transition sound
-          oscillator.frequency.setValueAtTime(300, now);
-          oscillator.frequency.exponentialRampToValueAtTime(450, now + 0.15);
-          gainNode.gain.setValueAtTime(0.1, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-          oscillator.start(now);
-          oscillator.stop(now + 0.15);
-          break;
-
-        case 'timerWarning':
-          // Alert beep
-          oscillator.frequency.setValueAtTime(800, now);
-          gainNode.gain.setValueAtTime(0.12, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-          oscillator.start(now);
-          oscillator.stop(now + 0.1);
-          break;
-
         case 'gameEnd':
-          // Victory fanfare
+          // Soft victory sound
           const osc2 = ctx.createOscillator();
           const gain2 = ctx.createGain();
           osc2.connect(gain2);
@@ -84,33 +83,33 @@ export const useSoundEffects = (enabled: boolean = true, hapticsEnabled: boolean
 
           oscillator.frequency.setValueAtTime(523, now); // C5
           osc2.frequency.setValueAtTime(659, now); // E5
-          gainNode.gain.setValueAtTime(0.1, now);
-          gain2.gain.setValueAtTime(0.1, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-          gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+          gainNode.gain.setValueAtTime(0.04, now);
+          gain2.gain.setValueAtTime(0.04, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
           
           oscillator.start(now);
           osc2.start(now);
-          oscillator.stop(now + 0.5);
-          osc2.stop(now + 0.5);
+          oscillator.stop(now + 0.35);
+          osc2.stop(now + 0.35);
           break;
 
         case 'click':
-          // Soft click for buttons
-          oscillator.frequency.setValueAtTime(350, now);
-          gainNode.gain.setValueAtTime(0.08, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+          // Very soft click for buttons
+          oscillator.frequency.setValueAtTime(340, now);
+          gainNode.gain.setValueAtTime(0.025, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
           oscillator.start(now);
-          oscillator.stop(now + 0.05);
+          oscillator.stop(now + 0.04);
           break;
 
         case 'invalid':
-          // Error sound
-          oscillator.frequency.setValueAtTime(200, now);
-          gainNode.gain.setValueAtTime(0.12, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          // Gentle error sound
+          oscillator.frequency.setValueAtTime(220, now);
+          gainNode.gain.setValueAtTime(0.04, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
           oscillator.start(now);
-          oscillator.stop(now + 0.15);
+          oscillator.stop(now + 0.1);
           break;
       }
     } catch (error) {
