@@ -50,9 +50,10 @@ const generateStartingTiles = (boardSize: number): Grid => {
 
 interface GameBoardProps {
   boardSize?: number;
+  onBackToMenu?: () => void;
 }
 
-const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
+const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
   const { toast } = useToast();
@@ -460,7 +461,11 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
           <Button 
             onClick={() => {
               playFeedback('click');
-              navigate('/');
+              if (onBackToMenu) {
+                onBackToMenu();
+              } else {
+                navigate('/');
+              }
             }} 
             variant="outline" 
             className="w-full text-xs h-7 sm:h-8"
