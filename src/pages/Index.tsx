@@ -128,44 +128,17 @@ const Index = () => {
 
   // Local solo game
   if (gameMode === 'local') {
-    return (
-      <div>
-        <div className="absolute top-6 left-6 z-10">
-          <Button onClick={handleBackToMenu} variant="outline" size="lg" className="shadow-lg">
-            Back to Menu
-          </Button>
-        </div>
-        <GameBoard boardSize={boardSize} />
-      </div>
-    );
+    return <GameBoard boardSize={boardSize} />;
   }
 
   // Local 2-player game
   if (gameMode === 'local-multiplayer-2') {
-    return (
-      <div>
-        <div className="absolute top-6 left-6 z-10">
-          <Button onClick={handleBackToMenu} variant="outline" size="lg" className="shadow-lg">
-            Back to Menu
-          </Button>
-        </div>
-        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={2} cooldownTurns={cooldownTurns} />
-      </div>
-    );
+    return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={2} cooldownTurns={cooldownTurns} />;
   }
 
   // Local 3-player game
   if (gameMode === 'local-multiplayer-3') {
-    return (
-      <div>
-        <div className="absolute top-6 left-6 z-10">
-          <Button onClick={handleBackToMenu} variant="outline" size="lg" className="shadow-lg">
-            Back to Menu
-          </Button>
-        </div>
-        <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={3} cooldownTurns={cooldownTurns} />
-      </div>
-    );
+    return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={3} cooldownTurns={cooldownTurns} />;
   }
 
   return <GameBoard boardSize={boardSize} />;

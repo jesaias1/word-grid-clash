@@ -119,7 +119,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   // AI turn logic
   useEffect(() => {
     if (currentPlayer === 2 && !gameEnded) {
-      const aiDelay = Math.random() * 1500 + 1000;
+      const aiDelay = Math.random() * 1500 + 3000; // 3-4.5 seconds thinking time
       const timer = setTimeout(() => {
         makeAIMove();
       }, aiDelay);
