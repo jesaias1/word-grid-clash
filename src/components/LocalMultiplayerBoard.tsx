@@ -57,9 +57,13 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  const [grids, setGrids] = useState<Grid[]>(() => 
-    Array(playerCount).fill(null).map(() => generateStartingTiles(boardSize))
-  );
+  // Generate ONE set of starting tiles that all players will share
+  const [grids, setGrids] = useState<Grid[]>(() => {
+    const sharedStartingGrid = generateStartingTiles(boardSize);
+    return Array(playerCount).fill(null).map(() => 
+      sharedStartingGrid.map(row => row.map(cell => ({ ...cell })))
+    );
+  });
   const [currentPlayer, setCurrentPlayer] = useState<Player>(1);
   const [scores, setScores] = useState<number[]>(Array(playerCount).fill(0));
   const [cooldowns, setCooldowns] = useState<CooldownState>({}); // Shared cooldowns
@@ -122,8 +126,11 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   const handlePlayAgain = () => {
-    // Reset all game state
-    setGrids(Array(playerCount).fill(null).map(() => generateStartingTiles(boardSize)));
+    // Reset all game state - generate ONE new starting grid for all players
+    const sharedStartingGrid = generateStartingTiles(boardSize);
+    setGrids(Array(playerCount).fill(null).map(() => 
+      sharedStartingGrid.map(row => row.map(cell => ({ ...cell })))
+    ));
     setCurrentPlayer(1);
     setScores(Array(playerCount).fill(0));
     setCooldowns({});
@@ -352,7 +359,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           <Button 
             onClick={() => {
               playFeedback('click');
-              navigate('/');
+              onBackToMenu();
             }} 
             variant="outline" 
             className="w-full text-xs h-7 sm:h-8"
@@ -529,7 +536,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               </Button>
               <Button onClick={() => {
                 setShowVictoryDialog(false);
-                navigate('/');
+                onBackToMenu();
               }} variant="outline" size="lg">
                 Home
               </Button>
