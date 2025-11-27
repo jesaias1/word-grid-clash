@@ -13,11 +13,12 @@ type GameMode = 'menu' | 'local' | 'local-multiplayer-2' | 'local-multiplayer-3'
 
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
-  const [boardSize, setBoardSize] = useState(5);
-  const [cooldownTurns, setCooldownTurns] = useState(4);
   const [showTutorial, setShowTutorial] = useState(false);
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
+  
+  const boardSize = 5;
+  const cooldownTurns = 4;
 
   // Check if user has seen tutorial
   useEffect(() => {
@@ -44,72 +45,11 @@ const Index = () => {
           />
         )}
         <div className="text-center space-y-1.5 max-w-2xl w-full animate-fade-in-up">
-          <div className="flex items-center justify-center mb-0.5 animate-float">
+          <div className="flex items-center justify-center mb-4 animate-float">
             <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[380px] sm:w-[480px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
           </div>
-          
-          {/* Board Size Selection */}
-          <Card className="p-2 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30">
-            <div className="space-y-1.5">
-              <h2 className="text-sm font-bold text-center text-foreground">Board Size</h2>
-              <div className="grid grid-cols-3 gap-2.5">
-                {[5, 7, 10].map(size => (
-                  <button
-                    key={size}
-                    onClick={() => {
-                      setBoardSize(size);
-                      playFeedback('click');
-                    }}
-                    className={`p-2 rounded-xl border-2 transition-all duration-300 ${
-                      boardSize === size
-                        ? 'border-primary bg-primary/15 text-primary shadow-glow scale-105'
-                        : 'border-border hover:border-primary/60 hover:bg-card/80 hover:scale-105'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="font-bold text-lg mb-0.5">{size}×{size}</div>
-                      <div className="text-[10px] text-muted-foreground font-medium">
-                        {size === 5 ? 'Classic' : size === 7 ? 'Medium' : 'Large'}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Card>
 
-          {/* Cooldown Duration Selection (for Multiplayer) */}
-          <Card className="p-2 shadow-lg border-2 animate-scale-in transition-all duration-300 hover:shadow-xl hover:border-primary/30" style={{ animationDelay: '0.1s' }}>
-            <div className="space-y-1">
-              <h2 className="text-sm font-bold text-center text-foreground">Cooldown Duration</h2>
-              <p className="text-[10px] text-muted-foreground text-center font-medium">Turns before letter reuse (multiplayer)</p>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[1, 2, 3, 4, 5].map(turns => (
-                  <button
-                    key={turns}
-                    onClick={() => {
-                      setCooldownTurns(turns);
-                      playFeedback('click');
-                    }}
-                    className={`p-1.5 rounded-xl border-2 transition-all duration-300 ${
-                      cooldownTurns === turns
-                        ? 'border-primary bg-primary/15 text-primary shadow-glow scale-105'
-                        : 'border-border hover:border-primary/60 hover:bg-card/80 hover:scale-105'
-                    }`}
-                  >
-                    <div className="text-center">
-                      <div className="font-bold text-base mb-0.5">{turns}</div>
-                      <div className="text-[9px] text-muted-foreground font-medium">
-                        {turns === 1 ? 'Easy' : turns === 2 ? 'Easier' : turns === 3 ? 'Normal' : turns === 4 ? 'Hard' : 'Harder'}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Card>
-
-          <div className="grid grid-cols-2 gap-2 pt-0.5 max-w-md mx-auto">
+          <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
             <Button 
               onClick={() => {
                 playFeedback('click');
@@ -117,7 +57,6 @@ const Index = () => {
               }}
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-              style={{ animationDelay: '0.2s' }}
             >
               Solo Game
             </Button>
@@ -129,7 +68,6 @@ const Index = () => {
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="default"
-              style={{ animationDelay: '0.3s' }}
             >
               Online 1v1
             </Button>
@@ -141,7 +79,6 @@ const Index = () => {
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
-              style={{ animationDelay: '0.4s' }}
             >
               2 Player Local
             </Button>
@@ -153,7 +90,6 @@ const Index = () => {
               size="lg" 
               className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="secondary"
-              style={{ animationDelay: '0.5s' }}
             >
               3 Player Local
             </Button>
@@ -169,7 +105,6 @@ const Index = () => {
               size="lg" 
               variant="outline"
               className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-              style={{ animationDelay: '0.6s' }}
             >
               Game History
             </Button>
@@ -181,7 +116,6 @@ const Index = () => {
               size="lg" 
               variant="outline"
               className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-              style={{ animationDelay: '0.7s' }}
             >
               <GraduationCap className="w-4 h-4 mr-2" />
               Tutorial
