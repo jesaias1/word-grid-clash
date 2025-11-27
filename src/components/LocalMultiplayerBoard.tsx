@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -482,6 +482,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             <DialogTitle className="text-3xl text-center">
               {winner ? `🎉 Player ${winner} Wins! 🎉` : '🤝 Tie Game!'}
             </DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              {winner ? `Congratulations to the winner!` : `All players tied!`}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
@@ -517,7 +520,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               <Button onClick={handlePlayAgain} size="lg">
                 🔄 Play Again
               </Button>
-              <Button onClick={() => navigate('/')} variant="outline" size="lg">
+              <Button onClick={() => {
+                setShowVictoryDialog(false);
+                navigate('/');
+              }} variant="outline" size="lg">
                 Home
               </Button>
             </div>

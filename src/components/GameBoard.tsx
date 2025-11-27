@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { loadDictionary } from '@/lib/dictionary';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
@@ -564,6 +564,9 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
             <DialogTitle className="text-3xl text-center">
               {playerScore > aiScore ? '🎉 Victory! 🎉' : playerScore < aiScore ? '😔 Defeat' : '🤝 Tie!'}
             </DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              Final Score: You {playerScore} - {aiScore} AI
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
@@ -613,7 +616,10 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
               <Button onClick={handlePlayAgain} size="lg">
                 🔄 Play Again
               </Button>
-              <Button onClick={() => navigate('/')} variant="outline" size="lg">
+              <Button onClick={() => {
+                setShowVictoryDialog(false);
+                navigate('/');
+              }} variant="outline" size="lg">
                 Home
               </Button>
             </div>

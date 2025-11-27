@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -842,6 +842,9 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             <DialogTitle className="text-3xl text-center">
               {session.winner_index === myPlayerIndex ? '🎉 Victory! 🎉' : '😔 Defeat'}
             </DialogTitle>
+            <DialogDescription className="text-center text-lg">
+              Game Over - Review the final scores and words below
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6">
@@ -896,7 +899,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                   <p className="text-muted-foreground animate-pulse">
                     ⏳ Waiting for {opponentName} to accept...
                   </p>
-                  <Button onClick={() => navigate('/')} variant="outline" size="lg">
+                  <Button onClick={() => {
+                    setShowVictoryDialog(false);
+                    navigate('/');
+                  }} variant="outline" size="lg">
                     Home
                   </Button>
                 </div>
@@ -919,7 +925,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                   <Button onClick={handleRematch} size="lg">
                     🔄 Rematch
                   </Button>
-                  <Button onClick={() => navigate('/')} variant="outline" size="lg">
+                  <Button onClick={() => {
+                    setShowVictoryDialog(false);
+                    navigate('/');
+                  }} variant="outline" size="lg">
                     Home
                   </Button>
                 </div>
