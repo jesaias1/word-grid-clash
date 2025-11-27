@@ -128,7 +128,7 @@ const Index = () => {
 
   // Local solo game
   if (gameMode === 'local') {
-    return <GameBoard boardSize={boardSize} />;
+    return <GameBoard boardSize={boardSize} onBackToMenu={handleBackToMenu} />;
   }
 
   // Local 2-player game
@@ -141,7 +141,7 @@ const Index = () => {
     return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={3} cooldownTurns={cooldownTurns} />;
   }
 
-  return <GameBoard boardSize={boardSize} />;
+  return <GameBoard boardSize={boardSize} onBackToMenu={handleBackToMenu} />;
 };
 
 export default Index;
