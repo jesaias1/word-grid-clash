@@ -201,7 +201,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const canInteract = isCurrentPlayer && !gameEnded;
     
     return (
-      <div className={`inline-grid gap-1 p-2 sm:p-3 rounded-xl border-2 shadow-lg transition-all ${
+      <div className={`inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl border-2 shadow-lg transition-all ${
         canInteract ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
       }`} 
       style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
@@ -220,7 +220,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  ${playerCount === 3 ? 'w-8 h-8 sm:w-10 sm:h-10' : 'w-10 h-10 sm:w-12 sm:h-12'} cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
+                  ${playerCount === 3 ? 'w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10' : 'w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12'} cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? playerColors[playerIndex] || 'bg-gradient-primary' : ''}
                   ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -228,7 +228,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                 onClick={() => canPlace && placeLetter(playerIndex, rowIndex, colIndex)}
               >
                 {cell.letter && (
-                  <span className={`font-bold ${playerCount === 3 ? 'text-sm' : 'text-base sm:text-lg'} drop-shadow-lg text-white`}>
+                  <span className={`font-bold ${playerCount === 3 ? 'text-[10px] sm:text-xs md:text-sm' : 'text-xs sm:text-base md:text-lg'} drop-shadow-lg text-white`}>
                     {cell.letter}
                   </span>
                 )}
@@ -244,7 +244,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
     return (
-      <div className="flex flex-wrap gap-1 sm:gap-2 justify-center max-w-2xl mx-auto">
+      <div className="flex flex-wrap gap-0.5 sm:gap-1 md:gap-2 justify-center max-w-2xl mx-auto">
         {allLetters.map((letter: string) => {
           const cooldown = cooldowns[letter] || 0;
           const isOnCooldown = cooldown > 0;
@@ -262,7 +262,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               }}
               disabled={!canSelect}
               className={`
-                w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded font-bold text-xs sm:text-sm md:text-base transition-all duration-200 relative
+                w-7 h-7 sm:w-9 sm:h-9 md:w-11 md:h-11 rounded font-bold text-xs sm:text-sm md:text-base transition-all duration-200 relative
                 ${isSelected && canSelect
                   ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
                   : isOnCooldown
@@ -308,10 +308,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   return (
-    <div className="min-h-screen p-1 sm:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col">
+    <div className="min-h-screen p-0.5 sm:p-1 md:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col">
       {/* Header */}
       <div className="text-center mb-0">
-        <h1 className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+        <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - {playerCount} Player Local
         </h1>
       </div>
@@ -350,7 +350,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
       {/* Available Letters */}
       {!gameEnded && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-auto">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-0.5 sm:p-1 mx-auto">
           {renderAvailableLetters()}
         </div>
       )}
@@ -362,22 +362,22 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           {Array.from({ length: playerCount }).map((_, idx) => {
             const isActive = currentPlayer === idx + 1;
             return (
-              <div key={idx} className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 ${playerCount === 3 ? 'flex-1 min-w-[100px]' : 'flex-1'} ${getPlayerBgColor(idx, isActive && !gameEnded)}`}>
-                <div className={`text-xs sm:text-sm font-bold ${getPlayerColor(idx)}`}>Player {idx + 1}</div>
-                <div className="text-xl sm:text-2xl font-bold score-glow">{scores[idx]}</div>
+              <div key={idx} className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 ${playerCount === 3 ? 'flex-1 min-w-[80px]' : 'flex-1'} ${getPlayerBgColor(idx, isActive && !gameEnded)}`}>
+                <div className={`text-xs sm:text-sm font-bold ${getPlayerColor(idx)}`}>P{idx + 1}</div>
+                <div className="text-base sm:text-xl md:text-2xl font-bold score-glow">{scores[idx]}</div>
               </div>
             );
           })}
           
           {/* Timer */}
           {!gameEnded && (
-            <Card className={`p-1 sm:p-2 shadow-lg border-2 transition-all ${
+            <Card className={`p-0.5 sm:p-1 md:p-2 shadow-lg border-2 transition-all min-w-[50px] ${
               turnTimeRemaining <= WARNING_THRESHOLD
                 ? 'border-destructive bg-destructive/10 animate-pulse' 
                 : 'border-primary bg-primary/5'
-            } ${playerCount === 3 ? 'w-20' : ''}`}>
+            } ${playerCount === 3 ? 'w-16 sm:w-20' : ''}`}>
               <div className="text-center">
-                <div className={`text-lg sm:text-2xl font-bold ${
+                <div className={`text-base sm:text-xl md:text-2xl font-bold ${
                   turnTimeRemaining <= WARNING_THRESHOLD 
                     ? 'text-destructive' 
                     : 'text-primary'
@@ -391,13 +391,13 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           {/* VS text when game ended */}
           {gameEnded && playerCount === 2 && (
             <div className="flex items-center justify-center px-2">
-              <div className="text-xl sm:text-2xl font-bold text-muted-foreground">VS</div>
+              <div className="text-base sm:text-xl md:text-2xl font-bold text-muted-foreground">VS</div>
             </div>
           )}
         </div>
 
         {/* Grids */}
-        <div className={`flex ${playerCount === 3 ? 'flex-wrap justify-center' : 'flex-row justify-center items-start'} gap-2 sm:gap-3 w-full`}>
+        <div className={`flex ${playerCount === 3 ? 'flex-wrap justify-center' : 'flex-row justify-center items-start'} gap-1 sm:gap-2 md:gap-3 w-full`}>
           {grids.map((_, idx) => {
             const isActive = currentPlayer === idx + 1;
             return (
