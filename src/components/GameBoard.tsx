@@ -7,6 +7,7 @@ import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 type Player = 1 | 2;
@@ -54,6 +55,7 @@ interface GameBoardProps {
 const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
+  const { toast } = useToast();
   const navigate = useNavigate();
   
   const [playerGrid, setPlayerGrid] = useState<Grid>(() => generateStartingTiles(boardSize));
@@ -213,9 +215,23 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     // Calculate score - convert to string[][]
     const gridForScoring = newGrid.map(row => row.map(cell => cell.letter || ''));
     const result = calculateScore(gridForScoring, SCORE_OPTS());
+    
+    // Find new words for AI
+    const existingWords = new Set(aiWords);
+    const newWordsFound = result.words.filter(w => !existingWords.has(w.text));
+    const newScore = newWordsFound.reduce((s, w) => s + w.text.length, 0);
+    
     setAIScore(result.score);
     setAIWords(result.words.map(w => w.text));
     setAIGrid(newGrid);
+    
+    // Show toast for AI's new words
+    if (newWordsFound.length > 0) {
+      toast({
+        title: `AI: +${newScore} points!`,
+        description: newWordsFound.map(w => `${w.text} (${w.text.length})`).join(', ')
+      });
+    }
     
     // Update cooldowns
     const newPlayerCooldowns = { ...playerCooldowns };
@@ -263,9 +279,23 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     // Calculate score - convert to string[][]
     const gridForScoring = newGrid.map(row => row.map(cell => cell.letter || ''));
     const result = calculateScore(gridForScoring, SCORE_OPTS());
+    
+    // Find new words
+    const existingWords = new Set(playerWords);
+    const newWordsFound = result.words.filter(w => !existingWords.has(w.text));
+    const newScore = newWordsFound.reduce((s, w) => s + w.text.length, 0);
+    
     setPlayerScore(result.score);
     setPlayerWords(result.words.map(w => w.text));
     setPlayerGrid(newGrid);
+    
+    // Show toast for new words
+    if (newWordsFound.length > 0) {
+      toast({
+        title: `+${newScore} points!`,
+        description: newWordsFound.map(w => `${w.text} (${w.text.length})`).join(', ')
+      });
+    }
     
     // Update cooldowns
     const newPlayerCooldowns = { ...playerCooldowns };
