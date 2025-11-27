@@ -581,90 +581,130 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       await createRematchGame();
     } else {
       // I'm requesting rematch first
-      await supabase
+      const { error } = await supabase
         .from('game_sessions')
         .update({ rematch_requested_by: myPlayerIndex })
-        .eq('id', session.id);
+        .eq('id', sessionId);
+      
+      if (error) {
+        console.error('Error requesting rematch:', error);
+        toast({
+          title: "Error",
+          description: "Failed to request rematch. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        setRematchRequestedBy(myPlayerIndex);
+      }
     }
   };
 
   const createRematchGame = async () => {
-    // Generate a random 5-character invite code
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let inviteCode = '';
-    for (let i = 0; i < 5; i++) {
-      inviteCode += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    try {
+      // Generate a random 5-character invite code
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let inviteCode = '';
+      for (let i = 0; i < 5; i++) {
+        inviteCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
 
-    // Create new game session with same players
-    const { data: newSession } = await supabase
-      .from('game_sessions')
-      .insert({
-        player1_id: session.player1_id,
-        player1_name: session.player1_name,
-        player2_id: session.player2_id,
-        player2_name: session.player2_name,
-        invite_code: inviteCode,
-        status: 'playing',
-        board_size: session.board_size,
-        cooldown_turns: session.cooldown_turns,
-        current_player: 1
-      })
-      .select()
-      .single();
+      // Create new game session with same players
+      const { data: newSession, error: sessionError } = await supabase
+        .from('game_sessions')
+        .insert({
+          player1_id: session.player1_id,
+          player1_name: session.player1_name,
+          player2_id: session.player2_id,
+          player2_name: session.player2_name,
+          invite_code: inviteCode,
+          status: 'playing',
+          board_size: session.board_size,
+          cooldown_turns: session.cooldown_turns,
+          current_player: 1
+        })
+        .select()
+        .single();
 
-    if (newSession) {
-      // Generate initial grid with starting tiles (same for both players)
-      const generateStartingTiles = (size: number) => {
-        const grid: Grid = Array(size).fill(null).map(() => 
-          Array(size).fill(null).map(() => ({ letter: null as string | null }))
-        );
-        
-        const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-        
-        // Pick 5 random letters from the pool for starting tiles
-        const startingLetters: string[] = [];
-        for (let i = 0; i < Math.min(5, size); i++) {
-          const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
-          startingLetters.push(letter);
+      if (sessionError) {
+        console.error('Error creating rematch session:', sessionError);
+        toast({
+          title: "Error",
+          description: "Failed to create rematch. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (newSession) {
+        // Generate initial grid with starting tiles (same for both players)
+        const generateStartingTiles = (size: number) => {
+          const grid: Grid = Array(size).fill(null).map(() => 
+            Array(size).fill(null).map(() => ({ letter: null as string | null }))
+          );
+          
+          const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+          
+          // Pick 5 random letters from the pool for starting tiles
+          const startingLetters: string[] = [];
+          for (let i = 0; i < Math.min(5, size); i++) {
+            const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
+            startingLetters.push(letter);
+          }
+          
+          // Place one letter in each row at random column
+          for (let row = 0; row < Math.min(5, size); row++) {
+            const col = Math.floor(Math.random() * size);
+            grid[row][col] = { letter: startingLetters[row] };
+          }
+          
+          return grid;
+        };
+
+        const initialGrid = generateStartingTiles(session.board_size);
+        const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+        const { error: stateError } = await supabase.from('game_state').insert([
+          {
+            session_id: newSession.id,
+            player_index: 1,
+            grid_data: initialGrid,
+            available_letters: allLetters,
+            cooldowns: {},
+            score: 0,
+            turn_number: 0,
+            words_found: []
+          },
+          {
+            session_id: newSession.id,
+            player_index: 2,
+            grid_data: initialGrid,
+            available_letters: allLetters,
+            cooldowns: {},
+            score: 0,
+            turn_number: 0,
+            words_found: []
+          }
+        ]);
+
+        if (stateError) {
+          console.error('Error creating game state:', stateError);
+          toast({
+            title: "Error",
+            description: "Failed to initialize rematch. Please try again.",
+            variant: "destructive"
+          });
+          return;
         }
-        
-        // Place one letter in each row at random column
-        for (let row = 0; row < Math.min(5, size); row++) {
-          const col = Math.floor(Math.random() * size);
-          grid[row][col] = { letter: startingLetters[row] };
-        }
-        
-        return grid;
-      };
 
-      const initialGrid = generateStartingTiles(session.board_size);
-      const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-
-      await supabase.from('game_state').insert([
-        {
-          session_id: newSession.id,
-          player_index: 1,
-          grid_data: initialGrid,
-          available_letters: allLetters,
-          cooldowns: {},
-          score: 0,
-          turn_number: 0,
-          words_found: []
-        },
-        {
-          session_id: newSession.id,
-          player_index: 2,
-          grid_data: initialGrid,
-          available_letters: allLetters,
-          cooldowns: {},
-          score: 0,
-          turn_number: 0,
-          words_found: []
-        }
-      ]);
-
-      navigate(`/online/${inviteCode}`);
+        navigate(`/online/${inviteCode}`);
+      }
+    } catch (error) {
+      console.error('Unexpected error during rematch:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 

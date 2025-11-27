@@ -337,6 +337,23 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
     setTimeout(() => setShowVictoryDialog(true), 500);
   };
 
+  const handlePlayAgain = () => {
+    // Reset all game state
+    setPlayerGrid(generateStartingTiles(boardSize));
+    setAIGrid(generateStartingTiles(boardSize));
+    setPlayerScore(0);
+    setAIScore(0);
+    setPlayerWords([]);
+    setAIWords([]);
+    setPlayerCooldowns({});
+    setAICooldowns({});
+    setSelectedLetter(null);
+    setCurrentPlayer(1);
+    setGameEnded(false);
+    setShowVictoryDialog(false);
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
+  };
+
   const renderGrid = (isAI: boolean) => {
     const grid = isAI ? aiGrid : playerGrid;
     const canInteract = !isAI && isMyTurn && !gameEnded;
@@ -593,7 +610,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
             </div>
 
             <div className="flex gap-3 justify-center">
-              <Button onClick={() => window.location.reload()} size="lg">
+              <Button onClick={handlePlayAgain} size="lg">
                 🔄 Play Again
               </Button>
               <Button onClick={() => navigate('/')} variant="outline" size="lg">

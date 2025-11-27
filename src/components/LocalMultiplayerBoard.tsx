@@ -121,6 +121,20 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
 
+  const handlePlayAgain = () => {
+    // Reset all game state
+    setGrids(Array(playerCount).fill(null).map(() => generateStartingTiles(boardSize)));
+    setCurrentPlayer(1);
+    setScores(Array(playerCount).fill(0));
+    setCooldowns({});
+    setSelectedLetter(null);
+    setGameEnded(false);
+    setShowVictoryDialog(false);
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
+    setPlayerWords(Array(playerCount).fill(null).map(() => []));
+    setWinner(null);
+  };
+
   const placeLetter = (playerIndex: number, row: number, col: number) => {
     if (!selectedLetter || currentPlayer !== playerIndex + 1 || gameEnded) return;
     
@@ -500,7 +514,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             </div>
 
             <div className="flex gap-3 justify-center">
-              <Button onClick={() => window.location.reload()} size="lg">
+              <Button onClick={handlePlayAgain} size="lg">
                 🔄 Play Again
               </Button>
               <Button onClick={() => navigate('/')} variant="outline" size="lg">
