@@ -6,6 +6,7 @@ import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
+import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 type Player = number;
@@ -53,6 +54,7 @@ const generateStartingTiles = (boardSize: number): Grid => {
 const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, cooldownTurns = 4 }: LocalMultiplayerBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
+  const { toast } = useToast();
   const navigate = useNavigate();
   
   const [grids, setGrids] = useState<Grid[]>(() => 
@@ -147,12 +149,26 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     // Get words for current player
     const gridForScoring = newGrids[playerIndex].map(row => row.map(cell => cell.letter || ''));
     const result = calculateScore(gridForScoring, SCORE_OPTS());
+    
+    // Find new words
+    const existingWords = new Set(playerWords[playerIndex] || []);
+    const newWordsFound = result.words.filter(w => !existingWords.has(w.text));
+    const newScore = newWordsFound.reduce((s, w) => s + w.text.length, 0);
+    
     const newPlayerWords = [...playerWords];
     newPlayerWords[playerIndex] = result.words.map(w => w.text);
     
     setPlayerWords(newPlayerWords);
     setScores(newScores);
     setGrids(newGrids);
+    
+    // Show toast for new words
+    if (newWordsFound.length > 0) {
+      toast({
+        title: `Player ${playerIndex + 1}: +${newScore} points!`,
+        description: newWordsFound.map(w => `${w.text} (${w.text.length})`).join(', ')
+      });
+    }
     
     // Update shared cooldowns
     const newCooldowns = { ...cooldowns };
