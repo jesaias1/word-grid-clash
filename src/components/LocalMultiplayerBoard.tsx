@@ -1,19 +1,15 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { loadDictionary } from '@/lib/dictionary';
-import { scoreGrid } from '@/lib/scoring';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
+import { useNavigate } from 'react-router-dom';
 
 type Player = number;
-type Letter = string;
-type GridCell = Letter | null;
+type GridCell = { letter: string | null };
 type Grid = GridCell[][];
 
 interface CooldownState {
@@ -27,146 +23,82 @@ interface LocalMultiplayerBoardProps {
   cooldownTurns?: number;
 }
 
-const TURN_TIME = 30;
+const TURN_TIME_LIMIT = 30;
+const WARNING_THRESHOLD = 5;
 
-// Use the full alphabet for local multiplayer
 const generateLetterPool = (): string[] => {
   return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 };
 
-// Generate starting tiles - 5 predetermined letters, same for both players
-const generateStartingTiles = (letterPool: string[], boardSize: number): Array<{ row: number; col: number; letter: string }> => {
-  const tiles: Array<{ row: number; col: number; letter: string }> = [];
+const generateStartingTiles = (boardSize: number): Grid => {
+  const grid: Grid = Array(boardSize).fill(null).map(() => 
+    Array(boardSize).fill(null).map(() => ({ letter: null }))
+  );
   
-  // Pick 5 random letters from the pool for starting tiles
-  const startingLetters = [];
+  const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const startingLetters: string[] = [];
   for (let i = 0; i < Math.min(5, boardSize); i++) {
     const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
     startingLetters.push(letter);
   }
   
-  // Place one letter in each row at random column
   for (let row = 0; row < Math.min(5, boardSize); row++) {
     const col = Math.floor(Math.random() * boardSize);
-    tiles.push({ row, col, letter: startingLetters[row] });
+    grid[row][col] = { letter: startingLetters[row] };
   }
   
-  return tiles;
+  return grid;
 };
 
 const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, cooldownTurns = 4 }: LocalMultiplayerBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
+  const navigate = useNavigate();
   
-  // Helper function to safely get display value from cell
-  const getCellDisplay = (cell: GridCell): string => {
-    if (!cell) return '';
-    if (typeof cell === 'object') {
-      return (cell as { letter: string }).letter;
-    }
-    return cell;
-  };
-
-  // Helper functions for player-specific styling
-  const getPlayerTextClass = (playerIdx: number): string => {
-    const classes = ['text-player-1', 'text-player-2', 'text-player-3'];
-    return classes[playerIdx] || 'text-player-1';
-  };
-
-  const getPlayerGradientClass = (playerIdx: number): string => {
-    const classes = ['bg-gradient-player-1', 'bg-gradient-player-2', 'bg-gradient-player-3'];
-    return classes[playerIdx] || 'bg-gradient-player-1';
-  };
-
-  const getPlayerBgClass = (playerIdx: number): string => {
-    const classes = [
-      'bg-player-1/20 border border-player-1/30',
-      'bg-player-2/20 border border-player-2/30',
-      'bg-player-3/20 border border-player-3/30'
-    ];
-    return classes[playerIdx] || 'bg-card';
-  };
-  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-  
-  // Initialize game with starting tiles
-  const initializeGame = () => {
-    const letterPool = generateLetterPool();
-    const startingTiles = generateStartingTiles(letterPool, boardSize);
-    const grids: Grid[] = Array(playerCount).fill(null).map(() => {
-      const grid: Grid = Array(boardSize).fill(null).map(() => Array(boardSize).fill(null));
-      // Place starting tiles on each grid
-      startingTiles.forEach(({ row, col, letter }) => {
-        grid[row][col] = letter;
-      });
-      return grid;
-    });
-    
-    return {
-      letterPool,
-      grids
-    };
-  };
-
-  const [grids, setGrids] = useState<Grid[]>(() => {
-    const gameData = initializeGame();
-    setAvailableLetters(gameData.letterPool);
-    return gameData.grids;
-  });
+  const [grids, setGrids] = useState<Grid[]>(() => 
+    Array(playerCount).fill(null).map(() => generateStartingTiles(boardSize))
+  );
   const [currentPlayer, setCurrentPlayer] = useState<Player>(1);
-  const [turn, setTurn] = useState(1);
   const [scores, setScores] = useState<number[]>(Array(playerCount).fill(0));
-  const [cooldowns, setCooldowns] = useState<CooldownState[]>(Array(playerCount).fill(null).map(() => ({})));
-  const [selectedLetter, setSelectedLetter] = useState<Letter>('');
+  const [cooldowns, setCooldowns] = useState<CooldownState>({}); // Shared cooldowns
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [gameEnded, setGameEnded] = useState(false);
+  const [showVictoryDialog, setShowVictoryDialog] = useState(false);
+  const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
+  const [playerWords, setPlayerWords] = useState<string[][]>(Array(playerCount).fill(null).map(() => []));
   const [winner, setWinner] = useState<Player | null>(null);
-  const [usedWords, setUsedWords] = useState<Set<string>[]>(Array(playerCount).fill(null).map(() => new Set()));
-  const [scoredCells, setScoredCells] = useState<Set<string>[]>(Array(playerCount).fill(null).map(() => new Set()));
-  const [showWinnerDialog, setShowWinnerDialog] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(TURN_TIME);
-  const [allFoundWords, setAllFoundWords] = useState<string[][]>(Array(playerCount).fill(null).map(() => []));
-  const [lastBoardTotal, setLastBoardTotal] = useState<{ [playerId: string]: number }>(() => {
-    const obj: { [key: string]: number } = {};
-    for (let i = 1; i <= playerCount; i++) obj[i.toString()] = 0;
-    return obj;
-  });
-  const [roundScores, setRoundScores] = useState<{ [playerId: string]: number }>(() => {
-    const obj: { [key: string]: number } = {};
-    for (let i = 1; i <= playerCount; i++) obj[i.toString()] = 0;
-    return obj;
-  });
-  const [cumulativeScores, setCumulativeScores] = useState<{ [playerId: string]: number }>(() => {
-    const obj: { [key: string]: number } = {};
-    for (let i = 1; i <= playerCount; i++) obj[i.toString()] = 0;
-    return obj;
-  });
 
-  // Preload dictionary in the background
+  // Keyboard support
   useEffect(() => {
-    loadDictionary();
-  }, []);
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (showVictoryDialog || gameEnded) return;
 
-  // Timer effect
-  useEffect(() => {
-    if (gameEnded || timeLeft <= 0) return;
-    
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          // Time's up - deduct points and pass turn
-          const pointDeduction = 5;
-          const newScores = [...scores];
-          newScores[currentPlayer - 1] = scores[currentPlayer - 1] - pointDeduction;
-          setScores(newScores);
-          
-          // Update cumulative scores
-          const newCumulativeScores = { ...cumulativeScores };
-          newCumulativeScores[currentPlayer.toString()] = (cumulativeScores[currentPlayer.toString()] || 0) - pointDeduction;
-          setCumulativeScores(newCumulativeScores);
-          
-          passTurn();
-          return TURN_TIME;
+      const key = e.key.toUpperCase();
+      
+      if (key.length === 1 && key >= 'A' && key <= 'Z') {
+        const isOnCooldown = (cooldowns[key] || 0) > 0;
+        
+        if (!isOnCooldown) {
+          setSelectedLetter(key);
+          playFeedback('select');
         }
-        // Warning sound at 5 seconds
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showVictoryDialog, gameEnded, cooldowns, playFeedback]);
+
+  // Turn timer
+  useEffect(() => {
+    if (gameEnded) return;
+
+    const timer = setInterval(() => {
+      setTurnTimeRemaining(prev => {
+        if (prev <= 1) {
+          handleTurnTimeout();
+          return TURN_TIME_LIMIT;
+        }
         if (prev === 6) {
           playFeedback('timerWarning');
         }
@@ -175,245 +107,129 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentPlayer, gameEnded, timeLeft, scores, cumulativeScores]);
+  }, [currentPlayer, gameEnded]);
 
-  // Keyboard input effect
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (gameEnded) return;
-      
-      const letter = event.key.toUpperCase();
-      if (availableLetters.includes(letter) && !isLetterOnCooldown(letter)) {
-        setSelectedLetter(letter);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [cooldowns, currentPlayer, gameEnded]);
-
-  const isLetterOnCooldown = (letter: Letter): boolean => {
-    const playerCooldowns = cooldowns[currentPlayer - 1];
-    const cooldown = playerCooldowns[letter];
-    return cooldown !== undefined && cooldown > 0;
-  };
-
-  const getLetterCooldown = (letter: Letter): number => {
-    const playerCooldowns = cooldowns[currentPlayer - 1];
-    return playerCooldowns[letter] || 0;
-  };
-
-  const placeLetter = async (row: number, col: number, targetPlayerIndex: number) => {
-    if (!selectedLetter || gameEnded) return;
-    
-    const targetGrid = grids[targetPlayerIndex];
-    
-    if (targetGrid[row][col] !== null) {
-      playFeedback('invalid');
-      return; // Cell already occupied
-    }
-    if (isLetterOnCooldown(selectedLetter)) {
-      playFeedback('invalid');
-      return; // Letter on cooldown
-    }
-
-    try {
-      // Play placement sound
-      playFeedback('place');
-      
-      // Update grids - copy all grids dynamically
-      const newGrids: Grid[] = grids.map(grid => grid.map(row => [...row]));
-      
-      newGrids[targetPlayerIndex][row][col] = selectedLetter;
-
-      // Update cooldowns
-      const newCooldowns: CooldownState[] = cooldowns.map(cd => ({ ...cd }));
-
-      // Decrease existing cooldowns for all players
-      cooldowns.forEach((_, playerIdx) => {
-        Object.keys(newCooldowns[playerIdx]).forEach(letter => {
-          if (newCooldowns[playerIdx][letter] > 0) {
-            newCooldowns[playerIdx][letter]--;
-            if (newCooldowns[playerIdx][letter] === 0) {
-              delete newCooldowns[playerIdx][letter];
-            }
-          }
-        });
-      });
-
-      // Set cooldown for used letter for all players
-      newCooldowns.forEach((_, idx) => {
-        newCooldowns[idx][selectedLetter] = cooldownTurns;
-      });
-
-      // Calculate new scores using the sub-word scoring system for all players
-      const playerResults = newGrids.map(grid => calculateScore(grid, SCORE_OPTS()));
-      const newTotals = playerResults.map(r => r.score);
-      
-      // Calculate deltas for all players
-      const newRoundScores: { [playerId: string]: number } = {};
-      const newCumulativeScores: { [playerId: string]: number } = {};
-      const newLastBoardTotal: { [playerId: string]: number } = {};
-      
-      let anyScored = false;
-      playerResults.forEach((result, idx) => {
-        const playerId = (idx + 1).toString();
-        const prevTotal = lastBoardTotal[playerId] ?? 0;
-        const delta = Math.max(0, result.score - prevTotal);
-        
-        if (delta > 0) anyScored = true;
-        
-        newRoundScores[playerId] = (roundScores[playerId] ?? 0) + delta;
-        newCumulativeScores[playerId] = (cumulativeScores[playerId] ?? 0) + delta;
-        newLastBoardTotal[playerId] = result.score;
-      });
-      
-      // Play score sound if any player scored
-      if (anyScored) {
-        playFeedback('score');
-      }
-      
-      // Create scored cells sets for all players
-      const newScoredCells = playerResults.map(result => {
-        const cells = new Set<string>();
-        result.words.forEach(word => {
-          word.path.forEach(cell => {
-            cells.add(`${cell.r}-${cell.c}`);
-          });
-        });
-        return cells;
-      });
-      
-      // Update used words and found words
-      const newUsedWords = playerResults.map(result => new Set(result.words.map(w => w.text)));
-      const newAllFoundWords = playerResults.map(result => result.words.map(w => w.text));
-      
-      setUsedWords(newUsedWords);
-      setScoredCells(newScoredCells);
-      setAllFoundWords(newAllFoundWords);
-
-      // Check if game should end
-      const areAllGridsFull = newGrids.every(grid => 
-        grid.every(row => row.every(cell => cell !== null))
-      );
-
-      if (areAllGridsFull) {
-        setGameEnded(true);
-        playFeedback('gameEnd');
-        // Find winner (highest score)
-        const finalScores = Object.entries(newCumulativeScores).map(([id, score]) => ({ id: parseInt(id), score }));
-        const maxScore = Math.max(...finalScores.map(s => s.score));
-        const winners = finalScores.filter(s => s.score === maxScore);
-        if (winners.length === 1) {
-          setWinner(winners[0].id);
-          celebrate();
-        }
-        setTimeout(() => setShowWinnerDialog(true), 500);
-      }
-
-      // Update state
-      setGrids(newGrids);
-      setCooldowns(newCooldowns);
-      setScores(Object.values(newCumulativeScores));
-      setSelectedLetter('');
-      setLastBoardTotal(newLastBoardTotal);
-      setRoundScores(newRoundScores);
-      setCumulativeScores(newCumulativeScores);
-      
-      // Pass turn (cycle through players)
-      setCurrentPlayer(currentPlayer === playerCount ? 1 : currentPlayer + 1);
-      setTurn(turn + 1);
-      setTimeLeft(TURN_TIME);
-      playFeedback('turnChange');
-
-    } catch (error) {
-      console.error('Error placing letter:', error);
-    }
-  };
-
-  const passTurn = () => {
-    // Deduct 5 points for passing turn
-    const pointDeduction = 5;
+  const handleTurnTimeout = () => {
     const newScores = [...scores];
-    newScores[currentPlayer - 1] = scores[currentPlayer - 1] - pointDeduction;
+    newScores[currentPlayer - 1] = Math.max(0, scores[currentPlayer - 1] - 5);
     setScores(newScores);
     
-    // Update cumulative scores
-    const newCumulativeScores = { ...cumulativeScores };
-    newCumulativeScores[currentPlayer.toString()] = (cumulativeScores[currentPlayer.toString()] || 0) - pointDeduction;
-    setCumulativeScores(newCumulativeScores);
-    
-    setCurrentPlayer(currentPlayer === playerCount ? 1 : currentPlayer + 1);
-    setTurn(turn + 1);
-    setTimeLeft(TURN_TIME);
+    const nextPlayer = currentPlayer === playerCount ? 1 : currentPlayer + 1;
+    setCurrentPlayer(nextPlayer);
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
 
-  const resetGame = () => {
-    const gameData = initializeGame();
-    setAvailableLetters(gameData.letterPool);
-    setGrids(gameData.grids);
-    setCurrentPlayer(1);
-    setTurn(1);
-    setScores(Array(playerCount).fill(0));
-    setCooldowns(Array(playerCount).fill(null).map(() => ({})));
-    setSelectedLetter('');
-    const initialScores: { [key: string]: number } = {};
-    for (let i = 1; i <= playerCount; i++) initialScores[i.toString()] = 0;
-    setLastBoardTotal(initialScores);
-    setRoundScores(initialScores);
-    setCumulativeScores(initialScores);
-    setGameEnded(false);
-    setWinner(null);
-    setTimeLeft(TURN_TIME);
+  const placeLetter = (playerIndex: number, row: number, col: number) => {
+    if (!selectedLetter || currentPlayer !== playerIndex + 1 || gameEnded) return;
+    
+    if (grids[playerIndex][row][col].letter !== null) {
+      playFeedback('invalid');
+      return;
+    }
+    
+    playFeedback('place');
+    
+    const newGrids = grids.map((grid, idx) => 
+      idx === playerIndex 
+        ? grid.map((r, rIdx) => r.map((c, cIdx) => 
+            rIdx === row && cIdx === col ? { letter: selectedLetter } : { ...c }
+          ))
+        : grid.map(row => row.map(cell => ({ ...cell })))
+    );
+    
+    // Calculate scores for all players
+    const newScores = newGrids.map(grid => {
+      const gridForScoring = grid.map(row => row.map(cell => cell.letter || ''));
+      const result = calculateScore(gridForScoring, SCORE_OPTS());
+      return result.score;
+    });
+    
+    // Get words for current player
+    const gridForScoring = newGrids[playerIndex].map(row => row.map(cell => cell.letter || ''));
+    const result = calculateScore(gridForScoring, SCORE_OPTS());
+    const newPlayerWords = [...playerWords];
+    newPlayerWords[playerIndex] = result.words.map(w => w.text);
+    
+    setPlayerWords(newPlayerWords);
+    setScores(newScores);
+    setGrids(newGrids);
+    
+    // Update shared cooldowns
+    const newCooldowns = { ...cooldowns };
+    Object.keys(newCooldowns).forEach(letter => {
+      if (newCooldowns[letter] > 0) {
+        newCooldowns[letter]--;
+        if (newCooldowns[letter] === 0) {
+          delete newCooldowns[letter];
+        }
+      }
+    });
+    newCooldowns[selectedLetter] = cooldownTurns;
+    setCooldowns(newCooldowns);
+    setSelectedLetter(null);
+    
+    // Check if game ended
+    const allGridsFull = newGrids.every(grid => 
+      grid.every(row => row.every(cell => cell.letter !== null))
+    );
+    
+    if (allGridsFull) {
+      setGameEnded(true);
+      playFeedback('gameEnd');
+      
+      const maxScore = Math.max(...newScores);
+      const winnersCount = newScores.filter(s => s === maxScore).length;
+      
+      if (winnersCount === 1) {
+        const winnerIdx = newScores.indexOf(maxScore);
+        setWinner(winnerIdx + 1);
+        celebrate();
+      }
+      
+      setTimeout(() => setShowVictoryDialog(true), 500);
+    } else {
+      const nextPlayer = currentPlayer === playerCount ? 1 : currentPlayer + 1;
+      setCurrentPlayer(nextPlayer);
+      setTurnTimeRemaining(TURN_TIME_LIMIT);
+      playFeedback('turnChange');
+    }
   };
 
   const renderGrid = (playerIndex: number) => {
     const grid = grids[playerIndex];
-    const isCurrentPlayer = currentPlayer === (playerIndex + 1);
-    const playerScoredCells = scoredCells[playerIndex];
-    const isWinner = gameEnded && winner === (playerIndex + 1);
-    const canPlaceOnThisGrid = isCurrentPlayer;
-    
-    // Adjust cell size based on player count for better fit
-    const cellSize = playerCount === 3 ? 'w-12 h-12' : 'w-14 h-14';
+    const isCurrentPlayer = currentPlayer === playerIndex + 1;
+    const canInteract = isCurrentPlayer && !gameEnded;
     
     return (
-      <div className={`inline-grid gap-1 p-2 rounded-xl border-2 shadow-lg ${
-        isCurrentPlayer ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
-      } ${!canPlaceOnThisGrid ? 'opacity-50' : ''}`} style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
+      <div className={`inline-grid gap-1 p-2 sm:p-3 rounded-xl border-2 shadow-lg transition-all ${
+        canInteract ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
+      }`} 
+      style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-            const canPlaceLetter = !gameEnded && selectedLetter && !cell && canPlaceOnThisGrid;
-            const isScored = playerScoredCells.has(`${rowIndex}-${colIndex}`);
+            const canPlace = canInteract && selectedLetter && !cell.letter;
             
-            // Winner highlight effect - use darker green for better visibility
-            const winnerHighlight = gameEnded && isScored 
-              ? (isWinner ? 'ring-4 ring-yellow-400 shadow-lg shadow-yellow-400/50' : 'ring-2')
-              : (isScored ? 'ring-2' : '');
-            
-            const highlightStyle = isScored ? { 
-              borderColor: 'hsl(var(--highlight-cell))',
-              boxShadow: '0 0 12px hsl(var(--highlight-cell) / 0.5)'
-            } : {};
+            const playerColors = [
+              'bg-gradient-player-1',
+              'bg-gradient-player-2', 
+              'bg-gradient-player-3'
+            ];
             
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  ${cellSize} cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  ${playerCount === 3 ? 'w-8 h-8 sm:w-10 sm:h-10' : 'w-10 h-10 sm:w-12 sm:h-12'} cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
-                  ${cell ? getPlayerGradientClass(playerIndex) : ''}
-                  ${canPlaceLetter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
-                  ${!canPlaceOnThisGrid ? 'cursor-not-allowed' : ''}
-                  ${winnerHighlight}
+                  ${cell.letter ? playerColors[playerIndex] || 'bg-gradient-primary' : ''}
+                  ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
                 `}
-                style={highlightStyle}
-                onClick={() => canPlaceLetter && placeLetter(rowIndex, colIndex, playerIndex)}
+                onClick={() => canPlace && placeLetter(playerIndex, rowIndex, colIndex)}
               >
-                {cell && (
-                  <span className="font-bold text-lg drop-shadow-lg text-white">
-                    {getCellDisplay(cell)}
+                {cell.letter && (
+                  <span className={`font-bold ${playerCount === 3 ? 'text-sm' : 'text-base sm:text-lg'} drop-shadow-lg text-white`}>
+                    {cell.letter}
                   </span>
                 )}
               </div>
@@ -424,303 +240,226 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     );
   };
 
-
   const renderAvailableLetters = () => {
-    const availableToSelect = availableLetters.filter(letter => !isLetterOnCooldown(letter));
+    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
     return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1.5 mx-auto mb-1">
-        <div className="text-center mb-2">
-          <span className="text-xs font-semibold text-muted-foreground">Available Letters</span>
-        </div>
-        <div className="flex flex-wrap gap-1 justify-center">
-          {availableLetters.map(letter => {
-            const isOnCooldown = isLetterOnCooldown(letter);
-            const isSelected = selectedLetter === letter;
-            return (
-              <button
-                key={letter}
-                onClick={() => {
-                  if (!isOnCooldown && !gameEnded) {
-                    setSelectedLetter(letter);
-                    playFeedback('select');
-                  }
-                }}
-                disabled={isOnCooldown || gameEnded}
-                className={`
-                  w-8 h-8 rounded font-bold text-sm transition-all duration-200
-                  ${isSelected ? 'bg-primary text-primary-foreground scale-110 shadow-lg' : ''}
-                  ${isOnCooldown ? 'bg-muted/50 text-muted-foreground/40 cursor-not-allowed' : 
-                    'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105'}
-                  ${!isOnCooldown && !isSelected ? 'border border-border' : ''}
-                `}
-              >
-                {letter}
-                {isOnCooldown && (
-                  <div className="text-xs">{getLetterCooldown(letter)}</div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex flex-wrap gap-1 sm:gap-2 justify-center max-w-2xl mx-auto">
+        {allLetters.map((letter: string) => {
+          const cooldown = cooldowns[letter] || 0;
+          const isOnCooldown = cooldown > 0;
+          const isSelected = selectedLetter === letter;
+          const canSelect = !isOnCooldown && !gameEnded;
+          
+          return (
+            <button
+              key={letter}
+              onClick={() => {
+                if (canSelect) {
+                  setSelectedLetter(letter);
+                  playFeedback('select');
+                }
+              }}
+              disabled={!canSelect}
+              className={`
+                w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded font-bold text-xs sm:text-sm md:text-base transition-all duration-200 relative
+                ${isSelected && canSelect
+                  ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
+                  : isOnCooldown
+                    ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
+                    : canSelect
+                      ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
+                      : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
+                }
+                ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
+              `}
+            >
+              {letter}
+              {isOnCooldown && (
+                <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background ${
+                  cooldown === 1 
+                    ? 'bg-yellow-500 text-yellow-950' 
+                    : 'bg-destructive text-destructive-foreground'
+                }`}>
+                  {cooldown}
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
     );
   };
 
-  const renderLetterCooldowns = () => {
-    const playerCooldowns = cooldowns[currentPlayer - 1];
-    const onCooldownLetters = availableLetters.filter(letter => {
-      const cooldown = playerCooldowns[letter];
-      return cooldown !== undefined && cooldown > 0;
-    });
-    
-    if (onCooldownLetters.length === 0) return null;
-    
-    return (
-      <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-auto mb-1">
-        <div className="text-center mb-1">
-          <span className="text-xs font-semibold text-muted-foreground">On Cooldown</span>
-        </div>
-        <div className="flex flex-wrap gap-1 justify-center">
-          {onCooldownLetters.map(letter => (
-            <div key={letter} className="bg-muted/50 rounded p-1 border border-muted-foreground/20">
-              <div className="text-xs font-bold text-muted-foreground/60 text-center">
-                {letter} ({getLetterCooldown(letter)})
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  const getPlayerColor = (index: number) => {
+    const colors = ['text-player-1', 'text-player-2', 'text-player-3'];
+    return colors[index] || 'text-player-1';
+  };
+
+  const getPlayerBgColor = (index: number, isActive: boolean) => {
+    const activeColors = [
+      'bg-player-1/20 border-2 border-player-1/30',
+      'bg-player-2/20 border-2 border-player-2/30',
+      'bg-player-3/20 border-2 border-player-3/30'
+    ];
+    return isActive 
+      ? `${activeColors[index] || activeColors[0]} scale-105 animate-fade-in`
+      : 'bg-card/80 border border-border opacity-70';
   };
 
   return (
-    <div className="min-h-screen p-1 sm:p-2 space-y-1 max-w-5xl mx-auto flex flex-col">
-      {/* Winner Dialog */}
-      <Dialog open={showWinnerDialog} onOpenChange={setShowWinnerDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold">
-              🎉 Game Over! 🎉
-            </DialogTitle>
-            <DialogDescription asChild>
-              <div className="text-center space-y-4">
-                <div className="text-lg">
-                  {winner ? (
-                    <span className={`font-bold ${winner === 1 ? 'text-player-1' : winner === 2 ? 'text-player-2' : 'text-player-3'}`}>
-                      Player {winner} Wins!
-                    </span>
-                  ) : (
-                    <span className="font-bold">It's a Tie!</span>
-                  )}
-                </div>
-                
-                <div className="bg-muted rounded-lg p-4">
-                  <div className="text-sm text-muted-foreground mb-2">Final Scores:</div>
-                  <div className="flex justify-center gap-4 flex-wrap">
-                    {scores.map((score, idx) => (
-                      <div key={idx} className="text-center">
-                        <div className={`text-sm font-medium ${getPlayerTextClass(idx)}`}>Player {idx + 1}</div>
-                        <div className="text-2xl font-bold">{score}</div>
-                        <div className="text-xs text-muted-foreground">points</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Words Found Section */}
-                <div className="bg-muted rounded-lg p-4 max-h-48 overflow-y-auto">
-                  <div className="text-sm text-muted-foreground mb-3">All Words Found:</div>
-                  <div className={`grid gap-4 text-xs ${playerCount === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                    {allFoundWords.map((words, idx) => (
-                      <div key={idx} className="space-y-1">
-                        <div className={`font-medium ${getPlayerTextClass(idx)}`}>Player {idx + 1} Words ({words.length})</div>
-                        <div className="space-y-1 max-h-24 overflow-y-auto">
-                          {words.sort().map((word, wordIdx) => (
-                            <div key={wordIdx} className="bg-background/50 rounded px-2 py-1">
-                              {word.toUpperCase()}
-                            </div>
-                          ))}
-                          {words.length === 0 && (
-                            <div className="text-muted-foreground italic">No words found</div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="text-sm text-muted-foreground">
-                  {winner ? 
-                    `Player ${winner} found more valid words!` :
-                    'Both players found the same number of letters!'
-                  }
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button onClick={resetGame} className="flex-1" size="lg">
-                    Play Again
-                  </Button>
-                  <Button onClick={onBackToMenu} variant="outline" className="flex-1" size="lg">
-                    Back to Menu
-                  </Button>
-                </div>
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
-
+    <div className="min-h-screen p-1 sm:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col">
       {/* Header */}
       <div className="text-center mb-0">
-        <h1 className="text-xl sm:text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          LETTUS - Local Multiplayer
+        <h1 className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+          LETTUS - {playerCount} Player Local
         </h1>
-        <p className="text-[10px] sm:text-xs text-muted-foreground">
-          Pass the device between players
-        </p>
       </div>
 
       {/* Game Stats and Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 sm:gap-2">
-        {/* Player Scores */}
-        <Card className="p-1.5 sm:p-2 bg-gradient-card">
-          <div className="flex justify-center items-center gap-4 flex-wrap">
-            {scores.map((score, idx) => (
-              <div key={idx} className={`text-center ${currentPlayer === idx + 1 ? 'score-glow' : ''}`}>
-                <div className={`text-sm font-bold ${getPlayerTextClass(idx)}`}>Player {idx + 1}</div>
-                <div className="text-xl font-bold">{score}</div>
-              </div>
-            ))}
-          </div>
+      <div className="grid grid-cols-3 gap-1 sm:gap-2">
+        <Card className="p-1 sm:p-2 bg-gradient-card">
+          <Button onClick={() => navigate('/')} variant="outline" className="w-full text-xs h-7 sm:h-8">
+            Back
+          </Button>
         </Card>
 
-        {/* Timer and Turn Info */}
-        <Card className="p-1.5 sm:p-2 bg-gradient-card">
-          <div className="text-center space-y-1">
+        <Card className="p-1 sm:p-2 bg-gradient-card">
+          <div className="text-center">
             {gameEnded ? (
-              <div className="space-y-1">
-                <div className="text-sm font-bold text-accent">
-                  {winner ? `Player ${winner} Wins!` : "Tie!"}
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={resetGame} variant="outline" size="sm">
-                    New Game
-                  </Button>
-                  <Button onClick={onBackToMenu} variant="default" size="sm">
-                    Back to Menu
-                  </Button>
-                </div>
+              <div className="text-xs sm:text-sm font-bold text-accent">
+                {winner ? `Player ${winner} Wins!` : 'Tie!'}
               </div>
             ) : (
-              <>
-                <div className="text-xs text-muted-foreground">Turn {turn}</div>
-                <div className="text-sm font-semibold">
-                  <span className={getPlayerTextClass(currentPlayer - 1)}>
-                    Player {currentPlayer}'s Turn
-                  </span>
-                </div>
-                <div className={`text-lg font-bold ${timeLeft <= 10 ? 'text-destructive animate-pulse' : 'text-accent'}`}>
-                  {timeLeft}s
-                </div>
-              </>
+              <div className="text-xs sm:text-sm font-semibold">
+                <span className="text-primary animate-pulse">Player {currentPlayer}'s Turn</span>
+              </div>
             )}
           </div>
         </Card>
 
-        {/* Selected Letter */}
-        <Card className="p-1.5 sm:p-2 bg-gradient-card">
+        <Card className="p-1 sm:p-2 bg-gradient-card">
           <div className="text-center">
-            <div className="text-xs text-muted-foreground mb-1">Selected</div>
-            <div className="text-2xl font-bold text-accent">
+            <div className="text-xs text-muted-foreground">Selected</div>
+            <div className="text-lg sm:text-xl font-bold text-accent">
               {selectedLetter || '?'}
             </div>
-            <Button onClick={passTurn} variant="outline" size="sm" className="mt-2">
-              Pass Turn
-            </Button>
           </div>
         </Card>
       </div>
 
       {/* Available Letters */}
-      {renderAvailableLetters()}
-
-      {/* Cooldown Letters Display */}
-      {renderLetterCooldowns()}
-
-      {/* Game Grids */}
-      {playerCount === 2 ? (
-        <div className="flex flex-col items-center gap-1 sm:gap-2">
-          {/* Player cards with timer in the middle */}
-          <div className="flex justify-center items-center gap-1 sm:gap-2">
-            {/* Player 1 */}
-            <div className={`p-1.5 sm:p-2 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 1 ? `${getPlayerBgClass(0)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
-              <div className={`text-sm sm:text-lg font-bold ${getPlayerTextClass(0)}`}>Player 1</div>
-              <div className="text-xl sm:text-2xl font-bold score-glow">{scores[0]}</div>
-            </div>
-
-            {/* Timer */}
-            {!gameEnded && (
-              <Card className={`p-1.5 sm:p-2 shadow-lg border-2 transition-all ${
-                timeLeft <= 10 
-                  ? 'border-destructive bg-destructive/10 animate-pulse' 
-                  : 'border-primary bg-primary/5'
-              }`}>
-                <div className="text-center">
-                  <div className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Time</div>
-                  <div className={`text-2xl sm:text-3xl font-bold ${
-                    timeLeft <= 10 ? 'text-destructive' : 'text-primary'
-                  }`}>
-                    {timeLeft}s
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* VS text when game ended */}
-            {gameEnded && (
-              <div className="flex items-center justify-center px-2 sm:px-4">
-                <div className="text-xl sm:text-2xl font-bold text-muted-foreground">VS</div>
-              </div>
-            )}
-
-            {/* Player 2 */}
-            <div className={`p-1.5 sm:p-2 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === 2 ? `${getPlayerBgClass(1)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
-              <div className={`text-sm sm:text-lg font-bold ${getPlayerTextClass(1)}`}>Player 2</div>
-              <div className="text-xl sm:text-2xl font-bold score-glow">{scores[1]}</div>
-            </div>
-          </div>
-
-          {/* Grids side by side */}
-          <div className="flex justify-center items-start gap-1 sm:gap-2">
-            <div className="flex flex-col items-center">
-              {renderGrid(0)}
-            </div>
-            <div className="flex flex-col items-center">
-              {renderGrid(1)}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex justify-center items-start gap-1 sm:gap-2 flex-1 flex-wrap">
-          {grids.map((grid, playerIdx) => (
-            <div key={playerIdx} className="flex flex-col items-center">
-              <div className={`mb-1 sm:mb-2 p-1.5 sm:p-2 rounded-xl text-center shadow-md transition-all duration-300 ${currentPlayer === playerIdx + 1 ? `${getPlayerBgClass(playerIdx)} border-2 scale-105` : 'bg-card/80 border border-border'}`}>
-                <div className={`text-sm sm:text-lg font-bold ${getPlayerTextClass(playerIdx)}`}>Player {playerIdx + 1}</div>
-                <div className="text-xl sm:text-2xl font-bold score-glow">{scores[playerIdx]}</div>
-              </div>
-              {renderGrid(playerIdx)}
-            </div>
-          ))}
+      {!gameEnded && (
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-auto">
+          {renderAvailableLetters()}
         </div>
       )}
 
-      {/* Compact Rules */}
-      <div className="text-center mt-4">
-        <div className="text-sm text-muted-foreground font-medium">
-          30s per turn • Type letter then click to place • 3+ letter words • Score = letters in valid words
+      {/* Game Grids */}
+      <div className="flex flex-col items-center gap-0">
+        {/* Player Score Cards */}
+        <div className={`flex ${playerCount === 3 ? 'flex-row' : 'justify-center items-center'} gap-1 sm:gap-2 w-full max-w-4xl mb-0.5 sm:mb-1 flex-wrap justify-center`}>
+          {Array.from({ length: playerCount }).map((_, idx) => {
+            const isActive = currentPlayer === idx + 1;
+            return (
+              <div key={idx} className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 ${playerCount === 3 ? 'flex-1 min-w-[100px]' : 'flex-1'} ${getPlayerBgColor(idx, isActive && !gameEnded)}`}>
+                <div className={`text-xs sm:text-sm font-bold ${getPlayerColor(idx)}`}>Player {idx + 1}</div>
+                <div className="text-xl sm:text-2xl font-bold score-glow">{scores[idx]}</div>
+              </div>
+            );
+          })}
+          
+          {/* Timer */}
+          {!gameEnded && (
+            <Card className={`p-1 sm:p-2 shadow-lg border-2 transition-all ${
+              turnTimeRemaining <= WARNING_THRESHOLD
+                ? 'border-destructive bg-destructive/10 animate-pulse' 
+                : 'border-primary bg-primary/5'
+            } ${playerCount === 3 ? 'w-20' : ''}`}>
+              <div className="text-center">
+                <div className={`text-lg sm:text-2xl font-bold ${
+                  turnTimeRemaining <= WARNING_THRESHOLD 
+                    ? 'text-destructive' 
+                    : 'text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* VS text when game ended */}
+          {gameEnded && playerCount === 2 && (
+            <div className="flex items-center justify-center px-2">
+              <div className="text-xl sm:text-2xl font-bold text-muted-foreground">VS</div>
+            </div>
+          )}
+        </div>
+
+        {/* Grids */}
+        <div className={`flex ${playerCount === 3 ? 'flex-wrap justify-center' : 'flex-row justify-center items-start'} gap-2 sm:gap-3 w-full`}>
+          {grids.map((_, idx) => {
+            const isActive = currentPlayer === idx + 1;
+            return (
+              <div key={idx} className={`flex flex-col items-center transition-all duration-500 ${
+                isActive && !gameEnded ? 'scale-102 animate-fade-in' : 'opacity-90'
+              } ${playerCount === 3 ? 'w-auto' : ''}`}>
+                {renderGrid(idx)}
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Victory Dialog */}
+      <Dialog open={showVictoryDialog} onOpenChange={setShowVictoryDialog}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-3xl text-center">
+              {winner ? `🎉 Player ${winner} Wins! 🎉` : '🤝 Tie Game!'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="flex justify-around text-center flex-wrap">
+              {scores.map((score, idx) => (
+                <div key={idx} className="flex-1 min-w-[100px]">
+                  <p className="text-sm text-muted-foreground">Player {idx + 1}</p>
+                  <p className="text-3xl font-bold">{score}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className={`grid ${playerCount === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+              {playerWords.map((words, idx) => (
+                <div key={idx}>
+                  <h3 className="font-semibold mb-2 text-center">Player {idx + 1}'s Words</h3>
+                  <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                    {words.length > 0 ? (
+                      words.map((word, wIdx) => (
+                        <div key={wIdx} className="text-sm bg-accent/50 rounded px-2 py-1">
+                          {word} <span className="text-muted-foreground">({word.length})</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center">No words</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => window.location.reload()} size="lg">
+                🔄 Play Again
+              </Button>
+              <Button onClick={() => navigate('/')} variant="outline" size="lg">
+                Home
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
