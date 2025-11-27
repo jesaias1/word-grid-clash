@@ -318,10 +318,6 @@ const OnlineGameSetup = () => {
             >
               {isJoining ? 'Joining...' : 'Join Game'}
             </Button>
-
-            <div className="text-xs text-muted-foreground text-center mt-2 p-2 bg-muted/50 rounded">
-              💡 To test multiplayer: Use a different browser or incognito window for Player 2
-            </div>
           </div>
         </Card>
 
