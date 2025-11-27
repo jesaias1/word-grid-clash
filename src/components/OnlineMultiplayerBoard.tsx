@@ -196,6 +196,39 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
 
+  // Keyboard support for letter selection
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only handle if it's my turn and not in any dialog
+      if (!isMyTurn || showVictoryDialog) return;
+
+      const key = e.key.toUpperCase();
+      
+      // Handle letter keys A-Z
+      if (key.length === 1 && key >= 'A' && key <= 'Z') {
+        const availableLetters = myState?.available_letters || [];
+        const myCooldowns = myState?.cooldowns || {};
+        const opponentCooldowns = opponentState?.cooldowns || {};
+        
+        const myCooldown = myCooldowns[key] || 0;
+        const oppCooldown = opponentCooldowns[key] || 0;
+        const maxCooldown = Math.max(myCooldown, oppCooldown);
+        
+        const isOnCooldown = maxCooldown > 0;
+        const isAvailable = availableLetters.includes(key);
+        const canSelect = isAvailable && !isOnCooldown;
+        
+        if (canSelect) {
+          setSelectedLetter(key);
+          playFeedback('select');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isMyTurn, showVictoryDialog, myState, opponentState, playFeedback]);
+
   // Turn timer effect
   useEffect(() => {
     if (!isMyTurn || session?.status !== 'playing' || !myState) {
