@@ -40,6 +40,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const [gameTime, setGameTime] = useState(0);
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
+  const [rematchRequestedBy, setRematchRequestedBy] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -95,6 +96,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         filter: `id=eq.${sessionId}`
       }, (payload) => {
         setSession(payload.new);
+        setRematchRequestedBy(payload.new.rematch_requested_by || null);
         if (payload.new.status === 'finished') {
           playFeedback('gameEnd');
           setShowVictoryDialog(true);
@@ -540,6 +542,20 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Check if opponent already requested rematch
+    if (rematchRequestedBy && rematchRequestedBy !== myPlayerIndex) {
+      // Opponent requested, so create the new game
+      await createRematchGame();
+    } else {
+      // I'm requesting rematch first
+      await supabase
+        .from('game_sessions')
+        .update({ rematch_requested_by: myPlayerIndex })
+        .eq('id', session.id);
+    }
+  };
+
+  const createRematchGame = async () => {
     // Generate a random 5-character invite code
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let inviteCode = '';
@@ -617,6 +633,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       navigate(`/online/${inviteCode}`);
     }
+  };
+
+  const handleDeclineRematch = () => {
+    navigate('/');
   };
 
   return (
@@ -797,13 +817,40 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 justify-center">
-              <Button onClick={handleRematch} size="lg">
-                🔄 Rematch
-              </Button>
-              <Button onClick={() => navigate('/')} variant="outline" size="lg">
-                Home
-              </Button>
+            <div className="space-y-3">
+              {rematchRequestedBy === myPlayerIndex ? (
+                <div className="text-center space-y-3">
+                  <p className="text-muted-foreground animate-pulse">
+                    ⏳ Waiting for {opponentName} to accept...
+                  </p>
+                  <Button onClick={() => navigate('/')} variant="outline" size="lg">
+                    Home
+                  </Button>
+                </div>
+              ) : rematchRequestedBy && rematchRequestedBy !== myPlayerIndex ? (
+                <div className="text-center space-y-3">
+                  <p className="text-lg font-semibold">
+                    {opponentName} wants a rematch!
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button onClick={handleRematch} size="lg">
+                      ✅ Accept Rematch
+                    </Button>
+                    <Button onClick={handleDeclineRematch} variant="outline" size="lg">
+                      ❌ Decline
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-3 justify-center">
+                  <Button onClick={handleRematch} size="lg">
+                    🔄 Rematch
+                  </Button>
+                  <Button onClick={() => navigate('/')} variant="outline" size="lg">
+                    Home
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
