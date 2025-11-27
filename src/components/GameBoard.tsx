@@ -374,7 +374,7 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
                 className={`
                   w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
-                  ${cell.letter ? 'bg-gradient-primary' : ''}
+                  ${cell.letter ? (isAI ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
                 `}
                 onClick={() => canPlace && placeLetter(rowIndex, colIndex)}
@@ -457,7 +457,14 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       {/* Game Stats and Controls */}
       <div className="grid grid-cols-3 gap-1 sm:gap-2">
         <Card className="p-1 sm:p-2 bg-gradient-card">
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full text-xs h-7 sm:h-8">
+          <Button 
+            onClick={() => {
+              playFeedback('click');
+              navigate('/');
+            }} 
+            variant="outline" 
+            className="w-full text-xs h-7 sm:h-8"
+          >
             Back
           </Button>
         </Card>

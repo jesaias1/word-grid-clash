@@ -349,7 +349,14 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       {/* Game Stats and Controls */}
       <div className="grid grid-cols-3 gap-1 sm:gap-2">
         <Card className="p-1 sm:p-2 bg-gradient-card">
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full text-xs h-7 sm:h-8">
+          <Button 
+            onClick={() => {
+              playFeedback('click');
+              navigate('/');
+            }} 
+            variant="outline" 
+            className="w-full text-xs h-7 sm:h-8"
+          >
             Back
           </Button>
         </Card>
