@@ -26,6 +26,7 @@ export type Database = {
           player1_name: string
           player2_id: string | null
           player2_name: string | null
+          rematch_requested_by: number | null
           status: string
           updated_at: string
           winner_index: number | null
@@ -41,6 +42,7 @@ export type Database = {
           player1_name: string
           player2_id?: string | null
           player2_name?: string | null
+          rematch_requested_by?: number | null
           status?: string
           updated_at?: string
           winner_index?: number | null
@@ -56,6 +58,7 @@ export type Database = {
           player1_name?: string
           player2_id?: string | null
           player2_name?: string | null
+          rematch_requested_by?: number | null
           status?: string
           updated_at?: string
           winner_index?: number | null
