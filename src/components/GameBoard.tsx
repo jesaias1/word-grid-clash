@@ -167,9 +167,45 @@ const GameBoard = ({ boardSize = 5 }: GameBoardProps) => {
       return;
     }
     
-    // Simple AI: pick random cell and letter
-    const cell = availableCells[Math.floor(Math.random() * availableCells.length)];
-    const letter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+    // Medium difficulty AI: 60% strategic, 40% random
+    const useStrategy = Math.random() > 0.4;
+    let cell, letter;
+    
+    if (useStrategy) {
+      // Try to find the best scoring move
+      let bestScore = -1;
+      let bestCell = availableCells[0];
+      let bestLetter = availableLetters[0];
+      
+      // Sample a subset of moves to balance performance and strategy
+      const cellsToCheck = availableCells.slice(0, Math.min(15, availableCells.length));
+      const lettersToCheck = availableLetters.slice(0, Math.min(10, availableLetters.length));
+      
+      for (const testCell of cellsToCheck) {
+        for (const testLetter of lettersToCheck) {
+          const testGrid = aiGrid.map(row => row.map(cell => ({ ...cell })));
+          testGrid[testCell.row][testCell.col] = { letter: testLetter };
+          
+          const gridForScoring = testGrid.map(row => row.map(cell => cell.letter || ''));
+          const result = calculateScore(gridForScoring, SCORE_OPTS());
+          
+          // Prefer moves that increase score
+          const scoreDiff = result.score - aiScore;
+          if (scoreDiff > bestScore) {
+            bestScore = scoreDiff;
+            bestCell = testCell;
+            bestLetter = testLetter;
+          }
+        }
+      }
+      
+      cell = bestCell;
+      letter = bestLetter;
+    } else {
+      // Random move (40% of the time)
+      cell = availableCells[Math.floor(Math.random() * availableCells.length)];
+      letter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+    }
     
     const newGrid = aiGrid.map(row => row.map(cell => ({ ...cell })));
     newGrid[cell.row][cell.col] = { letter };
