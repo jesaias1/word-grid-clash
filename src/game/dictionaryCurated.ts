@@ -84,9 +84,10 @@ const COMMON_ABBRS = new Set([
 const BAD_RX = [
   /[A-Z]{4,}[^AEIOUY]{4,}/,  // 4+ consonants cluster
   /[QXJ]{2,}/,               // doubled rare letters
-  /^[BCDFGHJKLMNPQRSTVWXYZ]{3,}$/,  // 3+ letter words with no vowels (except Y)
+  /^[BCDFGHJKLMNPQRSTVWXYZ]{3}$/,  // 3-letter words with no vowels at all
   /^[BCDFGHJKLMNPQRSTVWXYZ]{4,}$/,  // 4+ letter words with no vowels
   /(.)\1{2,}/,               // 3+ repeated letters (like AAA, BBB)
+  /^[A-Z]{2}[BCDFGHJKLMNPQRSTVWXYZ]$/,  // 3-letter ending in consonant with no vowels (like ANC, EDH)
 ];
 
 const FALLBACK_SEED = [
@@ -127,7 +128,8 @@ function curate(raw: Set<string>, allow: Set<string>, block: Set<string>): Set<s
   for (const w of raw) {
     if (isBlocked(w)) continue;
     if (w.length === 2) { if (A2.has(w) || allow.has(w)) out.add(w); continue; }
-    if (w.length === 3) { if (A3.has(w) || raw.has(w) || allow.has(w)) out.add(w); continue; }
+    // For 3-letter words, ONLY accept from whitelist or manual allow (not from raw dictionary)
+    if (w.length === 3) { if (A3.has(w) || allow.has(w)) out.add(w); continue; }
     // 4+ must be in popular list or manually allowed
     if (raw.has(w) || allow.has(w)) out.add(w);
   }
