@@ -4,15 +4,15 @@ import GameBoard from '@/components/GameBoard';
 import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import TutorialMode from '@/components/TutorialMode';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Users, ArrowLeft } from 'lucide-react';
 
-type GameMode = 'menu' | 'local' | 'local-multiplayer-2' | 'local-multiplayer-3';
+type GameMode = 'menu' | 'local' | 'local-multiplayer-select' | 'local-multiplayer';
 
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
+  const [localPlayerCount, setLocalPlayerCount] = useState<number>(2);
   const [showTutorial, setShowTutorial] = useState(false);
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
@@ -31,6 +31,52 @@ const Index = () => {
   const handleBackToMenu = () => {
     setGameMode('menu');
   };
+
+  // Player count selection screen
+  if (gameMode === 'local-multiplayer-select') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-6 max-w-md w-full animate-fade-in">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Users className="w-10 h-10 text-primary" />
+            <h1 className="text-3xl font-bold">Local Multiplayer</h1>
+          </div>
+          
+          <p className="text-muted-foreground">How many players?</p>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {[2, 3, 4, 5].map((count) => (
+              <Button
+                key={count}
+                onClick={() => {
+                  playFeedback('click');
+                  setLocalPlayerCount(count);
+                  setGameMode('local-multiplayer');
+                }}
+                size="lg"
+                variant="secondary"
+                className="h-20 text-xl font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105"
+              >
+                {count} Players
+              </Button>
+            ))}
+          </div>
+          
+          <Button
+            onClick={() => {
+              playFeedback('click');
+              setGameMode('menu');
+            }}
+            variant="outline"
+            className="mt-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Menu
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Menu screen
   if (gameMode === 'menu') {
@@ -74,24 +120,14 @@ const Index = () => {
             <Button 
               onClick={() => {
                 playFeedback('click');
-                setGameMode('local-multiplayer-2');
+                setGameMode('local-multiplayer-select');
               }}
               size="lg" 
-              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up col-span-2"
               variant="secondary"
             >
-              2 Player Local
-            </Button>
-            <Button 
-              onClick={() => {
-                playFeedback('click');
-                setGameMode('local-multiplayer-3');
-              }}
-              size="lg" 
-              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-              variant="secondary"
-            >
-              3 Player Local
+              <Users className="w-5 h-5 mr-2" />
+              Local Multiplayer (2-5 Players)
             </Button>
           </div>
 
@@ -131,14 +167,9 @@ const Index = () => {
     return <GameBoard boardSize={boardSize} onBackToMenu={handleBackToMenu} />;
   }
 
-  // Local 2-player game
-  if (gameMode === 'local-multiplayer-2') {
-    return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={2} cooldownTurns={cooldownTurns} />;
-  }
-
-  // Local 3-player game
-  if (gameMode === 'local-multiplayer-3') {
-    return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={3} cooldownTurns={cooldownTurns} />;
+  // Local multiplayer game (2-5 players)
+  if (gameMode === 'local-multiplayer') {
+    return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={localPlayerCount} cooldownTurns={cooldownTurns} />;
   }
 
   return <GameBoard boardSize={boardSize} onBackToMenu={handleBackToMenu} />;
