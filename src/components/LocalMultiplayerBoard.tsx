@@ -582,7 +582,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
             <div className="flex gap-3 justify-center">
               <Button onClick={handlePlayAgain} size="lg">
-                🔄 Play Again
+                ⚡ Quick Rematch
               </Button>
               <Button onClick={() => {
                 setShowVictoryDialog(false);
