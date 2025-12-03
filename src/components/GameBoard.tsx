@@ -97,9 +97,33 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isMyTurn, showVictoryDialog, gameEnded, playerCooldowns, aiCooldowns, playFeedback]);
 
+  // Helper functions for board-full detection
+  const isPlayerGridFull = playerGrid.every(row => row.every(cell => cell.letter !== null));
+  const isAIGridFull = aiGrid.every(row => row.every(cell => cell.letter !== null));
+
   // Turn timer
   useEffect(() => {
     if (gameEnded) return;
+
+    // Skip turn if current player's grid is full
+    if (currentPlayer === 1 && isPlayerGridFull) {
+      if (isAIGridFull) {
+        endGame();
+      } else {
+        setCurrentPlayer(2);
+        setTurnTimeRemaining(TURN_TIME_LIMIT);
+      }
+      return;
+    }
+    if (currentPlayer === 2 && isAIGridFull) {
+      if (isPlayerGridFull) {
+        endGame();
+      } else {
+        setCurrentPlayer(1);
+        setTurnTimeRemaining(TURN_TIME_LIMIT);
+      }
+      return;
+    }
 
     const timer = setInterval(() => {
       setTurnTimeRemaining(prev => {
@@ -115,11 +139,17 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentPlayer, gameEnded]);
+  }, [currentPlayer, gameEnded, playerGrid, aiGrid]);
 
   // AI turn logic
   useEffect(() => {
     if (currentPlayer === 2 && !gameEnded) {
+      // Skip AI turn if its grid is full
+      const aiFull = aiGrid.every(row => row.every(cell => cell.letter !== null));
+      if (aiFull) {
+        return; // Will be handled by the turn timer effect
+      }
+      
       const aiDelay = Math.random() * 1500 + 3000; // 3-4.5 seconds thinking time
       const timer = setTimeout(() => {
         makeAIMove();
@@ -127,7 +157,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       
       return () => clearTimeout(timer);
     }
-  }, [currentPlayer, gameEnded]);
+  }, [currentPlayer, gameEnded, aiGrid]);
 
   const handleTurnTimeout = () => {
     if (currentPlayer === 1) {
