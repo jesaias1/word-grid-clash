@@ -24,7 +24,7 @@ const isGridFull = (grid: Grid): boolean =>
   grid.every(row => row.every(cell => cell.letter !== null));
 
 const TURN_TIME_LIMIT = 30; // 30 seconds per turn
-const WARNING_THRESHOLD = 10; // Show warning at 10 seconds
+const WARNING_THRESHOLD = 5; // Show warning at 5 seconds
 
 const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ sessionId }) => {
   const { toast } = useToast();

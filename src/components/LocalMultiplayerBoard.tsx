@@ -73,6 +73,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
   const [playerWords, setPlayerWords] = useState<string[][]>(Array(playerCount).fill(null).map(() => []));
   const [winner, setWinner] = useState<Player | null>(null);
+  const [showTurnTransition, setShowTurnTransition] = useState(false);
+  const [transitionToPlayer, setTransitionToPlayer] = useState<number | null>(null);
 
   // Keyboard support
   useEffect(() => {
@@ -131,8 +133,15 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         }
         setTimeout(() => setShowVictoryDialog(true), 500);
       } else {
-        setCurrentPlayer(nextPlayer);
-        setTurnTimeRemaining(TURN_TIME_LIMIT);
+        // Show turn transition animation
+        setTransitionToPlayer(nextPlayer);
+        setShowTurnTransition(true);
+        setTimeout(() => {
+          setShowTurnTransition(false);
+          setTransitionToPlayer(null);
+          setCurrentPlayer(nextPlayer);
+          setTurnTimeRemaining(TURN_TIME_LIMIT);
+        }, 1200);
       }
       return;
     }
@@ -172,8 +181,15 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       }
       setTimeout(() => setShowVictoryDialog(true), 500);
     } else {
-      setCurrentPlayer(nextPlayer);
-      setTurnTimeRemaining(TURN_TIME_LIMIT);
+      // Show turn transition animation
+      setTransitionToPlayer(nextPlayer);
+      setShowTurnTransition(true);
+      setTimeout(() => {
+        setShowTurnTransition(false);
+        setTransitionToPlayer(null);
+        setCurrentPlayer(nextPlayer);
+        setTurnTimeRemaining(TURN_TIME_LIMIT);
+      }, 1200);
     }
   };
 
@@ -192,6 +208,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     setTurnTimeRemaining(TURN_TIME_LIMIT);
     setPlayerWords(Array(playerCount).fill(null).map(() => []));
     setWinner(null);
+    setShowTurnTransition(false);
+    setTransitionToPlayer(null);
   };
 
   const placeLetter = (playerIndex: number, row: number, col: number) => {
@@ -276,9 +294,16 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       
       setTimeout(() => setShowVictoryDialog(true), 500);
     } else {
-      setCurrentPlayer(nextPlayer);
-      setTurnTimeRemaining(TURN_TIME_LIMIT);
+      // Show turn transition animation
+      setTransitionToPlayer(nextPlayer);
+      setShowTurnTransition(true);
       playFeedback('turnChange');
+      setTimeout(() => {
+        setShowTurnTransition(false);
+        setTransitionToPlayer(null);
+        setCurrentPlayer(nextPlayer);
+        setTurnTimeRemaining(TURN_TIME_LIMIT);
+      }, 1200);
     }
   };
 
@@ -538,6 +563,29 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           })}
         </div>
       </div>
+
+      {/* Turn Transition Overlay */}
+      {showTurnTransition && transitionToPlayer && (
+        <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+          <div className="text-center space-y-4 animate-scale-in">
+            <div className="text-6xl font-bold text-primary animate-pulse">
+              Player {transitionToPlayer}
+            </div>
+            <div className="text-2xl text-muted-foreground">
+              Your turn!
+            </div>
+            <div className="flex justify-center gap-2">
+              {[0, 1, 2].map((i) => (
+                <div 
+                  key={i}
+                  className="w-3 h-3 bg-primary rounded-full animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Victory Dialog */}
       <Dialog open={showVictoryDialog} onOpenChange={setShowVictoryDialog}>
