@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { loadDictionary } from '@/lib/dictionary';
+import { getDictionary } from '@/game/dictionary';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -173,7 +173,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   };
 
   const makeAIMove = async () => {
-    const dict = await loadDictionary();
+    const dict = getDictionary();
     const availableCells: Array<{row: number, col: number}> = [];
     
     for (let row = 0; row < boardSize; row++) {
