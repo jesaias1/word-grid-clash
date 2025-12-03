@@ -419,7 +419,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   const getPlayerColor = (index: number) => {
-    const colors = ['text-player-1', 'text-player-2', 'text-player-3'];
+    const colors = ['text-player-1', 'text-player-2', 'text-player-3', 'text-player-4', 'text-player-5'];
     return colors[index] || 'text-player-1';
   };
 
@@ -427,7 +427,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const activeColors = [
       'bg-player-1/20 border-2 border-player-1/30',
       'bg-player-2/20 border-2 border-player-2/30',
-      'bg-player-3/20 border-2 border-player-3/30'
+      'bg-player-3/20 border-2 border-player-3/30',
+      'bg-player-4/20 border-2 border-player-4/30',
+      'bg-player-5/20 border-2 border-player-5/30'
     ];
     return isActive 
       ? `${activeColors[index] || activeColors[0]} scale-105 animate-fade-in`
