@@ -95,9 +95,47 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [showVictoryDialog, gameEnded, cooldowns, playFeedback]);
 
+  // Check if a player's grid is full
+  const isPlayerGridFull = (playerIndex: number, gridState: Grid[] = grids) => {
+    return gridState[playerIndex].every(row => row.every(cell => cell.letter !== null));
+  };
+
+  // Find next player who can still play
+  const getNextActivePlayer = (fromPlayer: number, gridState: Grid[] = grids): number | null => {
+    for (let i = 0; i < playerCount; i++) {
+      const nextPlayer = ((fromPlayer - 1 + i) % playerCount) + 1;
+      if (!isPlayerGridFull(nextPlayer - 1, gridState)) {
+        return nextPlayer;
+      }
+    }
+    return null; // All players' boards are full
+  };
+
   // Turn timer
   useEffect(() => {
     if (gameEnded) return;
+
+    // Skip turn immediately if current player's board is full
+    if (isPlayerGridFull(currentPlayer - 1)) {
+      const nextPlayer = getNextActivePlayer(currentPlayer + 1);
+      if (nextPlayer === null) {
+        // All boards full - end game
+        setGameEnded(true);
+        playFeedback('gameEnd');
+        const maxScore = Math.max(...scores);
+        const winnersCount = scores.filter(s => s === maxScore).length;
+        if (winnersCount === 1) {
+          const winnerIdx = scores.indexOf(maxScore);
+          setWinner(winnerIdx + 1);
+          celebrate();
+        }
+        setTimeout(() => setShowVictoryDialog(true), 500);
+      } else {
+        setCurrentPlayer(nextPlayer);
+        setTurnTimeRemaining(TURN_TIME_LIMIT);
+      }
+      return;
+    }
 
     const timer = setInterval(() => {
       setTurnTimeRemaining(prev => {
@@ -113,16 +151,30 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentPlayer, gameEnded]);
+  }, [currentPlayer, gameEnded, grids]);
 
   const handleTurnTimeout = () => {
     const newScores = [...scores];
     newScores[currentPlayer - 1] = Math.max(0, scores[currentPlayer - 1] - 5);
     setScores(newScores);
     
-    const nextPlayer = currentPlayer === playerCount ? 1 : currentPlayer + 1;
-    setCurrentPlayer(nextPlayer);
-    setTurnTimeRemaining(TURN_TIME_LIMIT);
+    const nextPlayer = getNextActivePlayer(currentPlayer + 1);
+    if (nextPlayer === null) {
+      // All boards full
+      setGameEnded(true);
+      playFeedback('gameEnd');
+      const maxScore = Math.max(...newScores);
+      const winnersCount = newScores.filter(s => s === maxScore).length;
+      if (winnersCount === 1) {
+        const winnerIdx = newScores.indexOf(maxScore);
+        setWinner(winnerIdx + 1);
+        celebrate();
+      }
+      setTimeout(() => setShowVictoryDialog(true), 500);
+    } else {
+      setCurrentPlayer(nextPlayer);
+      setTurnTimeRemaining(TURN_TIME_LIMIT);
+    }
   };
 
   const handlePlayAgain = () => {
@@ -205,12 +257,11 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     setCooldowns(newCooldowns);
     setSelectedLetter(null);
     
-    // Check if game ended
-    const allGridsFull = newGrids.every(grid => 
-      grid.every(row => row.every(cell => cell.letter !== null))
-    );
+    // Check if game ended - find next active player
+    const nextPlayer = getNextActivePlayer(currentPlayer + 1, newGrids);
     
-    if (allGridsFull) {
+    if (nextPlayer === null) {
+      // All boards full - game over
       setGameEnded(true);
       playFeedback('gameEnd');
       
@@ -225,7 +276,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       
       setTimeout(() => setShowVictoryDialog(true), 500);
     } else {
-      const nextPlayer = currentPlayer === playerCount ? 1 : currentPlayer + 1;
       setCurrentPlayer(nextPlayer);
       setTurnTimeRemaining(TURN_TIME_LIMIT);
       playFeedback('turnChange');
