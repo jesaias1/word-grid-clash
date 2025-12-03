@@ -13,9 +13,10 @@ interface TutorialStep {
 
 interface TutorialModeProps {
   onComplete: () => void;
+  forceOpen?: boolean; // When true, bypass localStorage check
 }
 
-const TutorialMode = ({ onComplete }: TutorialModeProps) => {
+const TutorialMode = ({ onComplete, forceOpen = false }: TutorialModeProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isOpen, setIsOpen] = useState(true);
   const [tutorialGrid, setTutorialGrid] = useState<(string | null)[][]>([
@@ -28,14 +29,15 @@ const TutorialMode = ({ onComplete }: TutorialModeProps) => {
   const [selectedLetter, setSelectedLetter] = useState<string>('');
   const [placedLetters, setPlacedLetters] = useState<Set<string>>(new Set());
 
-  // Check if tutorial was already completed
+  // Check if tutorial was already completed (skip check if forceOpen)
   useEffect(() => {
+    if (forceOpen) return; // Don't auto-close if manually opened
     const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
     if (hasSeenTutorial === 'true') {
       setIsOpen(false);
       onComplete();
     }
-  }, []);
+  }, [forceOpen]);
 
   const tutorialSteps: TutorialStep[] = [
     {

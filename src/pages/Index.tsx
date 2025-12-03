@@ -87,6 +87,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center p-2 py-2">
         {showTutorial && (
           <TutorialMode
+            forceOpen={true}
             onComplete={() => {
               setShowTutorial(false);
               trackTutorial('complete');
