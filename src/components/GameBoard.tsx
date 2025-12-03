@@ -172,6 +172,23 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
 
+  // Common words the AI prefers to form (realistic play)
+  const commonWords = new Set([
+    'THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'OUT',
+    'DAY', 'GET', 'HAS', 'HIM', 'HIS', 'HOW', 'ITS', 'MAY', 'NEW', 'NOW', 'OLD', 'SEE', 'TWO', 'WHO',
+    'BOY', 'DID', 'LET', 'PUT', 'SAY', 'SHE', 'TOO', 'USE', 'CAT', 'DOG', 'RUN', 'SUN', 'FUN', 'MAN',
+    'BIG', 'RED', 'TOP', 'HAT', 'BAT', 'SAT', 'RAT', 'PAN', 'TAN', 'VAN', 'CUP', 'CUT', 'HUT', 'NUT',
+    'BED', 'PET', 'SET', 'WET', 'YET', 'NET', 'MET', 'PEN', 'TEN', 'HEN', 'MEN', 'DEN', 'BIN', 'PIN',
+    'WIN', 'TIN', 'FIN', 'SIT', 'BIT', 'HIT', 'KIT', 'FIT', 'PIT', 'HOT', 'POT', 'COT', 'DOT', 'GOT',
+    'THAT', 'WITH', 'HAVE', 'THIS', 'WILL', 'YOUR', 'FROM', 'THEY', 'BEEN', 'CALL', 'COME', 'MADE',
+    'FIND', 'JUST', 'OVER', 'TAKE', 'COME', 'MAKE', 'LIKE', 'BACK', 'ONLY', 'GOOD', 'LOOK', 'GIVE',
+    'MOST', 'WANT', 'TIME', 'VERY', 'WHEN', 'THAN', 'SOME', 'INTO', 'YEAR', 'YOUR', 'WORK', 'LIFE',
+    'HAND', 'PART', 'WORD', 'EACH', 'HEAR', 'HARD', 'PLAY', 'FEEL', 'HIGH', 'LAST', 'LONG', 'SAME',
+    'WORLD', 'THINK', 'STILL', 'WOULD', 'AFTER', 'NEVER', 'COULD', 'GREAT', 'BEING', 'THOSE', 'SMALL',
+    'WHERE', 'ABOUT', 'WHICH', 'THEIR', 'THERE', 'FIRST', 'WATER', 'HOUSE', 'EMPTY', 'PLACE', 'WHILE',
+    'EVERY', 'RIGHT', 'NIGHT', 'LIGHT', 'POINT', 'THINK', 'THREE', 'YOUNG', 'YEARS', 'UNDER', 'STORY'
+  ]);
+
   const makeAIMove = async () => {
     const dict = getDictionary();
     const availableCells: Array<{row: number, col: number}> = [];
@@ -205,8 +222,9 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     let cell, letter;
     
     if (useStrategy) {
-      // Try to find the best scoring move
+      // Try to find the best scoring move, preferring common words
       let bestScore = -1;
+      let bestCommonBonus = 0;
       let bestCell = availableCells[0];
       let bestLetter = availableLetters[0];
       
@@ -222,10 +240,18 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
           const gridForScoring = testGrid.map(row => row.map(cell => cell.letter || ''));
           const result = calculateScore(gridForScoring, SCORE_OPTS());
           
-          // Prefer moves that increase score
+          // Calculate bonus for forming common words (AI prefers realistic words)
+          const commonBonus = result.words.filter(w => commonWords.has(w.text)).length * 5;
+          
+          // Prefer moves that increase score, with bonus for common words
           const scoreDiff = result.score - aiScore;
-          if (scoreDiff > bestScore) {
+          const totalScore = scoreDiff + commonBonus;
+          
+          // Prefer common words even with slightly lower score
+          if (totalScore > bestScore + bestCommonBonus || 
+              (totalScore === bestScore + bestCommonBonus && commonBonus > bestCommonBonus)) {
             bestScore = scoreDiff;
+            bestCommonBonus = commonBonus;
             bestCell = testCell;
             bestLetter = testLetter;
           }
