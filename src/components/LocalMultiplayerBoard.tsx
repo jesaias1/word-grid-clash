@@ -325,14 +325,29 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             const playerColors = [
               'bg-gradient-player-1',
               'bg-gradient-player-2', 
-              'bg-gradient-player-3'
+              'bg-gradient-player-3',
+              'bg-gradient-player-4',
+              'bg-gradient-player-5'
             ];
+            
+            // Responsive cell sizes based on player count
+            const cellSize = playerCount >= 4 
+              ? 'w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8'
+              : playerCount === 3 
+                ? 'w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10' 
+                : 'w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12';
+            
+            const fontSize = playerCount >= 4
+              ? 'text-[8px] sm:text-[10px] md:text-xs'
+              : playerCount === 3
+                ? 'text-[10px] sm:text-xs md:text-sm'
+                : 'text-xs sm:text-base md:text-lg';
             
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
                 className={`
-                  ${playerCount === 3 ? 'w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10' : 'w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12'} cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
+                  ${cellSize} cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? playerColors[playerIndex] || 'bg-gradient-primary' : ''}
                   ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -340,7 +355,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                 onClick={() => canPlace && placeLetter(playerIndex, rowIndex, colIndex)}
               >
                 {cell.letter && (
-                  <span className={`font-bold ${playerCount === 3 ? 'text-[10px] sm:text-xs md:text-sm' : 'text-xs sm:text-base md:text-lg'} drop-shadow-lg text-white`}>
+                  <span className={`font-bold ${fontSize} drop-shadow-lg text-white`}>
                     {cell.letter}
                   </span>
                 )}
@@ -550,13 +565,13 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         )}
 
         {/* Grids */}
-        <div className={`flex ${playerCount === 3 ? 'flex-wrap justify-center' : 'flex-row justify-center items-start'} gap-1 sm:gap-2 md:gap-3 w-full`}>
+        <div className={`flex flex-wrap justify-center items-start gap-1 sm:gap-2 md:gap-3 w-full`}>
           {grids.map((_, idx) => {
             const isActive = currentPlayer === idx + 1;
             return (
               <div key={idx} className={`flex flex-col items-center transition-all duration-500 ${
                 isActive && !gameEnded ? 'scale-102 animate-fade-in' : 'opacity-90'
-              } ${playerCount === 3 ? 'w-auto' : ''}`}>
+              }`}>
                 {renderGrid(idx)}
               </div>
             );
@@ -609,14 +624,14 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               ))}
             </div>
 
-            <div className={`grid ${playerCount === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+            <div className={`grid ${playerCount >= 4 ? 'grid-cols-2 sm:grid-cols-3' : playerCount === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
               {playerWords.map((words, idx) => (
                 <div key={idx}>
-                  <h3 className="font-semibold mb-2 text-center">Player {idx + 1}'s Words</h3>
-                  <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                  <h3 className="font-semibold mb-2 text-center text-sm">Player {idx + 1}'s Words</h3>
+                  <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
                     {words.length > 0 ? (
                       words.map((word, wIdx) => (
-                        <div key={wIdx} className="text-sm bg-accent/50 rounded px-2 py-1">
+                        <div key={wIdx} className="text-xs bg-accent/50 rounded px-2 py-1">
                           {word} <span className="text-muted-foreground">({word.length})</span>
                         </div>
                       ))

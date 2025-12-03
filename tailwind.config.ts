@@ -59,9 +59,13 @@ export default {
 				'player-1': 'hsl(var(--player-1))',
 				'player-2': 'hsl(var(--player-2))',
 				'player-3': 'hsl(var(--player-3))',
+				'player-4': 'hsl(var(--player-4))',
+				'player-5': 'hsl(var(--player-5))',
 				'player-1-secondary': 'hsl(var(--player-1-secondary))',
 				'player-2-secondary': 'hsl(var(--player-2-secondary))',
 				'player-3-secondary': 'hsl(var(--player-3-secondary))',
+				'player-4-secondary': 'hsl(var(--player-4-secondary))',
+				'player-5-secondary': 'hsl(var(--player-5-secondary))',
 				'score-glow': 'hsl(var(--score-glow))'
 			},
 			backgroundImage: {
@@ -69,6 +73,8 @@ export default {
 				'gradient-player-1': 'var(--gradient-player-1)',
 				'gradient-player-2': 'var(--gradient-player-2)',
 				'gradient-player-3': 'var(--gradient-player-3)',
+				'gradient-player-4': 'var(--gradient-player-4)',
+				'gradient-player-5': 'var(--gradient-player-5)',
 				'gradient-accent': 'var(--gradient-accent)',
 				'gradient-card': 'var(--gradient-card)',
 				'gradient-background': 'var(--gradient-background)'
