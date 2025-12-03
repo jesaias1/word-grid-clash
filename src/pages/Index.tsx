@@ -6,6 +6,7 @@ import TutorialMode from '@/components/TutorialMode';
 import { Button } from '@/components/ui/button';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import { GraduationCap, Users, ArrowLeft } from 'lucide-react';
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer-select' | 'local-multiplayer';
@@ -16,6 +17,7 @@ const Index = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
+  const { trackGameStart, trackTutorial } = useAnalytics();
   
   const boardSize = 5;
   const cooldownTurns = 4;
@@ -50,6 +52,7 @@ const Index = () => {
                 key={count}
                 onClick={() => {
                   playFeedback('click');
+                  trackGameStart('local-multiplayer', count);
                   setLocalPlayerCount(count);
                   setGameMode('local-multiplayer');
                 }}
@@ -86,6 +89,7 @@ const Index = () => {
           <TutorialMode
             onComplete={() => {
               setShowTutorial(false);
+              trackTutorial('complete');
               localStorage.setItem('hasSeenTutorial', 'true');
             }}
           />
@@ -99,6 +103,7 @@ const Index = () => {
             <Button 
               onClick={() => {
                 playFeedback('click');
+                trackGameStart('solo');
                 setGameMode('local');
               }}
               size="lg" 
