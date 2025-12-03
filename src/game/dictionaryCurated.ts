@@ -61,24 +61,44 @@ const BAD_SUFFIX = [
 
 // Common abbreviations and technical terms to block
 const COMMON_ABBRS = new Set([
+  // Tech abbreviations
   'TTY','AET','KEB','CPU','GPU','RAM','ROM','USB','DVD','LCD','LED','HDMI','API','URL',
   'HTML','CSS','JSON','XML','SQL','HTTP','FTP','SSH','TCP','UDP','VPN','DNS','SMTP',
   'PDF','ZIP','RAR','EXE','DLL','SYS','BAT','CMD','TXT','DOC','XLS','PPT',
-  'CEO','CFO','CTO','COO','CIO','EVP','SVP','VIP','CEO','MBA','PhD','MD','RN','PA',
-  'FBI','CIA','NSA','IRS','EPA','FDA','NASA','NATO','UN','EU','UK','US','USA',
+  // Corporate/Title abbreviations
+  'CEO','CFO','CTO','COO','CIO','EVP','SVP','VIP','MBA','PHD','RN',
+  'FBI','CIA','NSA','IRS','EPA','FDA','NASA','NATO',
+  // Time abbreviations
   'GMT','UTC','EST','PST','CST','MST','PDT','EDT','CDT','MDT',
-  'JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC',
-  'MON','TUE','WED','THU','FRI','SAT','SUN',
-  'AM','PM','BC','AD','CE','BCE',
-  'ETC','IE','EG','VS','VIA','ASAP','RSVP','FAQ','TBD','TBA','TBC',
+  'JAN','FEB','MAR','APR','JUN','JUL','AUG','SEP','OCT','NOV','DEC',
+  'MON','TUE','THU','FRI',
+  'BCE',
+  // Common abbreviations
+  'ETC','ASAP','RSVP','FAQ','TBD','TBA','TBC',
   'FYI','BTW','IMO','IMHO','LOL','OMG','WTF','BRB','AFK','IDK',
-  // Additional nonsense/abbreviations
+  // Scrabble-only / obscure words
   'QI','XI','XU','QAT','QOPH','QADI','QAID','QANAT','QWERTY','ZZZ','ZZS',
-  'AA','BB','CC','DD','EE','FF','GG','HH','II','JJ','KK','LL','MM','NN','OO','PP','QQ','RR','SS','TT','UU','VV','WW','XX','YY','ZZ',
-  'AAHS','AALS','BRR','CWM','HMM','MMM','PST','SHH','TSK','UGH','UMM','ZZZ',
-  'JNR','SNR','MRS','MR','MS','DR','ST','AVE','BLVD','RD','LN','CT','PL','SQ','TER',
-  'KG','KM','CM','MM','ML','MG','LB','OZ','FT','YD','MI','MPH','KPH',
-  'ATM','PIN','SIM','SMS','MMS','GPS','NFC','WIFI','CDMA','GSM',
+  // Double letters (not words)
+  'AA','BB','CC','DD','EE','FF','GG','HH','II','JJ','KK','LL','NN','OO','PP','QQ','RR','SS','TT','UU','VV','WW','XX','YY','ZZ',
+  // Sounds/Noises that aren't real words  
+  'AAHS','AALS','BRR','CWM','HMM','MMM','SHH','TSK','UMM',
+  'AAL','AAH','AAR','AAS','AAU','AHI','AHS','AIA','AIN','AIS','AIT',
+  'ABB','ABY','ACH','ADZ','AFF','AGA','AGS','ALF','ALS','AMA','AMI',
+  'AMU','ANA','ANE','APO','ARB','ARD','ARF','ARS','AVA','AVO','AWA',
+  'AWL','AWN','AYS','AZO','BAA','BAH','BAM','BAP','BAS','BEL','BEN',
+  'BES','BEY','BIS','BIZ','BOD','BOP','BOS','BRO','BUB','BUP','BYS',
+  // Measurements (abbreviations)
+  'KG','KM','CM','ML','MG','LB','OZ','YD','MPH','KPH',
+  // Tech terms (abbreviations)
+  'ATM','SIM','SMS','MMS','NFC','WIFI','CDMA','GSM',
+  // Common sounds/interjections
+  'EEK','EEW','GAH','GRR','HEH','HUH','MEH','NAH',
+  'OOH','OOF','OOO','OPE','OWW','PAH','POO','RAH',
+  'SSS','TUT','UHH','WAH','YAH','YEP','YUK','YUP',
+  // Currency abbreviations
+  'USD','EUR','GBP','JPY','CNY','INR','AUD','CAD',
+  // Other abbreviations
+  'BPM','RPM','JNR','SNR','MRS','BLVD','TER',
 ]);
 
 const BAD_RX = [
@@ -87,6 +107,7 @@ const BAD_RX = [
   /^[BCDFGHJKLMNPQRSTVWXYZ]{3}$/,  // 3-letter words with no vowels at all
   /^[BCDFGHJKLMNPQRSTVWXYZ]{4,}$/,  // 4+ letter words with no vowels
   /(.)\1{2,}/,               // 3+ repeated letters (like AAA, BBB)
+  /^[A-Z]{2}S$/,             // 2-letter word + S (like AAS, OOS)
 ];
 
 const FALLBACK_SEED = [
