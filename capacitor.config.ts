@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.7070d062099f4326907f1d9c30324f1c',
+  appId: 'app.lettus.game',
   appName: 'Lettus',
   webDir: 'dist',
   server: {
