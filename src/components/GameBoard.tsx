@@ -503,10 +503,10 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   };
 
   return (
-    <div className="min-h-screen p-0.5 sm:p-1 md:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col">
+    <div className="h-screen p-1 sm:p-2 md:p-4 max-w-7xl mx-auto flex flex-col justify-between overflow-hidden">
       {/* Header */}
-      <div className="text-center mb-0">
-        <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+      <div className="text-center">
+        <h1 className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - Solo Game
         </h1>
       </div>
@@ -566,7 +566,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       )}
 
       {/* Game Grids */}
-      <div className="flex flex-col items-center gap-0">
+      <div className="flex flex-col items-center gap-0 flex-1 justify-center">
         <div className="flex justify-center items-center gap-1 sm:gap-2 w-full max-w-2xl mb-0.5 sm:mb-1">
           <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${
             isMyTurn 
