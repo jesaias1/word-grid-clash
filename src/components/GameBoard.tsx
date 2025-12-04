@@ -503,7 +503,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   };
 
   return (
-    <div className="h-screen p-1 sm:p-2 md:p-4 max-w-7xl mx-auto flex flex-col justify-between overflow-hidden">
+    <div className="h-screen p-1 sm:p-2 md:p-4 pt-safe max-w-7xl mx-auto flex flex-col justify-between overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
       <div className="text-center">
         <h1 className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">

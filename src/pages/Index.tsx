@@ -37,7 +37,7 @@ const Index = () => {
   // Player count selection screen
   if (gameMode === 'local-multiplayer-select') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}>
         <div className="text-center space-y-6 max-w-md w-full animate-fade-in">
           <div className="flex items-center justify-center gap-3 mb-6">
             <Users className="w-10 h-10 text-primary" />
@@ -84,7 +84,7 @@ const Index = () => {
   // Menu screen
   if (gameMode === 'menu') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-2 py-2">
+      <div className="min-h-screen flex items-center justify-center p-2 py-2" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
         {showTutorial && (
           <TutorialMode
             forceOpen={true}
