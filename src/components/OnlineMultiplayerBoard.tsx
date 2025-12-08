@@ -457,7 +457,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
                 disabled={isOpponent || !canPlace}
                 className={`
-                  w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  w-[11vw] h-[11vw] max-w-10 max-h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -777,66 +777,53 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       )}
 
       {/* Game Grids */}
-      <div className="flex flex-col items-center gap-0">
-        {/* Player cards with timer in the middle */}
-        <div className="flex justify-center items-center gap-1 sm:gap-2 w-full max-w-2xl mb-0.5 sm:mb-1">
-          {/* You */}
-          <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${
-            isMyTurn 
-              ? 'bg-player-1/20 border-2 border-player-1/30 scale-105 animate-fade-in' 
-              : 'bg-card/80 border border-border opacity-70'
-          }`}>
-            <div className="text-xs sm:text-sm font-bold text-player-1 truncate">{myName}</div>
-            <div className="text-base sm:text-xl md:text-2xl font-bold score-glow">{myScore}</div>
-          </div>
-
-          {/* Timer */}
-          {session.status === 'playing' && (
-            <Card className={`p-0.5 sm:p-1 md:p-2 shadow-lg border-2 transition-all min-w-[50px] ${
-              isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD
-                ? 'border-destructive bg-destructive/10 animate-pulse' 
-                : 'border-primary bg-primary/5'
+      <div className="flex flex-col items-center gap-1 flex-1 overflow-hidden">
+        {/* Your Board */}
+        <div className="flex flex-col items-center w-full">
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${
+              isMyTurn 
+                ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
+                : 'bg-card/80 border border-border opacity-70'
             }`}>
-              <div className="text-center">
-                <div className={`text-base sm:text-xl md:text-2xl font-bold ${
-                  isMyTurn && turnTimeRemaining <= WARNING_THRESHOLD 
-                    ? 'text-destructive' 
-                    : 'text-primary'
-                }`}>
-                  {turnTimeRemaining}s
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* VS text when game ended */}
-          {session.status === 'finished' && (
-            <div className="flex items-center justify-center px-2">
-              <div className="text-base sm:text-xl md:text-2xl font-bold text-muted-foreground">VS</div>
+              <div className="text-xs font-bold text-player-1 truncate max-w-[100px]">{myName}: {myScore}</div>
             </div>
-          )}
-
-          {/* Opponent */}
-          <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${
-            !isMyTurn && session.status === 'playing'
-              ? 'bg-player-2/20 border-2 border-player-2/30 scale-105 animate-fade-in' 
-              : 'bg-card/80 border border-border opacity-70'
-          }`}>
-            <div className="text-xs sm:text-sm font-bold text-player-2 truncate">{opponentName}</div>
-            <div className="text-base sm:text-xl md:text-2xl font-bold score-glow">{opponentScore}</div>
+            {session.status === 'playing' && isMyTurn && (
+              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm ${
+                turnTimeRemaining <= WARNING_THRESHOLD
+                  ? 'bg-destructive/20 text-destructive animate-pulse' 
+                  : 'bg-primary/20 text-primary'
+              }`}>
+                {turnTimeRemaining}s
+              </div>
+            )}
+          </div>
+          <div className={`transition-all duration-500 ${isMyTurn ? 'scale-100' : 'opacity-80 scale-95'}`}>
+            {renderGrid(false)}
           </div>
         </div>
 
-        {/* Grids - side by side on all screens */}
-        <div className="flex flex-row justify-center items-start gap-1 sm:gap-2 md:gap-3 w-full">
-          <div className={`flex flex-col items-center transition-all duration-500 ${
-            isMyTurn ? 'scale-102 animate-fade-in' : 'opacity-90'
-          }`}>
-            {renderGrid(false)}
+        {/* Opponent Board */}
+        <div className="flex flex-col items-center w-full">
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${
+              !isMyTurn && session.status === 'playing'
+                ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
+                : 'bg-card/80 border border-border opacity-70'
+            }`}>
+              <div className="text-xs font-bold text-player-2 truncate max-w-[100px]">{opponentName}: {opponentScore}</div>
+            </div>
+            {session.status === 'playing' && !isMyTurn && (
+              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm ${
+                turnTimeRemaining <= WARNING_THRESHOLD
+                  ? 'bg-destructive/20 text-destructive animate-pulse' 
+                  : 'bg-primary/20 text-primary'
+              }`}>
+                {turnTimeRemaining}s
+              </div>
+            )}
           </div>
-          <div className={`flex flex-col items-center transition-all duration-500 ${
-            !isMyTurn && session.status === 'playing' ? 'scale-102 animate-fade-in' : 'opacity-90'
-          }`}>
+          <div className={`transition-all duration-500 ${!isMyTurn && session.status === 'playing' ? 'scale-100' : 'opacity-80 scale-95'}`}>
             {renderGrid(true)}
           </div>
         </div>
