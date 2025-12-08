@@ -414,6 +414,21 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       })
       .eq('id', myState.id);
 
+    // Record this move for replay
+    const totalMoves = (myState.turn_number || 0) + (opponentState?.turn_number || 0);
+    await supabase
+      .from('game_moves')
+      .insert({
+        session_id: sessionId,
+        player_index: myPlayerIndex,
+        move_number: totalMoves + 1,
+        letter: selectedLetter,
+        position_row: row,
+        position_col: col,
+        words_formed: newWordTexts,
+        points_scored: newScore
+      });
+
     const nextPlayer = session.current_player === 1 ? 2 : 1;
     await supabase
       .from('game_sessions')

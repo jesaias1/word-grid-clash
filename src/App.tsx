@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import OnlineGameSetup from "./pages/OnlineGameSetup";
 import OnlineGame from "./pages/OnlineGame";
 import GameHistory from "./pages/GameHistory";
+import GameReplay from "./pages/GameReplay";
 import { loadDictionary } from "./game/dictionary";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const AppRoutes = () => {
       <Routes location={location}>
         <Route path="/" element={<Index />} />
         <Route path="/history" element={<GameHistory />} />
+        <Route path="/replay/:sessionId" element={<GameReplay />} />
         <Route path="/online-setup" element={<OnlineGameSetup />} />
         <Route path="/online/:gameId" element={<OnlineGame />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
