@@ -99,6 +99,9 @@ const COMMON_ABBRS = new Set([
   'USD','EUR','GBP','JPY','CNY','INR','AUD','CAD',
   // Other abbreviations
   'BPM','RPM','JNR','SNR','MRS','BLVD','TER',
+  // Scrabble obscure/dialect words to block
+  'OWT','EFF','OOT','NOO','YOW','YON','YOD','YOK','YOM','YOB',
+  'AWE','AWL','OWT','OOT','OPE','OOF',
 ]);
 
 const BAD_RX = [
@@ -165,8 +168,9 @@ function curate(raw: Set<string>, allow: Set<string>, block: Set<string>): Set<s
     if (raw.has(w) || allow.has(w)) out.add(w);
   }
 
-  // Always guarantee core digrams
+  // Always guarantee core digrams and 3-letter whitelist
   for (const w of A2) out.add(w);
+  for (const w of A3) out.add(w);
   return out;
 }
 

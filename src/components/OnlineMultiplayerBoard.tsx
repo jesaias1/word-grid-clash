@@ -232,7 +232,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
   // Synchronized turn timer - calculate from server timestamp
   useEffect(() => {
-    if (session?.status !== 'playing' || !myState) {
+    if (session?.status !== 'playing') {
       setTurnTimeRemaining(TURN_TIME_LIMIT);
       return;
     }
@@ -252,7 +252,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       const remaining = calculateRemaining();
       setTurnTimeRemaining(remaining);
       
-      if (remaining === 5) {
+      if (remaining === 5 && isMyTurn) {
         playFeedback('timerWarning');
       }
       
@@ -263,7 +263,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [session?.status, session?.turn_started_at, session?.current_player, myState?.id, isMyTurn, playFeedback]);
+  }, [session?.status, session?.turn_started_at, isMyTurn, playFeedback]);
 
   // Opponent word notifications
   useEffect(() => {
