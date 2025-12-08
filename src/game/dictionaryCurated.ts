@@ -29,29 +29,31 @@ const A2 = new Set([
 ]);
 
 const A3 = new Set([
-  // representative common 3-letter words (expand anytime)
-  'ACE','ACT','ADD','AGE','AIR','ALL','AND','ANT','ANY','ARE','ARM','ART','ASH','ASK',
-  'BAD','BAG','BAN','BAR','BAT','BED','BEE','BEG','BET','BIG','BIN','BIT','BOX','BOY','BUG','BUS','BUT',
-  'CAB','CAN','CAP','CAR','CAT','COP','COT','COW','CRY','CUP','CUT',
-  'DAD','DAM','DAY','DEN','DID','DIE','DIG','DIN','DOG','DOT','DRY','DUE',
-  'EAR','EAT','EEL','EGG','EGO','ELF','ELK','ELM','EMU','END','ERA','EWE','EYE',
-  'FAN','FAR','FAT','FEW','FIG','FIN','FIT','FIX','FLY','FOE','FOG','FOR','FOX',
-  'GAP','GAS','GEL','GET','GIG','GIN','GOD','GOT','GUM','GUN','GUT',
-  'HAD','HAS','HAT','HER','HIM','HIP','HIS','HIT','HOG','HOT','HOW','HUG','HUM','HUT',
-  'ICE','INK','ION','IRE','IVY',
-  'JAM','JAR','JET','JOB','JOG','JOY','JUG',
-  'KEY','KID','KIN','KIT',
-  'LAD','LAW','LAY','LED','LEG','LET','LID','LIE','LIP','LOG','LOT','LOW',
-  'MAD','MAN','MAP','MAT','MEN','MET','MUD','MUG',
-  'NAB','NAG','NAP','NET','NEW','NOD','NOT','NOW','NUN','NUT',
-  'OAK','OAR','OAT','ODD','OFF','ONE','ORE','OWL','OWN',
-  'PAD','PAL','PAN','PAR','PAT','PAY','PEA','PEG','PEN','PEP','PET','PIG','PIN','PIT','POD','POP','POT','PRO','PUT',
-  'RAG','RAM','RAN','RAP','RAT','RAW','RAY','RED','RID','RIG','RIM','RIP','ROD','ROE','ROT','ROW','RUB','RUG','RUN',
-  'SAD','SAP','SAT','SAW','SEA','SEE','SET','SEW','SHE','SHY','SIR','SIT','SKY','SON','SOY','SPA','SUM','SUN',
-  'TAB','TAN','TAP','TAR','TEA','TEN','THE','TIN','TIP','TOE','TON','TOO','TOP','TOW','TOY','TRY','TUB',
-  'URN','USE','VAN','VAT','VET','VIA',
-  'WAR','WAS','WAX','WAY','WEB','WED','WET','WHO','WHY','WIN','WIT','WOE','WON',
-  'YAK','YAM','YAP','YAW','YES','YET','YOU','ZOO'
+  // Comprehensive common 3-letter words - always accepted
+  'ACE','ACT','ADD','AGE','AGO','AID','AIM','AIR','ALL','AND','ANT','ANY','APE','ARC','ARE','ARK','ARM','ART','ASH','ASK','ATE','AWE','AXE',
+  'BAD','BAG','BAN','BAR','BAT','BAY','BED','BEE','BEG','BET','BIG','BIN','BIT','BOW','BOX','BOY','BUD','BUG','BUN','BUS','BUT','BUY',
+  'CAB','CAN','CAP','CAR','CAT','COB','COD','COG','COP','COT','COW','COX','CRY','CUB','CUD','CUP','CUR','CUT',
+  'DAB','DAD','DAM','DAY','DEN','DEW','DID','DIE','DIG','DIM','DIN','DIP','DOC','DOE','DOG','DOT','DRY','DUB','DUD','DUE','DUG','DUN','DUO','DYE',
+  'EAR','EAT','EEL','EGG','EGO','ELF','ELK','ELM','EMU','END','ERA','ERR','EVE','EWE','EYE',
+  'FAD','FAN','FAR','FAT','FAX','FED','FEE','FEW','FIG','FIN','FIT','FIX','FLU','FLY','FOB','FOE','FOG','FOP','FOR','FOX','FRY','FUN','FUR',
+  'GAB','GAG','GAL','GAP','GAS','GAY','GEL','GEM','GET','GIG','GIN','GNU','GOB','GOD','GOT','GUM','GUN','GUT','GUY','GYM',
+  'HAD','HAM','HAS','HAT','HAY','HEM','HEN','HER','HEW','HID','HIM','HIP','HIS','HIT','HOB','HOD','HOG','HOP','HOT','HOW','HUB','HUE','HUG','HUM','HUT',
+  'ICE','ICY','ILL','IMP','INK','INN','ION','IRE','IRK','ITS','IVY',
+  'JAB','JAG','JAM','JAR','JAW','JAY','JET','JIG','JOB','JOG','JOT','JOY','JUG','JUT',
+  'KEG','KEN','KEY','KID','KIN','KIT',
+  'LAB','LAC','LAD','LAG','LAP','LAW','LAX','LAY','LEA','LED','LEG','LET','LID','LIE','LIP','LIT','LOG','LOP','LOT','LOW','LUG',
+  'MAD','MAN','MAP','MAR','MAT','MAW','MAX','MAY','MEN','MET','MID','MIX','MOB','MOD','MOM','MOP','MOW','MUD','MUG','MUM',
+  'NAB','NAG','NAP','NAY','NET','NEW','NIL','NIP','NIT','NOB','NOD','NOR','NOT','NOW','NUB','NUN','NUT',
+  'OAK','OAR','OAT','ODD','ODE','OFF','OFT','OHM','OIL','OLD','ONE','OPT','ORB','ORE','OUR','OUT','OWE','OWL','OWN',
+  'PAD','PAL','PAN','PAP','PAR','PAT','PAW','PAY','PEA','PEG','PEN','PEP','PER','PET','PEW','PIE','PIG','PIN','PIT','PLY','POD','POP','POT','POW','PRO','PRY','PUB','PUG','PUN','PUP','PUS','PUT',
+  'RAD','RAG','RAM','RAN','RAP','RAT','RAW','RAY','RED','REF','REP','RIB','RID','RIG','RIM','RIP','ROB','ROD','ROE','ROT','ROW','RUB','RUG','RUM','RUN','RUT','RYE',
+  'SAC','SAD','SAG','SAP','SAT','SAW','SAX','SAY','SEA','SET','SEW','SHE','SHY','SIN','SIP','SIR','SIS','SIT','SIX','SKI','SKY','SLY','SOB','SOD','SON','SOP','SOT','SOW','SOY','SPA','SPY','STY','SUB','SUM','SUN','SUP',
+  'TAB','TAD','TAG','TAN','TAP','TAR','TAT','TAX','TEA','TEN','THE','THY','TIC','TIE','TIN','TIP','TIT','TOE','TON','TOO','TOP','TOT','TOW','TOY','TRY','TUB','TUG','TUN','TWO',
+  'UGH','UMP','UNS','UPS','URN','USE',
+  'VAN','VAT','VET','VIA','VIE','VOW',
+  'WAD','WAG','WAR','WAS','WAX','WAY','WEB','WED','WEE','WET','WHO','WHY','WIG','WIN','WIT','WOE','WOK','WON','WOO','WOW',
+  'YAK','YAM','YAP','YAW','YEA','YEN','YEP','YES','YET','YEW','YIN','YIP','YOU','YOW',
+  'ZAP','ZED','ZEN','ZIP','ZIT','ZOO'
 ]);
 
 const BAD_SUFFIX = [
