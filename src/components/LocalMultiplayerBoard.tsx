@@ -330,12 +330,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               'bg-gradient-player-5'
             ];
             
-            // Responsive cell sizes based on player count
+            // Responsive cell sizes based on player count - use vw for mobile fit
             const cellSize = playerCount >= 4 
-              ? 'w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8'
+              ? 'w-[8vw] h-[8vw] max-w-6 max-h-6 sm:w-6 sm:h-6 md:w-8 md:h-8'
               : playerCount === 3 
-                ? 'w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10' 
-                : 'w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12';
+                ? 'w-[10vw] h-[10vw] max-w-8 max-h-8 sm:w-8 sm:h-8 md:w-10 md:h-10' 
+                : 'w-[11vw] h-[11vw] max-w-10 max-h-10 sm:w-10 sm:h-10 md:w-12 md:h-12';
             
             const fontSize = playerCount >= 4
               ? 'text-[8px] sm:text-[10px] md:text-xs'
@@ -491,90 +491,35 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         </div>
       )}
 
-      {/* Game Grids */}
-      <div className="flex flex-col items-center gap-0">
-        {/* Player Score Cards with Timer in center (2-player) */}
-        {playerCount === 2 ? (
-          <div className="flex justify-center items-center gap-1 sm:gap-2 w-full max-w-2xl mb-0.5 sm:mb-1">
-            <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${getPlayerBgColor(0, currentPlayer === 1 && !gameEnded)}`}>
-              <div className={`text-xs sm:text-sm font-bold ${getPlayerColor(0)}`}>P1</div>
-              <div className="text-base sm:text-xl md:text-2xl font-bold score-glow">{scores[0]}</div>
-            </div>
-
-            {/* Timer in center for 2-player */}
-            {!gameEnded && (
-              <Card className={`p-0.5 sm:p-1 md:p-2 shadow-lg border-2 transition-all min-w-[50px] ${
-                turnTimeRemaining <= WARNING_THRESHOLD
-                  ? 'border-destructive bg-destructive/10 animate-pulse' 
-                  : 'border-primary bg-primary/5'
-              }`}>
-                <div className="text-center">
-                  <div className={`text-base sm:text-xl md:text-2xl font-bold ${
-                    turnTimeRemaining <= WARNING_THRESHOLD 
-                      ? 'text-destructive' 
-                      : 'text-primary'
-                  }`}>
-                    {turnTimeRemaining}s
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* VS text when game ended */}
-            {gameEnded && (
-              <div className="flex items-center justify-center px-2">
-                <div className="text-base sm:text-xl md:text-2xl font-bold text-muted-foreground">VS</div>
-              </div>
-            )}
-
-            <div className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 ${getPlayerBgColor(1, currentPlayer === 2 && !gameEnded)}`}>
-              <div className={`text-xs sm:text-sm font-bold ${getPlayerColor(1)}`}>P2</div>
-              <div className="text-base sm:text-xl md:text-2xl font-bold score-glow">{scores[1]}</div>
-            </div>
-          </div>
-        ) : (
-          /* 3-player layout */
-          <div className="flex flex-row gap-1 sm:gap-2 w-full max-w-4xl mb-0.5 sm:mb-1 flex-wrap justify-center">
-            {Array.from({ length: playerCount }).map((_, idx) => {
-              const isActive = currentPlayer === idx + 1;
-              return (
-                <div key={idx} className={`p-1 sm:p-2 rounded-lg text-center shadow-md transition-all duration-500 flex-1 min-w-[80px] ${getPlayerBgColor(idx, isActive && !gameEnded)}`}>
-                  <div className={`text-xs sm:text-sm font-bold ${getPlayerColor(idx)}`}>P{idx + 1}</div>
-                  <div className="text-base sm:text-xl md:text-2xl font-bold score-glow">{scores[idx]}</div>
-                </div>
-              );
-            })}
-            
-            {/* Timer for 3-player */}
-            {!gameEnded && (
-              <Card className={`p-0.5 sm:p-1 md:p-2 shadow-lg border-2 transition-all min-w-[50px] w-16 sm:w-20 ${
-                turnTimeRemaining <= WARNING_THRESHOLD
-                  ? 'border-destructive bg-destructive/10 animate-pulse' 
-                  : 'border-primary bg-primary/5'
-              }`}>
-                <div className="text-center">
-                  <div className={`text-base sm:text-xl md:text-2xl font-bold ${
-                    turnTimeRemaining <= WARNING_THRESHOLD 
-                      ? 'text-destructive' 
-                      : 'text-primary'
-                  }`}>
-                    {turnTimeRemaining}s
-                  </div>
-                </div>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {/* Grids */}
-        <div className={`flex flex-wrap justify-center items-start gap-1 sm:gap-2 md:gap-3 w-full`}>
+      {/* Game Grids - Stack vertically on mobile */}
+      <div className="flex flex-col items-center gap-1 flex-1 overflow-hidden">
+        {/* All Player Boards */}
+        <div className={`grid gap-2 w-full justify-items-center ${
+          playerCount === 2 ? 'grid-cols-1' : 
+          playerCount <= 3 ? 'grid-cols-1 sm:grid-cols-3' : 
+          'grid-cols-2 sm:grid-cols-3'
+        }`}>
           {grids.map((_, idx) => {
-            const isActive = currentPlayer === idx + 1;
+            const isActive = currentPlayer === idx + 1 && !gameEnded;
             return (
-              <div key={idx} className={`flex flex-col items-center transition-all duration-500 ${
-                isActive && !gameEnded ? 'scale-102 animate-fade-in' : 'opacity-90'
-              }`}>
-                {renderGrid(idx)}
+              <div key={idx} className="flex flex-col items-center w-full">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
+                    <div className={`text-xs font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
+                  </div>
+                  {!gameEnded && isActive && (
+                    <div className={`px-2 py-0.5 rounded-lg font-bold text-sm ${
+                      turnTimeRemaining <= WARNING_THRESHOLD
+                        ? 'bg-destructive/20 text-destructive animate-pulse' 
+                        : 'bg-primary/20 text-primary'
+                    }`}>
+                      {turnTimeRemaining}s
+                    </div>
+                  )}
+                </div>
+                <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
+                  {renderGrid(idx)}
+                </div>
               </div>
             );
           })}
