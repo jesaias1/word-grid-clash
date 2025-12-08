@@ -58,7 +58,7 @@ const TutorialMode = ({ onComplete, forceOpen = false }: TutorialModeProps) => {
     },
     {
       title: "Scoring Words",
-      description: "Points are awarded for ALL valid words on the board (horizontal and vertical). Longer words = more points! Each letter = 1 point.",
+      description: "Points are awarded for ALL valid words on the board (horizontal and vertical). Words also count when spelled backwards! Longer words = more points. Each letter = 1 point.",
       icon: <Trophy className="w-10 h-10 text-primary" />
     },
     {
