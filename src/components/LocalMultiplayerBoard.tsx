@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,6 +8,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultiplayerState } from '@/hooks/useGameStatePersistence';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -56,25 +57,51 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const { celebrate } = useVictoryCelebration();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const initializedRef = useRef(false);
+  
+  // Try to load saved state
+  const savedState = !initializedRef.current ? loadLocalMultiplayerState(playerCount) : null;
   
   // Generate ONE set of starting tiles that all players will share
   const [grids, setGrids] = useState<Grid[]>(() => {
+    if (savedState?.grids) return savedState.grids;
     const sharedStartingGrid = generateStartingTiles(boardSize);
     return Array(playerCount).fill(null).map(() => 
       sharedStartingGrid.map(row => row.map(cell => ({ ...cell })))
     );
   });
-  const [currentPlayer, setCurrentPlayer] = useState<Player>(1);
-  const [scores, setScores] = useState<number[]>(Array(playerCount).fill(0));
-  const [cooldowns, setCooldowns] = useState<CooldownState>({}); // Shared cooldowns
+  const [currentPlayer, setCurrentPlayer] = useState<Player>(() => savedState?.currentPlayer || 1);
+  const [scores, setScores] = useState<number[]>(() => savedState?.scores || Array(playerCount).fill(0));
+  const [cooldowns, setCooldowns] = useState<CooldownState>(() => savedState?.cooldowns || {}); // Shared cooldowns
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  const [gameEnded, setGameEnded] = useState(false);
+  const [gameEnded, setGameEnded] = useState(() => savedState?.gameEnded || false);
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
-  const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
-  const [playerWords, setPlayerWords] = useState<string[][]>(Array(playerCount).fill(null).map(() => []));
+  const [turnTimeRemaining, setTurnTimeRemaining] = useState(() => savedState?.turnTimeRemaining || TURN_TIME_LIMIT);
+  const [playerWords, setPlayerWords] = useState<string[][]>(() => savedState?.playerWords || Array(playerCount).fill(null).map(() => []));
   const [winner, setWinner] = useState<Player | null>(null);
   const [showTurnTransition, setShowTurnTransition] = useState(false);
   const [transitionToPlayer, setTransitionToPlayer] = useState<number | null>(null);
+  
+  // Mark as initialized
+  useEffect(() => {
+    initializedRef.current = true;
+  }, []);
+  
+  // Persist game state on changes
+  useEffect(() => {
+    if (!gameEnded) {
+      saveLocalMultiplayerState({
+        grids,
+        currentPlayer,
+        scores,
+        cooldowns,
+        playerWords,
+        turnTimeRemaining,
+        gameEnded,
+        timestamp: Date.now()
+      }, playerCount);
+    }
+  }, [grids, currentPlayer, scores, cooldowns, playerWords, turnTimeRemaining, gameEnded, playerCount]);
 
   // Keyboard support
   useEffect(() => {
@@ -194,7 +221,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   const handlePlayAgain = () => {
-    // Reset all game state - generate ONE new starting grid for all players
+    // Clear saved state and reset
+    clearLocalMultiplayerState(playerCount);
     const sharedStartingGrid = generateStartingTiles(boardSize);
     setGrids(Array(playerCount).fill(null).map(() => 
       sharedStartingGrid.map(row => row.map(cell => ({ ...cell })))

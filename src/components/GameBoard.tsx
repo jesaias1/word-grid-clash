@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,6 +9,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { saveSoloGameState, loadSoloGameState, clearSoloGameState } from '@/hooks/useGameStatePersistence';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -58,21 +59,50 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const { celebrate } = useVictoryCelebration();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const initializedRef = useRef(false);
   
-  const [playerGrid, setPlayerGrid] = useState<Grid>(() => generateStartingTiles(boardSize));
-  const [aiGrid, setAIGrid] = useState<Grid>(() => generateStartingTiles(boardSize));
-  const [currentPlayer, setCurrentPlayer] = useState<Player>(1);
-  const [playerScore, setPlayerScore] = useState(0);
-  const [aiScore, setAIScore] = useState(0);
-  const [playerCooldowns, setPlayerCooldowns] = useState<CooldownState>({});
-  const [aiCooldowns, setAICooldowns] = useState<CooldownState>({});
+  // Try to load saved state
+  const savedState = !initializedRef.current ? loadSoloGameState() : null;
+  
+  const [playerGrid, setPlayerGrid] = useState<Grid>(() => savedState?.playerGrid || generateStartingTiles(boardSize));
+  const [aiGrid, setAIGrid] = useState<Grid>(() => savedState?.aiGrid || generateStartingTiles(boardSize));
+  const [currentPlayer, setCurrentPlayer] = useState<Player>(() => (savedState?.currentPlayer as Player) || 1);
+  const [playerScore, setPlayerScore] = useState(() => savedState?.playerScore || 0);
+  const [aiScore, setAIScore] = useState(() => savedState?.aiScore || 0);
+  const [playerCooldowns, setPlayerCooldowns] = useState<CooldownState>(() => savedState?.playerCooldowns || {});
+  const [aiCooldowns, setAICooldowns] = useState<CooldownState>(() => savedState?.aiCooldowns || {});
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
-  const [gameEnded, setGameEnded] = useState(false);
+  const [gameEnded, setGameEnded] = useState(() => savedState?.gameEnded || false);
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
-  const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
-  const [playerWords, setPlayerWords] = useState<string[]>([]);
-  const [aiWords, setAIWords] = useState<string[]>([]);
+  const [turnTimeRemaining, setTurnTimeRemaining] = useState(() => savedState?.turnTimeRemaining || TURN_TIME_LIMIT);
+  const [playerWords, setPlayerWords] = useState<string[]>(() => savedState?.playerWords || []);
+  const [aiWords, setAIWords] = useState<string[]>(() => savedState?.aiWords || []);
   const [difficulty] = useState<DifficultyLevel>('medium');
+  
+  // Mark as initialized
+  useEffect(() => {
+    initializedRef.current = true;
+  }, []);
+  
+  // Persist game state on changes
+  useEffect(() => {
+    if (!gameEnded) {
+      saveSoloGameState({
+        playerGrid,
+        aiGrid,
+        currentPlayer,
+        playerScore,
+        aiScore,
+        playerCooldowns,
+        aiCooldowns,
+        playerWords,
+        aiWords,
+        turnTimeRemaining,
+        gameEnded,
+        timestamp: Date.now()
+      });
+    }
+  }, [playerGrid, aiGrid, currentPlayer, playerScore, aiScore, playerCooldowns, aiCooldowns, playerWords, aiWords, turnTimeRemaining, gameEnded]);
 
   const isMyTurn = currentPlayer === 1;
   
@@ -395,7 +425,8 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   };
 
   const handlePlayAgain = () => {
-    // Reset all game state
+    // Clear saved state and reset
+    clearSoloGameState();
     setPlayerGrid(generateStartingTiles(boardSize));
     setAIGrid(generateStartingTiles(boardSize));
     setPlayerScore(0);
