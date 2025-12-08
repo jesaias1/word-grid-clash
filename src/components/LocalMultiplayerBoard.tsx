@@ -8,7 +8,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultiplayerState } from '@/hooks/useGameStatePersistence';
+import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultiplayerState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -149,16 +149,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       const nextPlayer = getNextActivePlayer(currentPlayer + 1);
       if (nextPlayer === null) {
         // All boards full - end game
-        setGameEnded(true);
-        playFeedback('gameEnd');
-        const maxScore = Math.max(...scores);
-        const winnersCount = scores.filter(s => s === maxScore).length;
-        if (winnersCount === 1) {
-          const winnerIdx = scores.indexOf(maxScore);
-          setWinner(winnerIdx + 1);
-          celebrate();
-        }
-        setTimeout(() => setShowVictoryDialog(true), 500);
+        endLocalGame(scores, playerWords);
       } else {
         // Show turn transition animation
         setTransitionToPlayer(nextPlayer);
@@ -188,6 +179,36 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
     return () => clearInterval(timer);
   }, [currentPlayer, gameEnded, grids]);
+  
+  const endLocalGame = (finalScores: number[], finalWords: string[][]) => {
+    setGameEnded(true);
+    clearLocalMultiplayerState(playerCount);
+    playFeedback('gameEnd');
+    
+    const maxScore = Math.max(...finalScores);
+    const winnersCount = finalScores.filter(s => s === maxScore).length;
+    const isTie = winnersCount > 1;
+    const winnerIdx = isTie ? null : finalScores.indexOf(maxScore);
+    
+    if (!isTie) {
+      setWinner(winnerIdx! + 1);
+      celebrate();
+    }
+    
+    // Save to local history
+    saveGameToHistory({
+      type: 'local',
+      playerCount,
+      players: finalScores.map((score, idx) => ({
+        name: `Player ${idx + 1}`,
+        score,
+        words: finalWords[idx] || []
+      })),
+      winnerIndex: winnerIdx
+    });
+    
+    setTimeout(() => setShowVictoryDialog(true), 500);
+  };
 
   const handleTurnTimeout = () => {
     const newScores = [...scores];
@@ -197,16 +218,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const nextPlayer = getNextActivePlayer(currentPlayer + 1);
     if (nextPlayer === null) {
       // All boards full
-      setGameEnded(true);
-      playFeedback('gameEnd');
-      const maxScore = Math.max(...newScores);
-      const winnersCount = newScores.filter(s => s === maxScore).length;
-      if (winnersCount === 1) {
-        const winnerIdx = newScores.indexOf(maxScore);
-        setWinner(winnerIdx + 1);
-        celebrate();
-      }
-      setTimeout(() => setShowVictoryDialog(true), 500);
+      endLocalGame(newScores, playerWords);
     } else {
       // Show turn transition animation
       setTransitionToPlayer(nextPlayer);
@@ -308,19 +320,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     
     if (nextPlayer === null) {
       // All boards full - game over
-      setGameEnded(true);
-      playFeedback('gameEnd');
-      
-      const maxScore = Math.max(...newScores);
-      const winnersCount = newScores.filter(s => s === maxScore).length;
-      
-      if (winnersCount === 1) {
-        const winnerIdx = newScores.indexOf(maxScore);
-        setWinner(winnerIdx + 1);
-        celebrate();
-      }
-      
-      setTimeout(() => setShowVictoryDialog(true), 500);
+      endLocalGame(newScores, newPlayerWords);
     } else {
       // Show turn transition animation
       setTransitionToPlayer(nextPlayer);
