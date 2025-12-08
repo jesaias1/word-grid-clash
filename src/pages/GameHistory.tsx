@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, Trophy, Calendar, Users, Gamepad2, Wifi } from 'lucide-react';
+import { ChevronDown, Trophy, Calendar, Users, Gamepad2, Wifi, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { getLocalGameHistory, LocalGameHistoryEntry } from '@/hooks/useGameStatePersistence';
 
@@ -324,10 +324,21 @@ const GameHistory = () => {
                           </div>
                         </div>
 
-                        <div className="mt-3 text-xs text-muted-foreground flex items-center gap-3">
-                          <span>Board: {game.board_size}×{game.board_size}</span>
-                          <span>•</span>
-                          <span>{format(new Date(game.created_at), 'h:mm a')}</span>
+                        <div className="mt-3 flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground flex items-center gap-3">
+                            <span>Board: {game.board_size}×{game.board_size}</span>
+                            <span>•</span>
+                            <span>{format(new Date(game.created_at), 'h:mm a')}</span>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigate(`/replay/${game.id}`)}
+                            className="flex items-center gap-1"
+                          >
+                            <Play className="w-4 h-4" />
+                            Watch Replay
+                          </Button>
                         </div>
                       </CollapsibleContent>
                     </Collapsible>

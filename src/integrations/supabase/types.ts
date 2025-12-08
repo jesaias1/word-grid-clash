@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      game_moves: {
+        Row: {
+          created_at: string | null
+          id: string
+          letter: string
+          move_number: number
+          player_index: number
+          points_scored: number | null
+          position_col: number
+          position_row: number
+          session_id: string
+          words_formed: string[] | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          letter: string
+          move_number: number
+          player_index: number
+          points_scored?: number | null
+          position_col: number
+          position_row: number
+          session_id: string
+          words_formed?: string[] | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          letter?: string
+          move_number?: number
+          player_index?: number
+          points_scored?: number | null
+          position_col?: number
+          position_row?: number
+          session_id?: string
+          words_formed?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_moves_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_sessions: {
         Row: {
           board_size: number
