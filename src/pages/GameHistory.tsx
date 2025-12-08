@@ -37,52 +37,64 @@ const GameHistory = () => {
 
   useEffect(() => {
     const fetchHistory = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/');
-        return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          // No user - show empty state instead of redirecting
+          setLoading(false);
+          return;
+        }
+
+        setCurrentUserId(user.id);
+
+        // Fetch finished games where user participated
+        const { data: sessions, error: sessionsError } = await supabase
+          .from('game_sessions')
+          .select('*')
+          .eq('status', 'finished')
+          .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+          .order('created_at', { ascending: false });
+
+        if (sessionsError) {
+          console.error('Error fetching game sessions:', sessionsError);
+          setLoading(false);
+          return;
+        }
+
+        if (sessions && sessions.length > 0) {
+          // Fetch game states for each session
+          const gamesWithStates = await Promise.all(
+            sessions.map(async (session) => {
+              const { data: states } = await supabase
+                .from('game_state')
+                .select('*')
+                .eq('session_id', session.id);
+
+              const player1State = states?.find(s => s.player_index === 1);
+              const player2State = states?.find(s => s.player_index === 2);
+
+              return {
+                ...session,
+                player1_state: player1State ? {
+                  score: player1State.score,
+                  words_found: (player1State.words_found as string[]) || []
+                } : undefined,
+                player2_state: player2State ? {
+                  score: player2State.score,
+                  words_found: (player2State.words_found as string[]) || []
+                } : undefined
+              };
+            })
+          );
+
+          setGames(gamesWithStates);
+        }
+      } catch (error) {
+        console.error('Error in fetchHistory:', error);
+      } finally {
+        setLoading(false);
       }
-
-      setCurrentUserId(user.id);
-
-      // Fetch finished games where user participated
-      const { data: sessions } = await supabase
-        .from('game_sessions')
-        .select('*')
-        .eq('status', 'finished')
-        .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
-
-      if (sessions) {
-        // Fetch game states for each session
-        const gamesWithStates = await Promise.all(
-          sessions.map(async (session) => {
-            const { data: states } = await supabase
-              .from('game_state')
-              .select('*')
-              .eq('session_id', session.id);
-
-            const player1State = states?.find(s => s.player_index === 1);
-            const player2State = states?.find(s => s.player_index === 2);
-
-            return {
-              ...session,
-              player1_state: player1State ? {
-                score: player1State.score,
-                words_found: (player1State.words_found as string[]) || []
-              } : undefined,
-              player2_state: player2State ? {
-                score: player2State.score,
-                words_found: (player2State.words_found as string[]) || []
-              } : undefined
-            };
-          })
-        );
-
-        setGames(gamesWithStates);
-      }
-
-      setLoading(false);
     };
 
     fetchHistory();
