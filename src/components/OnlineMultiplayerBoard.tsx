@@ -41,6 +41,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
   const [rematchRequestedBy, setRematchRequestedBy] = useState<number | null>(null);
+  const [lastOpponentWordCount, setLastOpponentWordCount] = useState(0);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -181,7 +182,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const nextPlayer = session.current_player === 1 ? 2 : 1;
     await supabase
       .from('game_sessions')
-      .update({ current_player: nextPlayer })
+      .update({ current_player: nextPlayer, turn_started_at: new Date().toISOString() })
       .eq('id', sessionId);
 
     // Update local state immediately
@@ -229,28 +230,62 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isMyTurn, showVictoryDialog, myState, opponentState, playFeedback]);
 
-  // Turn timer effect
+  // Synchronized turn timer - calculate from server timestamp
   useEffect(() => {
-    if (!isMyTurn || session?.status !== 'playing' || !myState) {
+    if (session?.status !== 'playing' || !myState) {
       setTurnTimeRemaining(TURN_TIME_LIMIT);
       return;
     }
 
+    const calculateRemaining = () => {
+      if (!session.turn_started_at) {
+        return TURN_TIME_LIMIT;
+      }
+      const elapsed = Math.floor((Date.now() - new Date(session.turn_started_at).getTime()) / 1000);
+      return Math.max(0, TURN_TIME_LIMIT - elapsed);
+    };
+
+    // Initial calculation
+    setTurnTimeRemaining(calculateRemaining());
+
     const timer = setInterval(() => {
-      setTurnTimeRemaining(prev => {
-        if (prev <= 1) {
-          handleTurnTimeout();
-          return TURN_TIME_LIMIT;
-        }
-        if (prev === 6) {
-          playFeedback('timerWarning');
-        }
-        return prev - 1;
-      });
+      const remaining = calculateRemaining();
+      setTurnTimeRemaining(remaining);
+      
+      if (remaining === 5) {
+        playFeedback('timerWarning');
+      }
+      
+      // Only handle timeout if it's my turn
+      if (remaining <= 0 && isMyTurn) {
+        handleTurnTimeout();
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isMyTurn, session?.status, session?.current_player, myState?.id, playFeedback]);
+  }, [session?.status, session?.turn_started_at, session?.current_player, myState?.id, isMyTurn, playFeedback]);
+
+  // Opponent word notifications
+  useEffect(() => {
+    if (!opponentState || !session) return;
+    
+    const opponentWords = opponentState.words_found || [];
+    const oppName = myPlayerIndex === 1 ? session.player2_name : session.player1_name;
+    
+    if (opponentWords.length > lastOpponentWordCount && lastOpponentWordCount > 0) {
+      // New words found by opponent
+      const newWords = opponentWords.slice(lastOpponentWordCount);
+      const points = newWords.reduce((s: number, w: string) => s + w.length, 0);
+      
+      playFeedback('score');
+      toast({
+        title: `${oppName} scored +${points}!`,
+        description: newWords.map((w: string) => `${w} (${w.length})`).join(', ')
+      });
+    }
+    
+    setLastOpponentWordCount(opponentWords.length);
+  }, [opponentState?.words_found, session, myPlayerIndex, lastOpponentWordCount, playFeedback, toast]);
 
   const placeLetter = async (row: number, col: number) => {
     if (!isMyTurn || !selectedLetter || !myState) {
@@ -382,7 +417,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const nextPlayer = session.current_player === 1 ? 2 : 1;
     await supabase
       .from('game_sessions')
-      .update({ current_player: nextPlayer })
+      .update({ current_player: nextPlayer, turn_started_at: new Date().toISOString() })
       .eq('id', sessionId);
 
     setSelectedLetter(null);
