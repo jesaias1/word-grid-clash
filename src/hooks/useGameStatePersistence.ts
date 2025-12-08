@@ -1,6 +1,6 @@
-import { useEffect, useCallback } from 'react';
-
 const STORAGE_KEY_PREFIX = 'lettus_game_state_';
+const HISTORY_KEY = 'lettus_game_history';
+const MAX_HISTORY_ENTRIES = 50;
 
 export interface PersistedGameState {
   grids: any[];
@@ -26,6 +26,19 @@ export interface SoloPersistedGameState {
   turnTimeRemaining: number;
   gameEnded: boolean;
   timestamp: number;
+}
+
+export interface LocalGameHistoryEntry {
+  id: string;
+  type: 'solo' | 'local';
+  created_at: string;
+  playerCount?: number;
+  players: {
+    name: string;
+    score: number;
+    words: string[];
+  }[];
+  winnerIndex: number | null; // 0-based, null for tie
 }
 
 // Max age for saved games (1 hour in ms)
@@ -106,5 +119,46 @@ export function clearSoloGameState() {
     localStorage.removeItem(key);
   } catch (e) {
     console.warn('Failed to clear solo game state:', e);
+  }
+}
+
+// Game History Functions
+export function saveGameToHistory(entry: Omit<LocalGameHistoryEntry, 'id' | 'created_at'>) {
+  try {
+    const history = getLocalGameHistory();
+    const newEntry: LocalGameHistoryEntry = {
+      ...entry,
+      id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      created_at: new Date().toISOString()
+    };
+    
+    // Add to beginning and limit size
+    history.unshift(newEntry);
+    if (history.length > MAX_HISTORY_ENTRIES) {
+      history.pop();
+    }
+    
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn('Failed to save game to history:', e);
+  }
+}
+
+export function getLocalGameHistory(): LocalGameHistoryEntry[] {
+  try {
+    const saved = localStorage.getItem(HISTORY_KEY);
+    if (!saved) return [];
+    return JSON.parse(saved) as LocalGameHistoryEntry[];
+  } catch (e) {
+    console.warn('Failed to load game history:', e);
+    return [];
+  }
+}
+
+export function clearLocalGameHistory() {
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch (e) {
+    console.warn('Failed to clear game history:', e);
   }
 }

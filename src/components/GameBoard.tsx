@@ -9,7 +9,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { saveSoloGameState, loadSoloGameState, clearSoloGameState } from '@/hooks/useGameStatePersistence';
+import { saveSoloGameState, loadSoloGameState, clearSoloGameState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -417,8 +417,24 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
 
   const endGame = () => {
     setGameEnded(true);
+    clearSoloGameState();
     playFeedback('gameEnd');
-    if (playerScore > aiScore) {
+    
+    // Determine winner
+    const playerWon = playerScore > aiScore;
+    const tie = playerScore === aiScore;
+    
+    // Save to local history
+    saveGameToHistory({
+      type: 'solo',
+      players: [
+        { name: 'You', score: playerScore, words: playerWords },
+        { name: 'AI', score: aiScore, words: aiWords }
+      ],
+      winnerIndex: tie ? null : (playerWon ? 0 : 1)
+    });
+    
+    if (playerWon) {
       celebrate();
     }
     setTimeout(() => setShowVictoryDialog(true), 500);

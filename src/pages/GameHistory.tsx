@@ -6,10 +6,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, Trophy, Calendar, Users } from 'lucide-react';
+import { ChevronDown, Trophy, Calendar, Users, Gamepad2, Wifi } from 'lucide-react';
 import { format } from 'date-fns';
+import { getLocalGameHistory, LocalGameHistoryEntry } from '@/hooks/useGameStatePersistence';
 
-interface GameHistoryEntry {
+interface OnlineGameHistoryEntry {
   id: string;
   created_at: string;
   player1_name: string;
@@ -28,67 +29,67 @@ interface GameHistoryEntry {
   };
 }
 
+type CombinedGameEntry = 
+  | { type: 'online'; data: OnlineGameHistoryEntry }
+  | { type: 'local'; data: LocalGameHistoryEntry };
+
 const GameHistory = () => {
   const navigate = useNavigate();
-  const [games, setGames] = useState<GameHistoryEntry[]>([]);
+  const [onlineGames, setOnlineGames] = useState<OnlineGameHistoryEntry[]>([]);
+  const [localGames, setLocalGames] = useState<LocalGameHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [expandedGames, setExpandedGames] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<'all' | 'online' | 'local'>('all');
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
+        // Load local games immediately
+        const localHistory = getLocalGameHistory();
+        setLocalGames(localHistory);
+        
         const { data: { user } } = await supabase.auth.getUser();
         
-        if (!user) {
-          // No user - show empty state instead of redirecting
-          setLoading(false);
-          return;
-        }
+        if (user) {
+          setCurrentUserId(user.id);
 
-        setCurrentUserId(user.id);
+          // Fetch finished online games where user participated
+          const { data: sessions, error: sessionsError } = await supabase
+            .from('game_sessions')
+            .select('*')
+            .eq('status', 'finished')
+            .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
+            .order('created_at', { ascending: false });
 
-        // Fetch finished games where user participated
-        const { data: sessions, error: sessionsError } = await supabase
-          .from('game_sessions')
-          .select('*')
-          .eq('status', 'finished')
-          .or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`)
-          .order('created_at', { ascending: false });
+          if (!sessionsError && sessions && sessions.length > 0) {
+            // Fetch game states for each session
+            const gamesWithStates = await Promise.all(
+              sessions.map(async (session) => {
+                const { data: states } = await supabase
+                  .from('game_state')
+                  .select('*')
+                  .eq('session_id', session.id);
 
-        if (sessionsError) {
-          console.error('Error fetching game sessions:', sessionsError);
-          setLoading(false);
-          return;
-        }
+                const player1State = states?.find(s => s.player_index === 1);
+                const player2State = states?.find(s => s.player_index === 2);
 
-        if (sessions && sessions.length > 0) {
-          // Fetch game states for each session
-          const gamesWithStates = await Promise.all(
-            sessions.map(async (session) => {
-              const { data: states } = await supabase
-                .from('game_state')
-                .select('*')
-                .eq('session_id', session.id);
+                return {
+                  ...session,
+                  player1_state: player1State ? {
+                    score: player1State.score,
+                    words_found: (player1State.words_found as string[]) || []
+                  } : undefined,
+                  player2_state: player2State ? {
+                    score: player2State.score,
+                    words_found: (player2State.words_found as string[]) || []
+                  } : undefined
+                };
+              })
+            );
 
-              const player1State = states?.find(s => s.player_index === 1);
-              const player2State = states?.find(s => s.player_index === 2);
-
-              return {
-                ...session,
-                player1_state: player1State ? {
-                  score: player1State.score,
-                  words_found: (player1State.words_found as string[]) || []
-                } : undefined,
-                player2_state: player2State ? {
-                  score: player2State.score,
-                  words_found: (player2State.words_found as string[]) || []
-                } : undefined
-              };
-            })
-          );
-
-          setGames(gamesWithStates);
+            setOnlineGames(gamesWithStates);
+          }
         }
       } catch (error) {
         console.error('Error in fetchHistory:', error);
@@ -98,7 +99,19 @@ const GameHistory = () => {
     };
 
     fetchHistory();
-  }, [navigate]);
+  }, []);
+  
+  // Combine and sort all games
+  const allGames: CombinedGameEntry[] = [
+    ...onlineGames.map(g => ({ type: 'online' as const, data: g })),
+    ...localGames.map(g => ({ type: 'local' as const, data: g }))
+  ].sort((a, b) => new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime());
+  
+  const filteredGames = filter === 'all' 
+    ? allGames 
+    : allGames.filter(g => g.type === filter);
+  
+  const totalGames = allGames.length;
 
   const toggleGameExpanded = (gameId: string) => {
     setExpandedGames(prev => {
@@ -112,17 +125,20 @@ const GameHistory = () => {
     });
   };
 
-  const getGameResult = (game: GameHistoryEntry) => {
+  const getOnlineGameResult = (game: OnlineGameHistoryEntry) => {
     if (!currentUserId) return 'Unknown';
     
     const isPlayer1 = game.player1_id === currentUserId;
-    const myScore = isPlayer1 ? game.player1_state?.score : game.player2_state?.score;
-    const opponentScore = isPlayer1 ? game.player2_state?.score : game.player1_state?.score;
 
     if (game.winner_index === null) return 'Draw';
     
     const iWon = (isPlayer1 && game.winner_index === 1) || (!isPlayer1 && game.winner_index === 2);
     return iWon ? 'Won' : 'Lost';
+  };
+  
+  const getLocalGameResult = (game: LocalGameHistoryEntry) => {
+    if (game.winnerIndex === null) return 'Draw';
+    return game.winnerIndex === 0 ? 'Won' : 'Lost';
   };
 
   const getResultColor = (result: string) => {
@@ -151,16 +167,45 @@ const GameHistory = () => {
             Game History
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {games.length} {games.length === 1 ? 'game' : 'games'} played
+            {totalGames} {totalGames === 1 ? 'game' : 'games'} played
           </p>
         </div>
         <Button onClick={() => navigate('/')} variant="outline">
           Back to Menu
         </Button>
       </div>
+      
+      {/* Filter Tabs */}
+      {totalGames > 0 && (
+        <div className="flex gap-2">
+          <Button 
+            variant={filter === 'all' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setFilter('all')}
+          >
+            All ({allGames.length})
+          </Button>
+          <Button 
+            variant={filter === 'local' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setFilter('local')}
+          >
+            <Gamepad2 className="w-4 h-4 mr-1" />
+            Local ({localGames.length})
+          </Button>
+          <Button 
+            variant={filter === 'online' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setFilter('online')}
+          >
+            <Wifi className="w-4 h-4 mr-1" />
+            Online ({onlineGames.length})
+          </Button>
+        </div>
+      )}
 
       {/* Games List */}
-      {games.length === 0 ? (
+      {filteredGames.length === 0 ? (
         <Card className="p-12 text-center">
           <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
           <h3 className="text-xl font-semibold mb-2">No games yet</h3>
@@ -172,124 +217,207 @@ const GameHistory = () => {
           </Button>
         </Card>
       ) : (
-        <ScrollArea className="h-[calc(100vh-200px)]">
+        <ScrollArea className="h-[calc(100vh-260px)]">
           <div className="space-y-3">
-            {games.map((game) => {
-              const isPlayer1 = game.player1_id === currentUserId;
-              const myName = isPlayer1 ? game.player1_name : game.player2_name;
-              const opponentName = isPlayer1 ? game.player2_name : game.player1_name;
-              const myScore = isPlayer1 ? game.player1_state?.score : game.player2_state?.score;
-              const opponentScore = isPlayer1 ? game.player2_state?.score : game.player1_state?.score;
-              const myWords = isPlayer1 ? game.player1_state?.words_found : game.player2_state?.words_found;
-              const opponentWords = isPlayer1 ? game.player2_state?.words_found : game.player1_state?.words_found;
-              const result = getGameResult(game);
-              const isExpanded = expandedGames.has(game.id);
+            {filteredGames.map((entry) => {
+              if (entry.type === 'online') {
+                const game = entry.data;
+                const isPlayer1 = game.player1_id === currentUserId;
+                const myName = isPlayer1 ? game.player1_name : game.player2_name;
+                const opponentName = isPlayer1 ? game.player2_name : game.player1_name;
+                const myScore = isPlayer1 ? game.player1_state?.score : game.player2_state?.score;
+                const opponentScore = isPlayer1 ? game.player2_state?.score : game.player1_state?.score;
+                const myWords = isPlayer1 ? game.player1_state?.words_found : game.player2_state?.words_found;
+                const opponentWords = isPlayer1 ? game.player2_state?.words_found : game.player1_state?.words_found;
+                const result = getOnlineGameResult(game);
+                const isExpanded = expandedGames.has(game.id);
 
-              return (
-                <Card key={game.id} className="p-4 hover:shadow-lg transition-shadow">
-                  <Collapsible open={isExpanded} onOpenChange={() => toggleGameExpanded(game.id)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge className={`${getResultColor(result)} font-bold`}>
-                            {result}
-                          </Badge>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {format(new Date(game.created_at), 'MMM d, yyyy')}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <div className="text-center">
-                            <div className="font-bold text-lg">{myName}</div>
-                            <div className="text-2xl font-bold text-primary">{myScore ?? 0}</div>
+                return (
+                  <Card key={game.id} className="p-4 hover:shadow-lg transition-shadow">
+                    <Collapsible open={isExpanded} onOpenChange={() => toggleGameExpanded(game.id)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              <Wifi className="w-3 h-3 mr-1" />
+                              Online
+                            </Badge>
+                            <Badge className={`${getResultColor(result)} font-bold`}>
+                              {result}
+                            </Badge>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              {format(new Date(game.created_at), 'MMM d, yyyy')}
+                            </div>
                           </div>
                           
-                          <div className="text-muted-foreground font-bold">vs</div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-center">
+                              <div className="font-bold text-lg">{myName}</div>
+                              <div className="text-2xl font-bold text-primary">{myScore ?? 0}</div>
+                            </div>
+                            
+                            <div className="text-muted-foreground font-bold">vs</div>
+                            
+                            <div className="text-center">
+                              <div className="font-bold text-lg">{opponentName}</div>
+                              <div className="text-2xl font-bold text-secondary">{opponentScore ?? 0}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="ml-2">
+                            <ChevronDown 
+                              className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                            />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+
+                      <CollapsibleContent className="mt-4">
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              {myName}
+                            </h4>
+                            <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                              {(myWords || []).length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {(myWords || []).map((word: string, idx: number) => (
+                                    <span 
+                                      key={idx} 
+                                      className="bg-primary/20 text-primary px-2 py-0.5 rounded text-xs font-medium"
+                                    >
+                                      {word}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No words found</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              {opponentName}
+                            </h4>
+                            <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                              {(opponentWords || []).length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {(opponentWords || []).map((word: string, idx: number) => (
+                                    <span 
+                                      key={idx} 
+                                      className="bg-secondary/20 text-secondary px-2 py-0.5 rounded text-xs font-medium"
+                                    >
+                                      {word}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No words found</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 text-xs text-muted-foreground flex items-center gap-3">
+                          <span>Board: {game.board_size}×{game.board_size}</span>
+                          <span>•</span>
+                          <span>{format(new Date(game.created_at), 'h:mm a')}</span>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              } else {
+                // Local game
+                const game = entry.data;
+                const result = getLocalGameResult(game);
+                const isExpanded = expandedGames.has(game.id);
+                const gameTypeLabel = game.type === 'solo' ? 'vs AI' : `${game.playerCount || 2} Players`;
+
+                return (
+                  <Card key={game.id} className="p-4 hover:shadow-lg transition-shadow">
+                    <Collapsible open={isExpanded} onOpenChange={() => toggleGameExpanded(game.id)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              <Gamepad2 className="w-3 h-3 mr-1" />
+                              {gameTypeLabel}
+                            </Badge>
+                            <Badge className={`${getResultColor(result)} font-bold`}>
+                              {result}
+                            </Badge>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              {format(new Date(game.created_at), 'MMM d, yyyy')}
+                            </div>
+                          </div>
                           
-                          <div className="text-center">
-                            <div className="font-bold text-lg">{opponentName}</div>
-                            <div className="text-2xl font-bold text-secondary">{opponentScore ?? 0}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" size="sm" className="ml-2">
-                          <ChevronDown 
-                            className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                          />
-                        </Button>
-                      </CollapsibleTrigger>
-                    </div>
-
-                    <CollapsibleContent className="mt-4">
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                        {/* Your words */}
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {myName}
-                          </h4>
-                          <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
-                            {(myWords || []).length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {(myWords || []).map((word: string, idx: number) => (
-                                  <span 
-                                    key={idx} 
-                                    className="bg-primary/20 text-primary px-2 py-0.5 rounded text-xs font-medium"
-                                  >
-                                    {word}
-                                  </span>
-                                ))}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            {game.players.map((player, idx) => (
+                              <div key={idx} className="text-center">
+                                <div className="font-bold text-sm">{player.name}</div>
+                                <div className={`text-xl font-bold ${idx === 0 ? 'text-primary' : 'text-secondary'}`}>
+                                  {player.score}
+                                </div>
                               </div>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">No words found</p>
-                            )}
+                            ))}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {(myWords || []).length} words
-                          </p>
                         </div>
 
-                        {/* Opponent's words */}
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {opponentName}
-                          </h4>
-                          <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
-                            {(opponentWords || []).length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {(opponentWords || []).map((word: string, idx: number) => (
-                                  <span 
-                                    key={idx} 
-                                    className="bg-secondary/20 text-secondary px-2 py-0.5 rounded text-xs font-medium"
-                                  >
-                                    {word}
-                                  </span>
-                                ))}
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="ml-2">
+                            <ChevronDown 
+                              className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                            />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+
+                      <CollapsibleContent className="mt-4">
+                        <div className={`grid gap-4 pt-4 border-t`} style={{ gridTemplateColumns: `repeat(${Math.min(game.players.length, 3)}, 1fr)` }}>
+                          {game.players.map((player, idx) => (
+                            <div key={idx}>
+                              <h4 className="font-semibold text-sm mb-2 flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                {player.name}
+                              </h4>
+                              <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                                {player.words.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {player.words.map((word: string, wordIdx: number) => (
+                                      <span 
+                                        key={wordIdx} 
+                                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                          idx === 0 ? 'bg-primary/20 text-primary' : 'bg-secondary/20 text-secondary'
+                                        }`}
+                                      >
+                                        {word}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">No words found</p>
+                                )}
                               </div>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">No words found</p>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {(opponentWords || []).length} words
-                          </p>
+                            </div>
+                          ))}
                         </div>
-                      </div>
 
-                      <div className="mt-3 text-xs text-muted-foreground flex items-center gap-3">
-                        <span>Board: {game.board_size}×{game.board_size}</span>
-                        <span>•</span>
-                        <span>{format(new Date(game.created_at), 'h:mm a')}</span>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </Card>
-              );
+                        <div className="mt-3 text-xs text-muted-foreground">
+                          {format(new Date(game.created_at), 'h:mm a')}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              }
             })}
           </div>
         </ScrollArea>
