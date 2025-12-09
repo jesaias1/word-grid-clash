@@ -58,7 +58,7 @@ const TutorialMode = ({ onComplete, forceOpen = false }: TutorialModeProps) => {
     },
     {
       title: "Scoring Words",
-      description: "Points are awarded for ALL valid words on the board (horizontal and vertical). Words also count when spelled backwards! Longer words = more points. Each letter = 1 point.",
+      description: "Points are awarded for ALL valid words on the board (horizontal and vertical). Words also count when spelled backwards! Each letter = 1 point. Bonus: Z, X, Q = 2 points each!",
       icon: <Trophy className="w-10 h-10 text-primary" />
     },
     {
@@ -117,14 +117,9 @@ const TutorialMode = ({ onComplete, forceOpen = false }: TutorialModeProps) => {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="max-w-md sm:max-w-lg">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold">
-              Tutorial - Step {currentStep + 1} of {tutorialSteps.length}
-            </DialogTitle>
-            <Button variant="ghost" size="icon" onClick={handleComplete}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-xl font-bold">
+            Tutorial - Step {currentStep + 1} of {tutorialSteps.length}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

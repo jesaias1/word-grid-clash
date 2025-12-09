@@ -69,6 +69,9 @@ export function findValidWords(grid: Grid, dict: Set<string>, minLength = 2): Wo
   return results;
 }
 
+// Bonus letters worth 2 points each
+const BONUS_LETTERS = new Set(['Z', 'X', 'Q']);
+
 export function scoreGrid(grid: Grid, dict: Set<string>, usedWords: Set<string>, minLength = 3): { score: number; scoredCells: Set<string>; newUsedWords: Set<string>; allFoundWords: string[] } {
   const matches = findValidWords(grid, dict, minLength);
   const scoredCells = new Set<string>();
@@ -90,9 +93,18 @@ export function scoreGrid(grid: Grid, dict: Set<string>, usedWords: Set<string>,
     });
   });
   
-  // Score is 1 point per unique cell that's part of at least one valid word
+  // Calculate score: 1 point per letter, 2 points for Z, X, Q
+  let score = 0;
+  scoredCells.forEach(cellKey => {
+    const [row, col] = cellKey.split('-').map(Number);
+    const letter = grid[row][col]?.toUpperCase();
+    if (letter) {
+      score += BONUS_LETTERS.has(letter) ? 2 : 1;
+    }
+  });
+  
   return {
-    score: scoredCells.size,
+    score,
     scoredCells,
     newUsedWords,
     allFoundWords
