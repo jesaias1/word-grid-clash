@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_challenge_attempts: {
+        Row: {
+          challenge_date: string
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          score: number
+          tier_achieved: string | null
+          user_id: string
+          words_found: Json | null
+        }
+        Insert: {
+          challenge_date: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          score?: number
+          tier_achieved?: string | null
+          user_id: string
+          words_found?: Json | null
+        }
+        Update: {
+          challenge_date?: string
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          score?: number
+          tier_achieved?: string | null
+          user_id?: string
+          words_found?: Json | null
+        }
+        Relationships: []
+      }
+      daily_challenges: {
+        Row: {
+          bronze_target: number
+          challenge_date: string
+          created_at: string
+          gold_target: number
+          id: string
+          letter_sequence: Json
+          silver_target: number
+          starting_grid: Json
+        }
+        Insert: {
+          bronze_target?: number
+          challenge_date: string
+          created_at?: string
+          gold_target?: number
+          id?: string
+          letter_sequence: Json
+          silver_target?: number
+          starting_grid: Json
+        }
+        Update: {
+          bronze_target?: number
+          challenge_date?: string
+          created_at?: string
+          gold_target?: number
+          id?: string
+          letter_sequence?: Json
+          silver_target?: number
+          starting_grid?: Json
+        }
+        Relationships: []
+      }
       game_moves: {
         Row: {
           created_at: string | null
@@ -227,7 +296,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_or_create_daily_challenge: {
+        Args: never
+        Returns: {
+          bronze_target: number
+          challenge_date: string
+          created_at: string
+          gold_target: number
+          id: string
+          letter_sequence: Json
+          silver_target: number
+          starting_grid: Json
+        }
+        SetofOptions: {
+          from: "*"
+          to: "daily_challenges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_user_streak: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

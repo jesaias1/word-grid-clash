@@ -11,6 +11,7 @@ import OnlineGameSetup from "./pages/OnlineGameSetup";
 import OnlineGame from "./pages/OnlineGame";
 import GameHistory from "./pages/GameHistory";
 import GameReplay from "./pages/GameReplay";
+import DailyChallenge from "./pages/DailyChallenge";
 import { loadDictionary } from "./game/dictionary";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const AppRoutes = () => {
     <PageTransition key={location.pathname}>
       <Routes location={location}>
         <Route path="/" element={<Index />} />
+        <Route path="/daily" element={<DailyChallenge />} />
         <Route path="/history" element={<GameHistory />} />
         <Route path="/replay/:sessionId" element={<GameReplay />} />
         <Route path="/online-setup" element={<OnlineGameSetup />} />
