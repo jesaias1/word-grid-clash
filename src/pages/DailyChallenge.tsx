@@ -505,8 +505,8 @@ const DailyChallengePage = () => {
         </div>
       </div>
       
-      {/* Grid with Word List */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-1 min-h-0">
+      {/* Grid with Word List side by side */}
+      <div className="flex-1 flex items-center justify-center gap-2 min-h-0">
         <div className="inline-grid gap-0.5 p-2 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
           {grid.map((row, rowIndex) => (
             <div key={rowIndex} className="flex gap-0.5">
