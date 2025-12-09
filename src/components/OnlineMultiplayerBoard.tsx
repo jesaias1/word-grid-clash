@@ -98,6 +98,14 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       }, (payload) => {
         setSession(payload.new);
         setRematchRequestedBy(payload.new.rematch_requested_by || null);
+        
+        // Check if opponent accepted rematch - invite_code will be updated with REMATCH: prefix
+        if (payload.new.invite_code?.startsWith('REMATCH:')) {
+          const newGameCode = payload.new.invite_code.replace('REMATCH:', '');
+          navigate(`/online/${newGameCode}`);
+          return;
+        }
+        
         if (payload.new.status === 'finished') {
           playFeedback('gameEnd');
           setShowVictoryDialog(true);
@@ -709,7 +717,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           status: 'playing',
           board_size: session.board_size,
           cooldown_turns: session.cooldown_turns,
-          current_player: 1
+          current_player: 1,
+          turn_started_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -784,6 +793,12 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           });
           return;
         }
+
+        // Update old session with the new game's invite code so other player can follow
+        await supabase
+          .from('game_sessions')
+          .update({ rematch_requested_by: null, invite_code: `REMATCH:${inviteCode}` })
+          .eq('id', sessionId);
 
         navigate(`/online/${inviteCode}`);
       }
