@@ -8,7 +8,22 @@ import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useDailyChallenge } from '@/hooks/useDailyChallenge';
-import { GraduationCap, Users, ArrowLeft, Target, Flame } from 'lucide-react';
+import { GraduationCap, Users, ArrowLeft, Target, Flame, Clock } from 'lucide-react';
+
+// Calculate time until midnight for next daily challenge
+const getTimeUntilMidnight = () => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+};
+
+const formatCountdown = (ms: number) => {
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer-select' | 'local-multiplayer';
 
@@ -20,9 +35,21 @@ const Index = () => {
   const { playFeedback } = useSoundEffects(true, true);
   const { trackGameStart, trackTutorial } = useAnalytics();
   const { streak, hasCompletedToday, loading: dailyLoading } = useDailyChallenge();
+  const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   
   const boardSize = 5;
   const cooldownTurns = 4;
+
+  // Countdown timer for next daily challenge
+  useEffect(() => {
+    if (!hasCompletedToday) return;
+    
+    const interval = setInterval(() => {
+      setCountdown(getTimeUntilMidnight());
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [hasCompletedToday]);
 
   // Check if user has seen tutorial
   useEffect(() => {
@@ -120,7 +147,10 @@ const Index = () => {
               </span>
             )}
             {hasCompletedToday && (
-              <span className="ml-2 text-lg">✓</span>
+              <span className="ml-2 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full text-sm">
+                <Clock className="w-3 h-3" />
+                {formatCountdown(countdown)}
+              </span>
             )}
           </Button>
 
