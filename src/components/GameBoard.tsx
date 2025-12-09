@@ -7,9 +7,9 @@ import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
-import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { saveSoloGameState, loadSoloGameState, clearSoloGameState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
+import WordsList from '@/components/WordsList';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -57,7 +57,6 @@ interface GameBoardProps {
 const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const initializedRef = useRef(false);
   
@@ -324,12 +323,9 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     setAIWords(result.words.map(w => w.text));
     setAIGrid(newGrid);
     
-    // Show toast for AI's new words
+    // Words are now shown in the WordsList component instead of toast
     if (newWordsFound.length > 0) {
-      toast({
-        title: `AI: +${newScore} points!`,
-        description: newWordsFound.map(w => `${w.text} (${w.text.length})`).join(', ')
-      });
+      playFeedback('score');
     }
     
     // Update cooldowns
@@ -388,12 +384,9 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     setPlayerWords(result.words.map(w => w.text));
     setPlayerGrid(newGrid);
     
-    // Show toast for new words
+    // Words are now shown in the WordsList component instead of toast
     if (newWordsFound.length > 0) {
-      toast({
-        title: `+${newScore} points!`,
-        description: newWordsFound.map(w => `${w.text} (${w.text.length})`).join(', ')
-      });
+      playFeedback('score');
     }
     
     // Update cooldowns
@@ -638,56 +631,62 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         </div>
       )}
 
-      {/* Game Grids - Side by side on desktop, stacked on mobile */}
+      {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
       <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
-        {/* Your Board */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
-              isMyTurn 
-                ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
-                : 'bg-card/80 border border-border opacity-70'
-            }`}>
-              <div className="text-sm font-bold text-player-1">You: {playerScore}</div>
-            </div>
-            {!gameEnded && isMyTurn && (
-              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                turnTimeRemaining <= WARNING_THRESHOLD
-                  ? 'bg-destructive/20 text-destructive animate-pulse' 
-                  : 'bg-primary/20 text-primary'
+        {/* Your Section */}
+        <div className="flex items-start gap-2">
+          <WordsList words={playerWords} playerName="You" colorClass="text-player-1" />
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
+                isMyTurn 
+                  ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
+                  : 'bg-card/80 border border-border opacity-70'
               }`}>
-                {turnTimeRemaining}s
+                <div className="text-sm font-bold text-player-1">You: {playerScore}</div>
               </div>
-            )}
-          </div>
-          <div className={`transition-all duration-500 ${isMyTurn ? 'scale-100' : 'opacity-80 scale-95'}`}>
-            {renderGrid(false)}
+              {!gameEnded && isMyTurn && (
+                <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
+                  turnTimeRemaining <= WARNING_THRESHOLD
+                    ? 'bg-destructive/20 text-destructive animate-pulse' 
+                    : 'bg-primary/20 text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              )}
+            </div>
+            <div className={`transition-all duration-500 ${isMyTurn ? 'scale-100' : 'opacity-80 scale-95'}`}>
+              {renderGrid(false)}
+            </div>
           </div>
         </div>
 
-        {/* AI Board */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
-              !isMyTurn && !gameEnded
-                ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
-                : 'bg-card/80 border border-border opacity-70'
-            }`}>
-              <div className="text-sm font-bold text-player-2">AI: {aiScore}</div>
-            </div>
-            {!gameEnded && !isMyTurn && (
-              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                turnTimeRemaining <= WARNING_THRESHOLD
-                  ? 'bg-destructive/20 text-destructive animate-pulse' 
-                  : 'bg-primary/20 text-primary'
+        {/* AI Section */}
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
+                !isMyTurn && !gameEnded
+                  ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
+                  : 'bg-card/80 border border-border opacity-70'
               }`}>
-                {turnTimeRemaining}s
+                <div className="text-sm font-bold text-player-2">AI: {aiScore}</div>
               </div>
-            )}
+              {!gameEnded && !isMyTurn && (
+                <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
+                  turnTimeRemaining <= WARNING_THRESHOLD
+                    ? 'bg-destructive/20 text-destructive animate-pulse' 
+                    : 'bg-primary/20 text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              )}
+            </div>
+            <div className={`transition-all duration-500 ${!isMyTurn && !gameEnded ? 'scale-100' : 'opacity-80 scale-95'}`}>
+              {renderGrid(true)}
+            </div>
           </div>
-          <div className={`transition-all duration-500 ${!isMyTurn && !gameEnded ? 'scale-100' : 'opacity-80 scale-95'}`}>
-            {renderGrid(true)}
-          </div>
+          <WordsList words={aiWords} playerName="AI" colorClass="text-player-2" />
         </div>
       </div>
 

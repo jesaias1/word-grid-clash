@@ -10,6 +10,7 @@ import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
+import WordsList from '@/components/WordsList';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -309,15 +310,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const oppName = myPlayerIndex === 1 ? session.player2_name : session.player1_name;
     
     if (opponentWords.length > lastOpponentWordCount && lastOpponentWordCount > 0) {
-      // New words found by opponent
-      const newWords = opponentWords.slice(lastOpponentWordCount);
-      const points = newWords.reduce((s: number, w: string) => s + w.length, 0);
-      
+      // Words are now shown in the WordsList component instead of toast
       playFeedback('score');
-      toast({
-        title: `${oppName} scored +${points}!`,
-        description: newWords.map((w: string) => `${w} (${w.length})`).join(', ')
-      });
     }
     
     setLastOpponentWordCount(opponentWords.length);
@@ -486,12 +480,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     setTurnTimeRemaining(TURN_TIME_LIMIT);
     playFeedback('turnChange');
 
-    if (newScore > 0) {
-      toast({
-        title: `+${newScore} points!`,
-        description: newWordTexts.map(w => `${w} (${w.length})`).join(', ')
-      });
-    }
+    // Words are now shown in the WordsList component instead of toast
 
     // Check if both players have finished (no moves left or full boards)
     const myGridFull = isGridFull(newGrid);
@@ -892,56 +881,62 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
       )}
 
-      {/* Game Grids - Side by side on desktop, stacked on mobile */}
+      {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
       <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
-        {/* Your Board */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
-              isMyTurn 
-                ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
-                : 'bg-card/80 border border-border opacity-70'
-            }`}>
-              <div className="text-sm font-bold text-player-1 truncate max-w-[120px]">{myName}: {myScore}</div>
-            </div>
-            {session.status === 'playing' && isMyTurn && (
-              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                turnTimeRemaining <= WARNING_THRESHOLD
-                  ? 'bg-destructive/20 text-destructive animate-pulse' 
-                  : 'bg-primary/20 text-primary'
+        {/* Your Section */}
+        <div className="flex items-start gap-2">
+          <WordsList words={myState.words_found || []} playerName={myName} colorClass="text-player-1" />
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
+                isMyTurn 
+                  ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
+                  : 'bg-card/80 border border-border opacity-70'
               }`}>
-                {turnTimeRemaining}s
+                <div className="text-sm font-bold text-player-1 truncate max-w-[120px]">{myName}: {myScore}</div>
               </div>
-            )}
-          </div>
-          <div className={`transition-all duration-500 ${isMyTurn ? 'scale-100' : 'opacity-80 scale-95'}`}>
-            {renderGrid(false)}
+              {session.status === 'playing' && isMyTurn && (
+                <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
+                  turnTimeRemaining <= WARNING_THRESHOLD
+                    ? 'bg-destructive/20 text-destructive animate-pulse' 
+                    : 'bg-primary/20 text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              )}
+            </div>
+            <div className={`transition-all duration-500 ${isMyTurn ? 'scale-100' : 'opacity-80 scale-95'}`}>
+              {renderGrid(false)}
+            </div>
           </div>
         </div>
 
-        {/* Opponent Board */}
-        <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2 mb-1">
-            <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
-              !isMyTurn && session.status === 'playing'
-                ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
-                : 'bg-card/80 border border-border opacity-70'
-            }`}>
-              <div className="text-sm font-bold text-player-2 truncate max-w-[120px]">{opponentName}: {opponentScore}</div>
-            </div>
-            {session.status === 'playing' && !isMyTurn && (
-              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                turnTimeRemaining <= WARNING_THRESHOLD
-                  ? 'bg-destructive/20 text-destructive animate-pulse' 
-                  : 'bg-primary/20 text-primary'
+        {/* Opponent Section */}
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
+                !isMyTurn && session.status === 'playing'
+                  ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
+                  : 'bg-card/80 border border-border opacity-70'
               }`}>
-                {turnTimeRemaining}s
+                <div className="text-sm font-bold text-player-2 truncate max-w-[120px]">{opponentName}: {opponentScore}</div>
               </div>
-            )}
+              {session.status === 'playing' && !isMyTurn && (
+                <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
+                  turnTimeRemaining <= WARNING_THRESHOLD
+                    ? 'bg-destructive/20 text-destructive animate-pulse' 
+                    : 'bg-primary/20 text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              )}
+            </div>
+            <div className={`transition-all duration-500 ${!isMyTurn && session.status === 'playing' ? 'scale-100' : 'opacity-80 scale-95'}`}>
+              {renderGrid(true)}
+            </div>
           </div>
-          <div className={`transition-all duration-500 ${!isMyTurn && session.status === 'playing' ? 'scale-100' : 'opacity-80 scale-95'}`}>
-            {renderGrid(true)}
-          </div>
+          <WordsList words={opponentState?.words_found || []} playerName={opponentName} colorClass="text-player-2" />
         </div>
       </div>
 
