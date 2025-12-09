@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Get local date string in YYYY-MM-DD format
+const getLocalDateString = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 interface DailyChallenge {
   id: string;
   challenge_date: string;
@@ -106,8 +115,8 @@ export const useDailyChallenge = () => {
         });
       }
       
-      // Get today's attempt if exists
-      const today = new Date().toISOString().split('T')[0];
+      // Get today's attempt if exists - use local date
+      const today = getLocalDateString();
       const { data: attemptData } = await supabase
         .from('daily_challenge_attempts')
         .select('*')
@@ -136,7 +145,7 @@ export const useDailyChallenge = () => {
   const startAttempt = async () => {
     if (!userId || !challenge) return null;
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     
     // Check if attempt already exists
     if (attempt) return attempt;

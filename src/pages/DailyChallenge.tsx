@@ -460,9 +460,9 @@ const DailyChallengePage = () => {
   }
   
   return (
-    <div className="min-h-screen p-2 flex flex-col" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+    <div className="h-[100dvh] p-2 flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-2 px-2">
+      <div className="flex justify-between items-center mb-1 px-2">
         <div className="flex items-center gap-2">
           <Target className="w-5 h-5 text-primary" />
           <span className="font-bold">Daily</span>
@@ -481,33 +481,33 @@ const DailyChallengePage = () => {
       
       {/* Tier Progress Bar */}
       <div className="flex justify-center gap-1 mb-1">
-        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.bronze_target ? 'bg-orange-600/20 text-orange-500' : 'bg-secondary/50'}`}>
-          🥉 {challenge.bronze_target}
+        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.bronze_target ? 'bg-orange-600/20 text-orange-500' : 'bg-secondary/50'}`}>
+          🥉{challenge.bronze_target}
         </div>
-        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.silver_target ? 'bg-gray-400/20 text-gray-300' : 'bg-secondary/50'}`}>
-          🥈 {challenge.silver_target}
+        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.silver_target ? 'bg-gray-400/20 text-gray-300' : 'bg-secondary/50'}`}>
+          🥈{challenge.silver_target}
         </div>
-        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.gold_target ? 'bg-yellow-400/20 text-yellow-400' : 'bg-secondary/50'}`}>
-          🥇 {challenge.gold_target}
+        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.gold_target ? 'bg-yellow-400/20 text-yellow-400' : 'bg-secondary/50'}`}>
+          🥇{challenge.gold_target}
         </div>
-        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.gold_target + 20 ? 'bg-cyan-400/20 text-cyan-400' : 'bg-secondary/50'}`}>
-          💎 {challenge.gold_target + 20}
+        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.gold_target + 20 ? 'bg-cyan-400/20 text-cyan-400' : 'bg-secondary/50'}`}>
+          💎{challenge.gold_target + 20}
         </div>
       </div>
       
       {/* Timer - Below ranks, compact */}
-      <div className="flex justify-center mb-2">
-        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-lg font-bold ${
+      <div className="flex justify-center mb-1">
+        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-base font-bold ${
           turnTimeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-secondary'
         }`}>
-          <Clock className="w-4 h-4" />
+          <Clock className="w-3 h-3" />
           {turnTimeRemaining}s
         </div>
       </div>
       
-      {/* Grid with Word List side by side */}
-      <div className="flex-1 flex items-center justify-center gap-2 min-h-0">
-        <div className="inline-grid gap-0.5 p-2 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
+      {/* Grid with Word List side by side on desktop */}
+      <div className="flex-1 flex items-center justify-center gap-4 min-h-0">
+        <div className="inline-grid gap-0.5 p-1.5 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
           {grid.map((row, rowIndex) => (
             <div key={rowIndex} className="flex gap-0.5">
               {row.map((cell, colIndex) => (
@@ -516,7 +516,7 @@ const DailyChallengePage = () => {
                   onClick={() => placeLetter(rowIndex, colIndex)}
                   disabled={!selectedLetter || cell.letter !== null}
                   className={`
-                    w-[11vw] h-[11vw] max-w-10 max-h-10 rounded-md font-bold text-base sm:text-xl
+                    w-[12vw] h-[12vw] max-w-12 max-h-12 rounded-md font-bold text-lg sm:text-xl
                     transition-all duration-200 border
                     ${cell.letter 
                       ? 'bg-primary/80 text-primary-foreground border-primary shadow-md' 
@@ -532,12 +532,15 @@ const DailyChallengePage = () => {
             </div>
           ))}
         </div>
-        <WordsList words={words} playerName="You" colorClass="text-primary" />
+        {/* Words list only visible on larger screens */}
+        <div className="hidden md:block">
+          <WordsList words={words} playerName="You" colorClass="text-primary" />
+        </div>
       </div>
       
       {/* Letter Choices - No cooldowns in daily challenge */}
-      <div className="flex flex-col items-center gap-1 py-1 pb-2 shrink-0">
-        <div className="text-xs text-muted-foreground">
+      <div className="flex flex-col items-center gap-0.5 py-1 pb-3 shrink-0">
+        <div className="text-[10px] text-muted-foreground">
           Choose a letter
         </div>
         <div className="flex gap-1">
@@ -553,7 +556,7 @@ const DailyChallengePage = () => {
                   playFeedback('select');
                 }}
                 variant={isSelected ? 'default' : 'secondary'}
-                className={`w-9 h-9 sm:w-11 sm:h-11 text-base sm:text-lg font-bold p-0 ${
+                className={`w-10 h-10 sm:w-11 sm:h-11 text-lg sm:text-lg font-bold p-0 ${
                   isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''
                 } ${isBonusLetter && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}`}
               >
