@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { GraduationCap, Users, ArrowLeft } from 'lucide-react';
+import { useDailyChallenge } from '@/hooks/useDailyChallenge';
+import { GraduationCap, Users, ArrowLeft, Target, Flame } from 'lucide-react';
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer-select' | 'local-multiplayer';
 
@@ -18,6 +19,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
   const { trackGameStart, trackTutorial } = useAnalytics();
+  const { streak, hasCompletedToday, loading: dailyLoading } = useDailyChallenge();
   
   const boardSize = 5;
   const cooldownTurns = 4;
@@ -100,6 +102,28 @@ const Index = () => {
             <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[380px] sm:w-[480px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
           </div>
 
+          {/* Daily Challenge Button - Featured */}
+          <Button 
+            onClick={() => {
+              playFeedback('click');
+              navigate('/daily');
+            }}
+            size="lg" 
+            className="w-full max-w-md mx-auto h-16 text-base font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white border-0"
+          >
+            <Target className="w-5 h-5 mr-2" />
+            Daily Challenge
+            {streak > 0 && (
+              <span className="ml-2 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full text-sm">
+                <Flame className="w-4 h-4" />
+                {streak}
+              </span>
+            )}
+            {hasCompletedToday && (
+              <span className="ml-2 text-lg">✓</span>
+            )}
+          </Button>
+
           <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
             <Button 
               onClick={() => {
@@ -108,7 +132,7 @@ const Index = () => {
                 setGameMode('local');
               }}
               size="lg" 
-              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              className="w-full h-14 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
             >
               Solo Game
             </Button>
@@ -118,7 +142,7 @@ const Index = () => {
                 navigate('/online-setup');
               }}
               size="lg" 
-              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
+              className="w-full h-14 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
               variant="default"
             >
               Online 1v1
@@ -129,7 +153,7 @@ const Index = () => {
                 setGameMode('local-multiplayer-select');
               }}
               size="lg" 
-              className="w-full h-16 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up col-span-2"
+              className="w-full h-14 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up col-span-2"
               variant="secondary"
             >
               <Users className="w-5 h-5 mr-2" />
