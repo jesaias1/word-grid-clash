@@ -84,19 +84,24 @@ const DailyChallengePage = () => {
   const ALL_LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
   const VOWELS = ['A', 'E', 'I', 'O', 'U'];
   
-  // Generate 6 random letters (at least 1 vowel) - no cooldowns in daily challenge
+  // Generate 7 unique random letters (at least 1 vowel) - no cooldowns in daily challenge
   const generateLetterChoices = useCallback(() => {
     const shuffled = [...ALL_LETTERS].sort(() => Math.random() - 0.5);
     const choices: string[] = [];
+    const used = new Set<string>();
     
     // Ensure at least 1 vowel
     const vowel = VOWELS[Math.floor(Math.random() * VOWELS.length)];
     choices.push(vowel);
+    used.add(vowel);
     
-    // Fill remaining 5 with random letters (excluding the vowel we already added)
-    const remaining = shuffled.filter(l => l !== vowel);
-    for (let i = 0; i < 5 && i < remaining.length; i++) {
-      choices.push(remaining[i]);
+    // Fill remaining 6 with unique random letters (excluding ones already added)
+    for (const letter of shuffled) {
+      if (choices.length >= 7) break;
+      if (!used.has(letter)) {
+        choices.push(letter);
+        used.add(letter);
+      }
     }
     
     return choices.sort(() => Math.random() - 0.5);

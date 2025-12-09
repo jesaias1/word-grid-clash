@@ -8,6 +8,9 @@ export type ScoreOpts = {
   minLen?: number;          // default 2
 };
 
+// Bonus letters worth 2 points each
+const BONUS_LETTERS = new Set(['Z', 'X', 'Q']);
+
 const isAZ = (ch: string) => /^[A-Z]$/.test(ch);
 
 export function calculateScore(
@@ -95,6 +98,13 @@ export function calculateScore(
     hits.push({ text, path, dir });
   }
 
-  const score = hits.reduce((s, w) => s + w.text.length, 0);
+  // Calculate score: 1 point per letter, 2 points for Z, X, Q
+  const score = hits.reduce((s, w) => {
+    let wordScore = 0;
+    for (const letter of w.text) {
+      wordScore += BONUS_LETTERS.has(letter.toUpperCase()) ? 2 : 1;
+    }
+    return s + wordScore;
+  }, 0);
   return { score, words: hits };
 }
