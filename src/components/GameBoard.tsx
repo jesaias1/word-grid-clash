@@ -64,8 +64,20 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   // Try to load saved state
   const savedState = !initializedRef.current ? loadSoloGameState() : null;
   
-  const [playerGrid, setPlayerGrid] = useState<Grid>(() => savedState?.playerGrid || generateStartingTiles(boardSize));
-  const [aiGrid, setAIGrid] = useState<Grid>(() => savedState?.aiGrid || generateStartingTiles(boardSize));
+  // Generate ONE set of starting tiles that both player and AI share (identical starting position)
+  const [grids] = useState<{ player: Grid; ai: Grid }>(() => {
+    if (savedState?.playerGrid && savedState?.aiGrid) {
+      return { player: savedState.playerGrid, ai: savedState.aiGrid };
+    }
+    // Generate shared starting grid and clone for both players
+    const sharedStartingGrid = generateStartingTiles(boardSize);
+    const playerGridCopy = sharedStartingGrid.map(row => row.map(cell => ({ ...cell })));
+    const aiGridCopy = sharedStartingGrid.map(row => row.map(cell => ({ ...cell })));
+    return { player: playerGridCopy, ai: aiGridCopy };
+  });
+  
+  const [playerGrid, setPlayerGrid] = useState<Grid>(() => grids.player);
+  const [aiGrid, setAIGrid] = useState<Grid>(() => grids.ai);
   const [currentPlayer, setCurrentPlayer] = useState<Player>(() => (savedState?.currentPlayer as Player) || 1);
   const [playerScore, setPlayerScore] = useState(() => savedState?.playerScore || 0);
   const [aiScore, setAIScore] = useState(() => savedState?.aiScore || 0);
@@ -443,8 +455,10 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const handlePlayAgain = () => {
     // Clear saved state and reset
     clearSoloGameState();
-    setPlayerGrid(generateStartingTiles(boardSize));
-    setAIGrid(generateStartingTiles(boardSize));
+    // Generate shared starting grid for both players (identical)
+    const sharedStartingGrid = generateStartingTiles(boardSize);
+    setPlayerGrid(sharedStartingGrid.map(row => row.map(cell => ({ ...cell }))));
+    setAIGrid(sharedStartingGrid.map(row => row.map(cell => ({ ...cell }))));
     setPlayerScore(0);
     setAIScore(0);
     setPlayerWords([]);
