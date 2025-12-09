@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 
+const STORED_USERNAME_KEY = 'lettus_online_username';
+
 const OnlineGameSetup = () => {
   const [username, setUsername] = useState('');
   const [gameCode, setGameCode] = useState('');
@@ -17,6 +19,22 @@ const OnlineGameSetup = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const { playFeedback } = useSoundEffects(true, true);
+
+  // Load saved username on mount
+  useEffect(() => {
+    const savedUsername = localStorage.getItem(STORED_USERNAME_KEY);
+    if (savedUsername) {
+      setUsername(savedUsername);
+    }
+  }, []);
+
+  // Save username when it changes
+  const handleUsernameChange = (value: string) => {
+    setUsername(value);
+    if (value.trim()) {
+      localStorage.setItem(STORED_USERNAME_KEY, value.trim());
+    }
+  };
 
   // Auto-populate game code from URL parameter
   useEffect(() => {
@@ -282,7 +300,7 @@ const OnlineGameSetup = () => {
             <Input
               placeholder="Your username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => handleUsernameChange(e.target.value)}
               className="text-center"
               maxLength={20}
             />
