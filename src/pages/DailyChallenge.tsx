@@ -54,7 +54,7 @@ const DailyChallengePage = () => {
   const ALL_LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
   const VOWELS = ['A', 'E', 'I', 'O', 'U'];
   
-  // Generate 5 random letters (at least 1 vowel)
+  // Generate 6 random letters (at least 1 vowel) - no cooldowns in daily challenge
   const generateLetterChoices = useCallback(() => {
     const shuffled = [...ALL_LETTERS].sort(() => Math.random() - 0.5);
     const choices: string[] = [];
@@ -63,9 +63,9 @@ const DailyChallengePage = () => {
     const vowel = VOWELS[Math.floor(Math.random() * VOWELS.length)];
     choices.push(vowel);
     
-    // Fill remaining 4 with random letters (excluding the vowel we already added)
+    // Fill remaining 5 with random letters (excluding the vowel we already added)
     const remaining = shuffled.filter(l => l !== vowel);
-    for (let i = 0; i < 4 && i < remaining.length; i++) {
+    for (let i = 0; i < 5 && i < remaining.length; i++) {
       choices.push(remaining[i]);
     }
     
@@ -110,14 +110,14 @@ const DailyChallengePage = () => {
     return () => clearInterval(timer);
   }, [gameStarted, gameEnded]);
   
-  // Keyboard support
+  // Keyboard support - no cooldowns in daily challenge
   useEffect(() => {
     if (!gameStarted || gameEnded) return;
     
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key.toUpperCase();
       
-      if (availableLetters.includes(key) && (cooldowns[key] || 0) === 0) {
+      if (availableLetters.includes(key)) {
         setSelectedLetter(key);
         playFeedback('select');
       }
@@ -125,7 +125,7 @@ const DailyChallengePage = () => {
     
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameStarted, gameEnded, availableLetters, cooldowns, playFeedback]);
+  }, [gameStarted, gameEnded, availableLetters, playFeedback]);
   
   const handleStartGame = async () => {
     if (hasCompletedToday) {
@@ -205,13 +205,7 @@ const DailyChallengePage = () => {
       });
     }
     
-    // Update cooldowns
-    const newCooldowns = { ...cooldowns };
-    Object.keys(newCooldowns).forEach(l => {
-      if (newCooldowns[l] > 0) newCooldowns[l]--;
-    });
-    newCooldowns[selectedLetter] = 4;
-    setCooldowns(newCooldowns);
+    // No cooldowns in daily challenge mode
     
     // Update attempt in database
     updateAttempt(newScore, result.words.map(w => w.text));
@@ -444,37 +438,28 @@ const DailyChallengePage = () => {
         </div>
       </div>
       
-      {/* Letter Choices */}
+      {/* Letter Choices - No cooldowns in daily challenge */}
       <div className="flex flex-col items-center gap-2 py-4">
         <div className="text-sm text-muted-foreground">
           Turn {turnNumber} of 20 — Choose a letter
         </div>
         <div className="flex gap-2">
           {availableLetters.map((letter, index) => {
-            const onCooldown = (cooldowns[letter] || 0) > 0;
             const isSelected = selectedLetter === letter;
             
             return (
               <Button
                 key={`${letter}-${index}`}
                 onClick={() => {
-                  if (!onCooldown) {
-                    setSelectedLetter(letter);
-                    playFeedback('select');
-                  }
+                  setSelectedLetter(letter);
+                  playFeedback('select');
                 }}
-                disabled={onCooldown}
                 variant={isSelected ? 'default' : 'secondary'}
-                className={`w-12 h-12 sm:w-14 sm:h-14 text-xl sm:text-2xl font-bold relative ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 text-xl sm:text-2xl font-bold ${
                   isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
-                } ${onCooldown ? 'opacity-50' : ''}`}
+                }`}
               >
                 {letter}
-                {onCooldown && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                    {cooldowns[letter]}
-                  </span>
-                )}
               </Button>
             );
           })}
@@ -523,12 +508,8 @@ const DailyChallengePage = () => {
             )}
             
             <div className="flex flex-col gap-2">
-              <Button onClick={handleShare} size="lg" className="w-full">
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Results
-              </Button>
-              <Button onClick={() => navigate('/')} variant="outline" className="w-full">
-                Back to Menu
+              <Button onClick={() => navigate('/')} size="lg" className="w-full">
+                Back to Home
               </Button>
             </div>
           </div>
