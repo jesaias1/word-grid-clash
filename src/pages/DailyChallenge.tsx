@@ -480,45 +480,44 @@ const DailyChallengePage = () => {
       </div>
       
       {/* Tier Progress Bar */}
-      <div className="flex justify-center gap-2 mb-2">
-        <div className={`px-2 py-1 rounded text-xs ${score >= challenge.bronze_target ? 'bg-orange-600/20 text-orange-500' : 'bg-secondary/50'}`}>
+      <div className="flex justify-center gap-1 mb-1">
+        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.bronze_target ? 'bg-orange-600/20 text-orange-500' : 'bg-secondary/50'}`}>
           🥉 {challenge.bronze_target}
         </div>
-        <div className={`px-2 py-1 rounded text-xs ${score >= challenge.silver_target ? 'bg-gray-400/20 text-gray-300' : 'bg-secondary/50'}`}>
+        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.silver_target ? 'bg-gray-400/20 text-gray-300' : 'bg-secondary/50'}`}>
           🥈 {challenge.silver_target}
         </div>
-        <div className={`px-2 py-1 rounded text-xs ${score >= challenge.gold_target ? 'bg-yellow-400/20 text-yellow-400' : 'bg-secondary/50'}`}>
+        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.gold_target ? 'bg-yellow-400/20 text-yellow-400' : 'bg-secondary/50'}`}>
           🥇 {challenge.gold_target}
         </div>
-        <div className={`px-2 py-1 rounded text-xs ${score >= challenge.gold_target + 20 ? 'bg-cyan-400/20 text-cyan-400' : 'bg-secondary/50'}`}>
+        <div className={`px-1.5 py-0.5 rounded text-[10px] ${score >= challenge.gold_target + 20 ? 'bg-cyan-400/20 text-cyan-400' : 'bg-secondary/50'}`}>
           💎 {challenge.gold_target + 20}
         </div>
       </div>
       
-      {/* Timer - Below ranks, bigger */}
-      <div className="flex justify-center mb-3">
-        <div className={`flex items-center gap-2 px-5 py-2 rounded-full font-mono text-2xl font-bold ${
+      {/* Timer - Below ranks, compact */}
+      <div className="flex justify-center mb-2">
+        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-lg font-bold ${
           turnTimeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-secondary'
         }`}>
-          <Clock className="w-6 h-6" />
+          <Clock className="w-4 h-4" />
           {turnTimeRemaining}s
         </div>
       </div>
       
       {/* Grid with Word List */}
-      <div className="flex-1 flex items-center justify-center gap-4">
-        <WordsList words={words} playerName="You" colorClass="text-primary" />
-        <div className="inline-grid gap-1 p-3 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
+      <div className="flex-1 flex flex-col items-center justify-center gap-2">
+        <div className="inline-grid gap-0.5 p-2 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
           {grid.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-1">
+            <div key={rowIndex} className="flex gap-0.5">
               {row.map((cell, colIndex) => (
                 <button
                   key={colIndex}
                   onClick={() => placeLetter(rowIndex, colIndex)}
                   disabled={!selectedLetter || cell.letter !== null}
                   className={`
-                    w-12 h-12 sm:w-14 sm:h-14 rounded-lg font-bold text-xl sm:text-2xl
-                    transition-all duration-200 border-2
+                    w-[12vw] h-[12vw] max-w-12 max-h-12 rounded-md font-bold text-lg sm:text-xl
+                    transition-all duration-200 border
                     ${cell.letter 
                       ? 'bg-primary/80 text-primary-foreground border-primary shadow-md' 
                       : selectedLetter && !gameEnded
@@ -533,14 +532,15 @@ const DailyChallengePage = () => {
             </div>
           ))}
         </div>
+        <WordsList words={words} playerName="You" colorClass="text-primary" />
       </div>
       
       {/* Letter Choices - No cooldowns in daily challenge */}
-      <div className="flex flex-col items-center gap-2 py-4">
-        <div className="text-sm text-muted-foreground">
+      <div className="flex flex-col items-center gap-1 py-2">
+        <div className="text-xs text-muted-foreground">
           Choose a letter
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           {availableLetters.map((letter, index) => {
             const isSelected = selectedLetter === letter;
             const isBonusLetter = ['Q', 'X', 'Z'].includes(letter);
@@ -553,8 +553,8 @@ const DailyChallengePage = () => {
                   playFeedback('select');
                 }}
                 variant={isSelected ? 'default' : 'secondary'}
-                className={`w-12 h-12 sm:w-14 sm:h-14 text-xl sm:text-2xl font-bold ${
-                  isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
+                className={`w-10 h-10 sm:w-12 sm:h-12 text-lg sm:text-xl font-bold p-0 ${
+                  isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''
                 } ${isBonusLetter && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}`}
               >
                 {letter}
