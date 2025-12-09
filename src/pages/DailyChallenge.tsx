@@ -21,6 +21,37 @@ interface CooldownState {
 
 const TURN_TIME_LIMIT = 30;
 
+// Countdown to next daily challenge (midnight local time)
+const NextChallengeCountdown = () => {
+  const [timeLeft, setTimeLeft] = useState('');
+  
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      
+      const diff = midnight.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+    
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, []);
+  
+  return (
+    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+      <Clock className="w-4 h-4" />
+      <span>Next challenge in {timeLeft}</span>
+    </div>
+  );
+};
+
 const DailyChallengePage = () => {
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
@@ -45,7 +76,6 @@ const DailyChallengePage = () => {
   const [cooldowns, setCooldowns] = useState<CooldownState>({});
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
-  const [turnNumber, setTurnNumber] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
@@ -138,7 +168,6 @@ const DailyChallengePage = () => {
       setGameStarted(true);
       setTurnTimeRemaining(TURN_TIME_LIMIT);
       setAvailableLetters(generateLetterChoices());
-      setTurnNumber(1);
       playFeedback('click');
     }
   };
@@ -157,17 +186,10 @@ const DailyChallengePage = () => {
   };
   
   const advanceToNextTurn = () => {
-    const maxTurns = 20;
-    const nextTurn = turnNumber + 1;
-    
-    if (nextTurn > maxTurns) {
-      endGame();
-    } else {
-      setTurnNumber(nextTurn);
-      setSelectedLetter(null);
-      setAvailableLetters(generateLetterChoices());
-      setTurnTimeRemaining(TURN_TIME_LIMIT);
-    }
+    // No turn limit - game continues until board is full
+    setSelectedLetter(null);
+    setAvailableLetters(generateLetterChoices());
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
   
   const placeLetter = (row: number, col: number) => {
@@ -346,6 +368,7 @@ const DailyChallengePage = () => {
                   {getTierEmoji(attempt.tier_achieved || 'none')} {(attempt.tier_achieved || 'none').toUpperCase()}
                 </div>
               </Card>
+              <NextChallengeCountdown />
               <Button onClick={handleShare} size="lg" className="w-full">
                 <Share2 className="w-4 h-4 mr-2" />
                 Share Results
@@ -441,7 +464,7 @@ const DailyChallengePage = () => {
       {/* Letter Choices - No cooldowns in daily challenge */}
       <div className="flex flex-col items-center gap-2 py-4">
         <div className="text-sm text-muted-foreground">
-          Turn {turnNumber} of 20 — Choose a letter
+          Choose a letter
         </div>
         <div className="flex gap-2">
           {availableLetters.map((letter, index) => {
