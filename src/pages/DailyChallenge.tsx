@@ -409,20 +409,13 @@ const DailyChallengePage = () => {
           )}
         </div>
         
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full font-mono text-lg font-bold ${
-          turnTimeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-secondary'
-        }`}>
-          <Clock className="w-4 h-4" />
-          {turnTimeRemaining}s
-        </div>
-        
         <div className={`text-lg font-bold ${getTierColor(currentTier)}`}>
           {getTierEmoji(currentTier)} {score} pts
         </div>
       </div>
       
       {/* Tier Progress Bar */}
-      <div className="flex justify-center gap-2 mb-3">
+      <div className="flex justify-center gap-2 mb-2">
         <div className={`px-2 py-1 rounded text-xs ${score >= challenge.bronze_target ? 'bg-orange-600/20 text-orange-500' : 'bg-secondary/50'}`}>
           🥉 {challenge.bronze_target}
         </div>
@@ -434,6 +427,16 @@ const DailyChallengePage = () => {
         </div>
         <div className={`px-2 py-1 rounded text-xs ${score >= challenge.gold_target + 20 ? 'bg-cyan-400/20 text-cyan-400' : 'bg-secondary/50'}`}>
           💎 {challenge.gold_target + 20}
+        </div>
+      </div>
+      
+      {/* Timer - Below ranks, bigger */}
+      <div className="flex justify-center mb-3">
+        <div className={`flex items-center gap-2 px-5 py-2 rounded-full font-mono text-2xl font-bold ${
+          turnTimeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-secondary'
+        }`}>
+          <Clock className="w-6 h-6" />
+          {turnTimeRemaining}s
         </div>
       </div>
       
@@ -474,6 +477,7 @@ const DailyChallengePage = () => {
         <div className="flex gap-2">
           {availableLetters.map((letter, index) => {
             const isSelected = selectedLetter === letter;
+            const isBonusLetter = ['Q', 'X', 'Z'].includes(letter);
             
             return (
               <Button
@@ -485,7 +489,7 @@ const DailyChallengePage = () => {
                 variant={isSelected ? 'default' : 'secondary'}
                 className={`w-12 h-12 sm:w-14 sm:h-14 text-xl sm:text-2xl font-bold ${
                   isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
-                }`}
+                } ${isBonusLetter && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}`}
               >
                 {letter}
               </Button>

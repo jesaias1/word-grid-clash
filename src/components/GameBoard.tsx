@@ -522,6 +522,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
           const isOnCooldown = cooldown > 0;
           const isSelected = selectedLetter === letter;
           const canSelect = !isOnCooldown && isMyTurn && !gameEnded;
+          const isBonusLetter = ['Q', 'X', 'Z'].includes(letter);
           
           return (
             <button
@@ -544,6 +545,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
                       : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
                 }
                 ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
+                ${isBonusLetter && !isOnCooldown && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}
               `}
             >
               {letter}
