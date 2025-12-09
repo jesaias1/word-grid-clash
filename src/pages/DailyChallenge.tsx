@@ -84,18 +84,26 @@ const DailyChallengePage = () => {
   const ALL_LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
   const VOWELS = ['A', 'E', 'I', 'O', 'U'];
   
-  // Generate 7 unique random letters (at least 1 vowel) - no cooldowns in daily challenge
-  const generateLetterChoices = useCallback(() => {
-    const shuffled = [...ALL_LETTERS].sort(() => Math.random() - 0.5);
+  // Generate 7 unique random letters (at least 1 vowel, none from previous set) - no cooldowns in daily challenge
+  const generateLetterChoices = useCallback((previousLetters: string[] = []) => {
+    const previousSet = new Set(previousLetters);
+    const availablePool = ALL_LETTERS.filter(l => !previousSet.has(l));
+    const availableVowels = VOWELS.filter(v => !previousSet.has(v));
+    
+    // If not enough letters available (unlikely), use full alphabet
+    const pool = availablePool.length >= 7 ? availablePool : ALL_LETTERS;
+    const vowelPool = availableVowels.length > 0 ? availableVowels : VOWELS;
+    
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
     const choices: string[] = [];
     const used = new Set<string>();
     
-    // Ensure at least 1 vowel
-    const vowel = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+    // Ensure at least 1 vowel from available vowels
+    const vowel = vowelPool[Math.floor(Math.random() * vowelPool.length)];
     choices.push(vowel);
     used.add(vowel);
     
-    // Fill remaining 6 with unique random letters (excluding ones already added)
+    // Fill remaining 6 with unique random letters
     for (const letter of shuffled) {
       if (choices.length >= 7) break;
       if (!used.has(letter)) {
@@ -172,7 +180,7 @@ const DailyChallengePage = () => {
     if (attemptResult) {
       setGameStarted(true);
       setTurnTimeRemaining(TURN_TIME_LIMIT);
-      setAvailableLetters(generateLetterChoices());
+      setAvailableLetters(generateLetterChoices([]));
       playFeedback('click');
     }
   };
@@ -181,7 +189,11 @@ const DailyChallengePage = () => {
     const newScore = Math.max(0, score - 5);
     setScore(newScore);
     updateAttempt(newScore, words);
-    advanceToNextTurn();
+    
+    // Generate new letters on timeout (different from current set)
+    setSelectedLetter(null);
+    setAvailableLetters(prev => generateLetterChoices(prev));
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
     
     toast({
       title: "Time's up!",
@@ -192,8 +204,9 @@ const DailyChallengePage = () => {
   
   const advanceToNextTurn = () => {
     // No turn limit - game continues until board is full
+    // Generate new letters different from current set
     setSelectedLetter(null);
-    setAvailableLetters(generateLetterChoices());
+    setAvailableLetters(prev => generateLetterChoices(prev));
     setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
   
