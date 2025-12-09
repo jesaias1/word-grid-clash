@@ -851,13 +851,23 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                  session.winner_index ? 'You Lost' : 'Tie!'}
               </div>
             ) : (
-              <div className="text-xs sm:text-sm font-semibold">
-                {isMyTurn ? (
-                  <span className="text-primary animate-pulse">Your Turn</span>
-                ) : (
-                  <span className="text-muted-foreground">Opponent's Turn</span>
-                )}
-              </div>
+              <>
+                <div className="text-xs sm:text-sm font-semibold">
+                  {isMyTurn ? (
+                    <span className="text-primary animate-pulse">Your Turn</span>
+                  ) : (
+                    <span className="text-muted-foreground">Opponent's Turn</span>
+                  )}
+                </div>
+                {/* Timer below turn indicator */}
+                <div className={`mt-1 px-2 py-0.5 rounded-lg font-bold text-sm inline-block ${
+                  turnTimeRemaining <= WARNING_THRESHOLD
+                    ? 'bg-destructive/20 text-destructive animate-pulse' 
+                    : 'bg-primary/20 text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              </>
             )}
           </div>
         </Card>
@@ -880,20 +890,20 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
       )}
 
-      {/* Game Grids */}
-      <div className="flex flex-col items-center gap-1 flex-1 overflow-hidden">
+      {/* Game Grids - Side by side on desktop, stacked on mobile */}
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
         {/* Your Board */}
-        <div className="flex flex-col items-center w-full">
-          <div className="flex items-center gap-2 mb-0.5">
-            <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${
+        <div className="flex flex-col items-center">
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
               isMyTurn 
                 ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
                 : 'bg-card/80 border border-border opacity-70'
             }`}>
-              <div className="text-xs font-bold text-player-1 truncate max-w-[100px]">{myName}: {myScore}</div>
+              <div className="text-sm font-bold text-player-1 truncate max-w-[120px]">{myName}: {myScore}</div>
             </div>
             {session.status === 'playing' && isMyTurn && (
-              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm ${
+              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
                 turnTimeRemaining <= WARNING_THRESHOLD
                   ? 'bg-destructive/20 text-destructive animate-pulse' 
                   : 'bg-primary/20 text-primary'
@@ -908,17 +918,17 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
 
         {/* Opponent Board */}
-        <div className="flex flex-col items-center w-full">
-          <div className="flex items-center gap-2 mb-0.5">
-            <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${
+        <div className="flex flex-col items-center">
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
               !isMyTurn && session.status === 'playing'
                 ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
                 : 'bg-card/80 border border-border opacity-70'
             }`}>
-              <div className="text-xs font-bold text-player-2 truncate max-w-[100px]">{opponentName}: {opponentScore}</div>
+              <div className="text-sm font-bold text-player-2 truncate max-w-[120px]">{opponentName}: {opponentScore}</div>
             </div>
             {session.status === 'playing' && !isMyTurn && (
-              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm ${
+              <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
                 turnTimeRemaining <= WARNING_THRESHOLD
                   ? 'bg-destructive/20 text-destructive animate-pulse' 
                   : 'bg-primary/20 text-primary'
