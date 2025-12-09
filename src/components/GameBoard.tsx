@@ -632,7 +632,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
 
       {/* Available Letters */}
       {!gameEnded && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-0.5 sm:p-1 mx-auto mb-3">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-0.5 sm:p-1 mx-auto mt-3 mb-3">
           {renderAvailableLetters()}
         </div>
       )}
