@@ -44,11 +44,33 @@ const DailyChallengePage = () => {
   const [words, setWords] = useState<string[]>([]);
   const [cooldowns, setCooldowns] = useState<CooldownState>({});
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
-  const [currentLetterIndex, setCurrentLetterIndex] = useState(0);
+  const [availableLetters, setAvailableLetters] = useState<string[]>([]);
+  const [turnNumber, setTurnNumber] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
+  
+  const ALL_LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
+  const VOWELS = ['A', 'E', 'I', 'O', 'U'];
+  
+  // Generate 5 random letters (at least 1 vowel)
+  const generateLetterChoices = useCallback(() => {
+    const shuffled = [...ALL_LETTERS].sort(() => Math.random() - 0.5);
+    const choices: string[] = [];
+    
+    // Ensure at least 1 vowel
+    const vowel = VOWELS[Math.floor(Math.random() * VOWELS.length)];
+    choices.push(vowel);
+    
+    // Fill remaining 4 with random letters (excluding the vowel we already added)
+    const remaining = shuffled.filter(l => l !== vowel);
+    for (let i = 0; i < 4 && i < remaining.length; i++) {
+      choices.push(remaining[i]);
+    }
+    
+    return choices.sort(() => Math.random() - 0.5);
+  }, []);
   
   // Initialize grid from challenge
   useEffect(() => {
@@ -90,13 +112,12 @@ const DailyChallengePage = () => {
   
   // Keyboard support
   useEffect(() => {
-    if (!gameStarted || gameEnded || !challenge) return;
+    if (!gameStarted || gameEnded) return;
     
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key.toUpperCase();
-      const currentLetter = challenge.letter_sequence[currentLetterIndex];
       
-      if (key === currentLetter && (cooldowns[key] || 0) === 0) {
+      if (availableLetters.includes(key) && (cooldowns[key] || 0) === 0) {
         setSelectedLetter(key);
         playFeedback('select');
       }
@@ -104,7 +125,7 @@ const DailyChallengePage = () => {
     
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameStarted, gameEnded, challenge, currentLetterIndex, cooldowns, playFeedback]);
+  }, [gameStarted, gameEnded, availableLetters, cooldowns, playFeedback]);
   
   const handleStartGame = async () => {
     if (hasCompletedToday) {
@@ -116,6 +137,8 @@ const DailyChallengePage = () => {
     if (attemptResult) {
       setGameStarted(true);
       setTurnTimeRemaining(TURN_TIME_LIMIT);
+      setAvailableLetters(generateLetterChoices());
+      setTurnNumber(1);
       playFeedback('click');
     }
   };
@@ -124,7 +147,7 @@ const DailyChallengePage = () => {
     const newScore = Math.max(0, score - 5);
     setScore(newScore);
     updateAttempt(newScore, words);
-    advanceToNextLetter();
+    advanceToNextTurn();
     
     toast({
       title: "Time's up!",
@@ -133,15 +156,16 @@ const DailyChallengePage = () => {
     });
   };
   
-  const advanceToNextLetter = () => {
-    if (!challenge) return;
+  const advanceToNextTurn = () => {
+    const maxTurns = 20;
+    const nextTurn = turnNumber + 1;
     
-    const nextIndex = currentLetterIndex + 1;
-    if (nextIndex >= challenge.letter_sequence.length) {
+    if (nextTurn > maxTurns) {
       endGame();
     } else {
-      setCurrentLetterIndex(nextIndex);
+      setTurnNumber(nextTurn);
       setSelectedLetter(null);
+      setAvailableLetters(generateLetterChoices());
       setTurnTimeRemaining(TURN_TIME_LIMIT);
     }
   };
@@ -197,7 +221,7 @@ const DailyChallengePage = () => {
     if (isFull) {
       endGame();
     } else {
-      advanceToNextLetter();
+      advanceToNextTurn();
     }
   };
   
@@ -266,13 +290,12 @@ const DailyChallengePage = () => {
     );
   }
   
-  const currentLetter = challenge.letter_sequence[currentLetterIndex];
   const currentTier = getTierFromScore(score, {
     bronze: challenge.bronze_target,
     silver: challenge.silver_target,
     gold: challenge.gold_target,
   });
-  
+
   // Pre-game screen
   if (!gameStarted && !gameEnded) {
     return (
@@ -421,31 +444,41 @@ const DailyChallengePage = () => {
         </div>
       </div>
       
-      {/* Current Letter */}
+      {/* Letter Choices */}
       <div className="flex flex-col items-center gap-2 py-4">
         <div className="text-sm text-muted-foreground">
-          Letter {currentLetterIndex + 1} of {challenge.letter_sequence.length}
+          Turn {turnNumber} of 20 — Choose a letter
         </div>
-        <Button
-          onClick={() => {
-            if ((cooldowns[currentLetter] || 0) === 0) {
-              setSelectedLetter(currentLetter);
-              playFeedback('select');
-            }
-          }}
-          disabled={(cooldowns[currentLetter] || 0) > 0}
-          variant={selectedLetter === currentLetter ? 'default' : 'secondary'}
-          className={`w-16 h-16 text-3xl font-bold ${
-            selectedLetter === currentLetter ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
-          }`}
-        >
-          {currentLetter}
-          {(cooldowns[currentLetter] || 0) > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-              {cooldowns[currentLetter]}
-            </span>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          {availableLetters.map((letter, index) => {
+            const onCooldown = (cooldowns[letter] || 0) > 0;
+            const isSelected = selectedLetter === letter;
+            
+            return (
+              <Button
+                key={`${letter}-${index}`}
+                onClick={() => {
+                  if (!onCooldown) {
+                    setSelectedLetter(letter);
+                    playFeedback('select');
+                  }
+                }}
+                disabled={onCooldown}
+                variant={isSelected ? 'default' : 'secondary'}
+                className={`w-12 h-12 sm:w-14 sm:h-14 text-xl sm:text-2xl font-bold relative ${
+                  isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
+                } ${onCooldown ? 'opacity-50' : ''}`}
+              >
+                {letter}
+                {onCooldown && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+                    {cooldowns[letter]}
+                  </span>
+                )}
+              </Button>
+            );
+          })}
+        </div>
       </div>
       
       {/* Result Dialog */}
