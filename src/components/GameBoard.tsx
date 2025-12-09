@@ -85,6 +85,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const [selectedLetter, setSelectedLetter] = useState<Letter | null>(null);
   const [gameEnded, setGameEnded] = useState(() => savedState?.gameEnded || false);
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
+  const [showBackConfirmDialog, setShowBackConfirmDialog] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(() => savedState?.turnTimeRemaining || TURN_TIME_LIMIT);
   const [playerWords, setPlayerWords] = useState<string[]>(() => savedState?.playerWords || []);
   const [aiWords, setAIWords] = useState<string[]>(() => savedState?.aiWords || []);
@@ -573,10 +574,15 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
           <Button 
             onClick={() => {
               playFeedback('click');
-              if (onBackToMenu) {
-                onBackToMenu();
+              if (!gameEnded) {
+                setShowBackConfirmDialog(true);
               } else {
-                navigate('/');
+                clearSoloGameState();
+                if (onBackToMenu) {
+                  onBackToMenu();
+                } else {
+                  navigate('/');
+                }
               }
             }} 
             variant="outline" 
@@ -632,9 +638,9 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       )}
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
-      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-6 md:gap-12 flex-1 overflow-hidden">
         {/* Your Section */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <WordsList words={playerWords} playerName="You" colorClass="text-player-1" />
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 mb-1">
@@ -662,7 +668,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         </div>
 
         {/* AI Section */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 mb-1">
               <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
@@ -689,6 +695,37 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
           <WordsList words={aiWords} playerName="AI" colorClass="text-player-2" />
         </div>
       </div>
+
+      {/* Back Confirmation Dialog */}
+      <Dialog open={showBackConfirmDialog} onOpenChange={setShowBackConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-center">Leave Game?</DialogTitle>
+            <DialogDescription className="text-center">
+              Are you sure you want to go back? Your current game progress will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-center mt-4">
+            <Button variant="outline" onClick={() => setShowBackConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                clearSoloGameState();
+                setShowBackConfirmDialog(false);
+                if (onBackToMenu) {
+                  onBackToMenu();
+                } else {
+                  navigate('/');
+                }
+              }}
+            >
+              Leave Game
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Victory Dialog */}
       <Dialog open={showVictoryDialog} onOpenChange={setShowVictoryDialog}>
