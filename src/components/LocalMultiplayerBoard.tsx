@@ -530,7 +530,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
       <div className={`flex flex-1 overflow-hidden ${
         playerCount === 2 
-          ? 'flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8' 
+          ? 'flex-col md:flex-row items-center md:items-start justify-center gap-6 md:gap-12' 
           : 'flex-col items-center gap-2'
       }`}>
         {playerCount === 2 ? (
@@ -540,7 +540,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               const isActive = currentPlayer === idx + 1 && !gameEnded;
               const playerColorClasses = ['text-player-1', 'text-player-2'];
               return (
-                <div key={idx} className="flex items-start gap-2">
+                <div key={idx} className="flex items-start gap-3">
                   {idx === 0 && (
                     <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
                   )}

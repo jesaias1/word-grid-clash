@@ -882,9 +882,9 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       )}
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
-      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-6 md:gap-12 flex-1 overflow-hidden">
         {/* Your Section */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <WordsList words={myState.words_found || []} playerName={myName} colorClass="text-player-1" />
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 mb-1">
@@ -912,7 +912,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </div>
 
         {/* Opponent Section */}
-        <div className="flex items-start gap-2">
+        <div className="flex items-start gap-3">
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 mb-1">
               <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
