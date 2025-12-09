@@ -6,9 +6,9 @@ import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
-import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultiplayerState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
+import WordsList from '@/components/WordsList';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -55,7 +55,6 @@ const generateStartingTiles = (boardSize: number): Grid => {
 const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, cooldownTurns = 4 }: LocalMultiplayerBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const initializedRef = useRef(false);
   
@@ -293,12 +292,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     setScores(newScores);
     setGrids(newGrids);
     
-    // Show toast for new words
+    // Words are now shown in the WordsList component instead of toast
     if (newWordsFound.length > 0) {
-      toast({
-        title: `Player ${playerIndex + 1}: +${newScore} points!`,
-        description: newWordsFound.map(w => `${w.text} (${w.text.length})`).join(', ')
-      });
+      playFeedback('score');
     }
     
     // Update shared cooldowns
@@ -531,47 +527,57 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         </div>
       )}
 
-      {/* Game Grids - Side by side on desktop for 2 players, responsive grid for more */}
+      {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
       <div className={`flex flex-1 overflow-hidden ${
         playerCount === 2 
           ? 'flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8' 
           : 'flex-col items-center gap-2'
       }`}>
         {playerCount === 2 ? (
-          /* 2 players: side by side on desktop */
+          /* 2 players: side by side on desktop with word lists */
           <>
             {grids.map((_, idx) => {
               const isActive = currentPlayer === idx + 1 && !gameEnded;
+              const playerColorClasses = ['text-player-1', 'text-player-2'];
               return (
-                <div key={idx} className="flex flex-col items-center">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
-                      <div className={`text-sm font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
-                    </div>
-                    {!gameEnded && isActive && (
-                      <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                        turnTimeRemaining <= WARNING_THRESHOLD
-                          ? 'bg-destructive/20 text-destructive animate-pulse' 
-                          : 'bg-primary/20 text-primary'
-                      }`}>
-                        {turnTimeRemaining}s
+                <div key={idx} className="flex items-start gap-2">
+                  {idx === 0 && (
+                    <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
+                  )}
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
+                        <div className={`text-sm font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
                       </div>
-                    )}
+                      {!gameEnded && isActive && (
+                        <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
+                          turnTimeRemaining <= WARNING_THRESHOLD
+                            ? 'bg-destructive/20 text-destructive animate-pulse' 
+                            : 'bg-primary/20 text-primary'
+                        }`}>
+                          {turnTimeRemaining}s
+                        </div>
+                      )}
+                    </div>
+                    <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
+                      {renderGrid(idx)}
+                    </div>
                   </div>
-                  <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
-                    {renderGrid(idx)}
-                  </div>
+                  {idx === 1 && (
+                    <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
+                  )}
                 </div>
               );
             })}
           </>
         ) : (
-          /* 3+ players: responsive grid */
+          /* 3+ players: responsive grid with word lists below each grid */
           <div className={`grid gap-2 w-full justify-items-center ${
             playerCount <= 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3'
           }`}>
             {grids.map((_, idx) => {
               const isActive = currentPlayer === idx + 1 && !gameEnded;
+              const playerColorClasses = ['text-player-1', 'text-player-2', 'text-player-3', 'text-player-4', 'text-player-5'];
               return (
                 <div key={idx} className="flex flex-col items-center">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -588,8 +594,11 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                       </div>
                     )}
                   </div>
-                  <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
-                    {renderGrid(idx)}
+                  <div className="flex items-start gap-1">
+                    <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
+                      {renderGrid(idx)}
+                    </div>
+                    <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
                   </div>
                 </div>
               );

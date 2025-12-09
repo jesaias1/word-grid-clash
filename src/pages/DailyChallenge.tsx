@@ -11,6 +11,7 @@ import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyChallenge, getTierColor, getTierEmoji, getTierFromScore, Tier } from '@/hooks/useDailyChallenge';
 import { ArrowLeft, Share2, Flame, Trophy, Target, Clock } from 'lucide-react';
+import WordsList from '@/components/WordsList';
 
 type GridCell = { letter: string | null };
 type Grid = GridCell[][];
@@ -236,13 +237,9 @@ const DailyChallengePage = () => {
     setWords(result.words.map(w => w.text));
     setGrid(newGrid);
     
-    // Show toast for new words
+    // Words are now shown in the WordsList component instead of toast
     if (newWordsFound.length > 0) {
-      const pointsGained = newWordsFound.reduce((s, w) => s + w.text.length, 0);
-      toast({
-        title: `+${pointsGained} points!`,
-        description: newWordsFound.map(w => `${w.text} (${w.text.length})`).join(', ')
-      });
+      playFeedback('score');
     }
     
     // No cooldowns in daily challenge mode
@@ -453,8 +450,9 @@ const DailyChallengePage = () => {
         </div>
       </div>
       
-      {/* Grid */}
-      <div className="flex-1 flex items-center justify-center">
+      {/* Grid with Word List */}
+      <div className="flex-1 flex items-center justify-center gap-4">
+        <WordsList words={words} playerName="You" colorClass="text-primary" />
         <div className="inline-grid gap-1 p-3 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
           {grid.map((row, rowIndex) => (
             <div key={rowIndex} className="flex gap-1">
