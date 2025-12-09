@@ -522,7 +522,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
       {/* Available Letters */}
       {!gameEnded && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-0.5 sm:p-1 mx-auto">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-0.5 sm:p-1 mx-auto mb-3">
           {renderAvailableLetters()}
         </div>
       )}
@@ -540,7 +540,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               const isActive = currentPlayer === idx + 1 && !gameEnded;
               const playerColorClasses = ['text-player-1', 'text-player-2'];
               return (
-                <div key={idx} className="flex items-start gap-4 p-2 md:p-3 bg-card/50 rounded-xl border border-border/50">
+                <div key={idx} className="flex items-start gap-4">
                   {idx === 0 && (
                     <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
                   )}
@@ -579,7 +579,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               const isActive = currentPlayer === idx + 1 && !gameEnded;
               const playerColorClasses = ['text-player-1', 'text-player-2', 'text-player-3', 'text-player-4', 'text-player-5'];
               return (
-                <div key={idx} className="flex flex-col items-center p-2 bg-card/50 rounded-xl border border-border/50">
+                <div key={idx} className="flex flex-col items-center">
                   <div className="flex items-center gap-2 mb-0.5">
                     <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
                       <div className={`text-xs font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
