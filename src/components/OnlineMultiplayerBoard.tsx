@@ -134,29 +134,57 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     };
   }, [sessionId, myPlayerIndex, playFeedback, celebrate]);
 
-  // Auto-pass turn if current player has no moves left
+  // Auto-pass turn if current player has no moves left (handles both my turn and opponent's turn)
   useEffect(() => {
-    if (!session || !myState || session.status !== 'playing') return;
+    if (!session || !myState || !opponentState || session.status !== 'playing') return;
     
-    const isCurrentPlayerTurn = session.current_player === myPlayerIndex;
-    const gridFull = isGridFull(myState.grid_data);
-    const hasNoLetters = myState.available_letters.length === 0;
-    const hasNoMoves = gridFull || hasNoLetters;
+    const currentPlayerIndex = session.current_player;
+    const currentPlayerState = currentPlayerIndex === myPlayerIndex ? myState : opponentState;
     
-    if (isCurrentPlayerTurn && hasNoMoves) {
-      // Automatically pass turn
-      const nextPlayer = session.current_player === 1 ? 2 : 1;
-      supabase
-        .from('game_sessions')
-        .update({ current_player: nextPlayer })
-        .eq('id', sessionId);
+    const gridFull = isGridFull(currentPlayerState.grid_data);
+    const hasNoLetters = currentPlayerState.available_letters.length === 0;
+    const allCooldownsEmpty = Object.keys(currentPlayerState.cooldowns || {}).length === 0;
+    const hasNoMoves = gridFull || (hasNoLetters && allCooldownsEmpty);
+    
+    if (hasNoMoves) {
+      // Check if opponent also has no moves
+      const otherPlayerState = currentPlayerIndex === myPlayerIndex ? opponentState : myState;
+      const otherGridFull = isGridFull(otherPlayerState.grid_data);
+      const otherNoLetters = otherPlayerState.available_letters.length === 0;
+      const otherNoCooldowns = Object.keys(otherPlayerState.cooldowns || {}).length === 0;
+      const otherNoMoves = otherGridFull || (otherNoLetters && otherNoCooldowns);
       
-      toast({
-        title: "Turn passed",
-        description: "No more moves available",
-      });
+      if (otherNoMoves) {
+        // Both players finished - end game (only do this once, from my perspective)
+        if (currentPlayerIndex === myPlayerIndex) {
+          const myScore = myState.score || 0;
+          const oppScore = opponentState.score || 0;
+          const winnerId = myScore > oppScore ? myPlayerIndex : myScore < oppScore ? (myPlayerIndex === 1 ? 2 : 1) : null;
+          
+          supabase
+            .from('game_sessions')
+            .update({ status: 'finished', winner_index: winnerId })
+            .eq('id', sessionId);
+        }
+      } else {
+        // Auto-pass turn to the other player immediately
+        const nextPlayer = currentPlayerIndex === 1 ? 2 : 1;
+        
+        // Only trigger auto-pass once (whoever's turn it is)
+        if (currentPlayerIndex === myPlayerIndex) {
+          supabase
+            .from('game_sessions')
+            .update({ current_player: nextPlayer, turn_started_at: new Date().toISOString() })
+            .eq('id', sessionId);
+          
+          toast({
+            title: "Turn passed",
+            description: "No more moves available",
+          });
+        }
+      }
     }
-  }, [session, myState, myPlayerIndex, sessionId, toast]);
+  }, [session, myState, opponentState, myPlayerIndex, sessionId, toast]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -297,6 +325,17 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           variant: "destructive"
         });
       }
+      return;
+    }
+
+    // Prevent placing if timer already ran out (prevents double penalty + placement)
+    if (turnTimeRemaining <= 0) {
+      playFeedback('invalid');
+      toast({
+        title: "Time's up!",
+        description: "Your turn has already ended",
+        variant: "destructive"
+      });
       return;
     }
 
