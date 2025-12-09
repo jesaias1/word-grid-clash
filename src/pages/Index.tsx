@@ -8,6 +8,7 @@ import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useDailyChallenge } from '@/hooks/useDailyChallenge';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { GraduationCap, Users, ArrowLeft, Target, Flame, Clock, Download } from 'lucide-react';
 
 // Calculate time until midnight for next daily challenge
@@ -40,6 +41,7 @@ const Index = () => {
   const { trackGameStart, trackTutorial } = useAnalytics();
   const { streak, hasCompletedToday, loading: dailyLoading } = useDailyChallenge();
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
+  const isMobile = useIsMobile();
   
   const boardSize = 5;
   const cooldownTurns = 4;
@@ -255,30 +257,32 @@ const Index = () => {
             </Button>
           </div>
 
-          {/* Add to Home Screen Button */}
-          <div className="max-w-md mx-auto">
-            <Button 
-              onClick={() => {
-                playFeedback('click');
-                if (canInstall) {
-                  handleInstallClick();
-                } else {
-                  // Show instructions for browsers that don't support beforeinstallprompt
-                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                  const message = isIOS 
-                    ? "Tap the Share button (box with arrow) in Safari, then 'Add to Home Screen'"
-                    : "Tap the browser menu (⋮), then 'Add to Home Screen' or 'Install App'";
-                  alert(message);
-                }
-              }}
-              size="lg" 
-              variant="outline"
-              className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up border-primary/50 text-primary hover:bg-primary/10"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Add to Home Screen
-            </Button>
-          </div>
+          {/* Add to Home Screen Button - Only shows on mobile */}
+          {isMobile && (
+            <div className="max-w-md mx-auto">
+              <Button 
+                onClick={() => {
+                  playFeedback('click');
+                  if (canInstall) {
+                    handleInstallClick();
+                  } else {
+                    // Show instructions for browsers that don't support beforeinstallprompt
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    const message = isIOS 
+                      ? "Tap the Share button (box with arrow) in Safari, then 'Add to Home Screen'"
+                      : "Tap the browser menu (⋮), then 'Add to Home Screen' or 'Install App'";
+                    alert(message);
+                  }
+                }}
+                size="lg" 
+                variant="outline"
+                className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up border-primary/50 text-primary hover:bg-primary/10"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Add to Home Screen
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
