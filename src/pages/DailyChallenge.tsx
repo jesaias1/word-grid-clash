@@ -452,31 +452,33 @@ const DailyChallengePage = () => {
       
       {/* Grid with Word List */}
       <div className="flex-1 flex items-center justify-center gap-4">
-        <WordsList words={words} playerName="You" colorClass="text-primary" />
-        <div className="inline-grid gap-1 p-3 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
-          {grid.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-1">
-              {row.map((cell, colIndex) => (
-                <button
-                  key={colIndex}
-                  onClick={() => placeLetter(rowIndex, colIndex)}
-                  disabled={!selectedLetter || cell.letter !== null}
-                  className={`
-                    w-12 h-12 sm:w-14 sm:h-14 rounded-lg font-bold text-xl sm:text-2xl
-                    transition-all duration-200 border-2
-                    ${cell.letter 
-                      ? 'bg-primary/80 text-primary-foreground border-primary shadow-md' 
-                      : selectedLetter && !gameEnded
-                        ? 'bg-secondary/50 border-border hover:bg-primary/20 hover:border-primary/50 cursor-pointer'
-                        : 'bg-secondary/30 border-border/50'
-                    }
-                  `}
-                >
-                  {cell.letter || ''}
-                </button>
-              ))}
-            </div>
-          ))}
+        <div className="flex items-start gap-4 p-2 md:p-3 bg-card/50 rounded-xl border border-border/50">
+          <WordsList words={words} playerName="You" colorClass="text-primary" />
+          <div className="inline-grid gap-1 p-3 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
+            {grid.map((row, rowIndex) => (
+              <div key={rowIndex} className="flex gap-1">
+                {row.map((cell, colIndex) => (
+                  <button
+                    key={colIndex}
+                    onClick={() => placeLetter(rowIndex, colIndex)}
+                    disabled={!selectedLetter || cell.letter !== null}
+                    className={`
+                      w-12 h-12 sm:w-14 sm:h-14 rounded-lg font-bold text-xl sm:text-2xl
+                      transition-all duration-200 border-2
+                      ${cell.letter 
+                        ? 'bg-primary/80 text-primary-foreground border-primary shadow-md' 
+                        : selectedLetter && !gameEnded
+                          ? 'bg-secondary/50 border-border hover:bg-primary/20 hover:border-primary/50 cursor-pointer'
+                          : 'bg-secondary/30 border-border/50'
+                      }
+                    `}
+                  >
+                    {cell.letter || ''}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       

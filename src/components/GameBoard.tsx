@@ -638,9 +638,9 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       )}
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
-      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-6 md:gap-12 flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
         {/* Your Section */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4 p-2 md:p-3 bg-card/50 rounded-xl border border-border/50">
           <WordsList words={playerWords} playerName="You" colorClass="text-player-1" />
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 mb-1">
@@ -668,7 +668,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         </div>
 
         {/* AI Section */}
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-4 p-2 md:p-3 bg-card/50 rounded-xl border border-border/50">
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 mb-1">
               <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
