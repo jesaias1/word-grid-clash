@@ -8,7 +8,7 @@ import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useDailyChallenge } from '@/hooks/useDailyChallenge';
-import { GraduationCap, Users, ArrowLeft, Target, Flame, Clock } from 'lucide-react';
+import { GraduationCap, Users, ArrowLeft, Target, Flame, Clock, Download } from 'lucide-react';
 
 // Calculate time until midnight for next daily challenge
 const getTimeUntilMidnight = () => {
@@ -27,10 +27,14 @@ const formatCountdown = (ms: number) => {
 
 type GameMode = 'menu' | 'local' | 'local-multiplayer-select' | 'local-multiplayer';
 
+// Store the deferred prompt for PWA installation
+let deferredPrompt: any = null;
+
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
   const [localPlayerCount, setLocalPlayerCount] = useState<number>(2);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [canInstall, setCanInstall] = useState(false);
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
   const { trackGameStart, trackTutorial } = useAnalytics();
@@ -39,6 +43,39 @@ const Index = () => {
   
   const boardSize = 5;
   const cooldownTurns = 4;
+
+  // Listen for PWA install prompt
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      setCanInstall(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setCanInstall(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    
+    playFeedback('click');
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setCanInstall(false);
+    }
+    deferredPrompt = null;
+  };
 
   // Countdown timer for next daily challenge
   useEffect(() => {
@@ -217,6 +254,21 @@ const Index = () => {
               Tutorial
             </Button>
           </div>
+
+          {/* Add to Home Screen Button - Only shows on mobile when installable */}
+          {canInstall && (
+            <div className="max-w-md mx-auto">
+              <Button 
+                onClick={handleInstallClick}
+                size="lg" 
+                variant="outline"
+                className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up border-primary/50 text-primary hover:bg-primary/10"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Add to Home Screen
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     );
