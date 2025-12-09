@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import GameBoard from '@/components/GameBoard';
 import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import TutorialMode from '@/components/TutorialMode';
+import InstallInstructionsDialog from '@/components/InstallInstructionsDialog';
 import { Button } from '@/components/ui/button';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -36,6 +37,7 @@ const Index = () => {
   const [localPlayerCount, setLocalPlayerCount] = useState<number>(2);
   const [showTutorial, setShowTutorial] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
+  const [showInstallDialog, setShowInstallDialog] = useState(false);
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
   const { trackGameStart, trackTutorial } = useAnalytics();
@@ -49,6 +51,7 @@ const Index = () => {
   // Listen for PWA install prompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('[PWA] beforeinstallprompt event fired!');
       e.preventDefault();
       deferredPrompt = e;
       setCanInstall(true);
@@ -57,7 +60,10 @@ const Index = () => {
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    console.log('[PWA] Running in standalone mode:', isStandalone);
+    
+    if (isStandalone) {
       setCanInstall(false);
     }
 
@@ -264,14 +270,11 @@ const Index = () => {
                 onClick={() => {
                   playFeedback('click');
                   if (canInstall) {
+                    console.log('[PWA] Native install prompt available, showing...');
                     handleInstallClick();
                   } else {
-                    // Show instructions for browsers that don't support beforeinstallprompt
-                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                    const message = isIOS 
-                      ? "Tap the Share button (box with arrow) in Safari, then 'Add to Home Screen'"
-                      : "Tap the browser menu (⋮), then 'Add to Home Screen' or 'Install App'";
-                    alert(message);
+                    console.log('[PWA] No native prompt, showing instructions dialog');
+                    setShowInstallDialog(true);
                   }
                 }}
                 size="lg" 
@@ -279,10 +282,15 @@ const Index = () => {
                 className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up border-primary/50 text-primary hover:bg-primary/10"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Add to Home Screen
+                {canInstall ? 'Install App' : 'Add to Home Screen'}
               </Button>
             </div>
           )}
+
+          <InstallInstructionsDialog 
+            open={showInstallDialog} 
+            onOpenChange={setShowInstallDialog} 
+          />
         </div>
       </div>
     );
