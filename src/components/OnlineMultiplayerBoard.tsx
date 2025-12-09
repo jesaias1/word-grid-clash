@@ -543,7 +543,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
                 disabled={isOpponent || !canPlace}
                 className={`
-                  w-[11vw] h-[11vw] max-w-10 max-h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  w-[9vw] h-[9vw] max-w-8 max-h-8 sm:w-9 sm:h-9 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -585,7 +585,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const availableLetters = myState.available_letters || [];
     
     return (
-      <div className="flex flex-wrap gap-0.5 sm:gap-1 md:gap-2 justify-center max-w-2xl mx-auto">
+      <div className="flex flex-wrap gap-[2px] sm:gap-1 md:gap-2 justify-center max-w-xl mx-auto px-1">
         {allLetters.map((letter: string) => {
           const cooldown = mergedCooldowns[letter] || 0;
           const isOnCooldown = cooldown > 0;
@@ -605,7 +605,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
               }}
               disabled={!canSelect}
               className={`
-                w-7 h-7 sm:w-9 sm:h-9 md:w-11 md:h-11 rounded font-bold text-xs sm:text-sm md:text-base transition-all duration-200 relative
+                w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded font-bold text-[10px] sm:text-sm md:text-base transition-all duration-200 relative
                 ${isSelected && canSelect
                   ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
                   : isOnCooldown
@@ -876,7 +876,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Available Letters */}
       {session.status === 'playing' && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-0.5 sm:p-1 mx-auto mb-3">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-1 sm:mx-auto mb-2">
           {renderAvailableLetters()}
         </div>
       )}
