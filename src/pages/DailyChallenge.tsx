@@ -301,6 +301,61 @@ const DailyChallengePage = () => {
       console.error('Error sharing:', error);
     }
   };
+
+  const getShareContent = () => {
+    if (!challenge) return { text: '', url: 'https://lettus.fun' };
+    
+    const tier = getTierFromScore(score, {
+      bronze: challenge.bronze_target,
+      silver: challenge.silver_target,
+      gold: challenge.gold_target,
+    });
+    
+    const emoji = getTierEmoji(tier);
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const text = `${emoji} Lettus Daily Challenge - ${date}\n\nScore: ${score} pts (${tier.toUpperCase()})\nStreak: ${streak} days 🔥\n\nPlay now at lettus.fun`;
+    
+    return { text, url: 'https://lettus.fun' };
+  };
+
+  const handleShareToMessenger = () => {
+    const { text, url } = getShareContent();
+    const messengerUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=0&redirect_uri=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
+    window.open(messengerUrl, '_blank', 'width=600,height=400');
+    toast({
+      title: "Opening Messenger",
+      description: "Share your victory with friends!",
+    });
+  };
+
+  const handleShareToTwitter = () => {
+    const { text, url } = getShareContent();
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, '_blank', 'width=600,height=400');
+  };
+
+  const handleShareToInstagram = () => {
+    // Instagram doesn't support direct sharing via URL, so we copy to clipboard
+    const { text } = getShareContent();
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard!",
+      description: "Open Instagram and paste in your story. Screenshot this screen to share!",
+    });
+  };
+
+  const handleCopyToClipboard = async () => {
+    const { text } = getShareContent();
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied to clipboard!",
+        description: "Share your results anywhere",
+      });
+    } catch (error) {
+      console.error('Error copying:', error);
+    }
+  };
   
   if (loading) {
     return (
@@ -551,7 +606,52 @@ const DailyChallengePage = () => {
             )}
             
             <div className="flex flex-col gap-2">
-              <Button onClick={() => navigate('/')} size="lg" className="w-full">
+              {/* Share Options */}
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={() => handleShareToMessenger()}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.08.36-.1.53-.06.91.25 1.88.38 2.9.38 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm5.89 7.58l-2.91 4.65c-.47.75-1.49.94-2.19.42l-2.31-1.74c-.18-.13-.42-.13-.6 0l-3.12 2.38c-.42.32-.96-.17-.68-.61l2.91-4.65c.47-.75 1.49-.94 2.19-.42l2.31 1.74c.18.13.42.13.6 0l3.12-2.38c.42-.32.96.17.68.61z"/>
+                  </svg>
+                  Messenger
+                </Button>
+                <Button
+                  onClick={() => handleShareToTwitter()}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  </svg>
+                  X / Twitter
+                </Button>
+                <Button
+                  onClick={() => handleShareToInstagram()}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                  </svg>
+                  Instagram
+                </Button>
+                <Button
+                  onClick={() => handleCopyToClipboard()}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  Copy
+                </Button>
+              </div>
+              
+              <Button onClick={() => navigate('/')} size="lg" className="w-full mt-2">
                 Back to Home
               </Button>
             </div>
