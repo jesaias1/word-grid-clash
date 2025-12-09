@@ -495,9 +495,19 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                 {winner ? `Player ${winner} Wins!` : 'Tie!'}
               </div>
             ) : (
-              <div className="text-xs sm:text-sm font-semibold">
-                <span className="text-primary animate-pulse">Player {currentPlayer}'s Turn</span>
-              </div>
+              <>
+                <div className="text-xs sm:text-sm font-semibold">
+                  <span className="text-primary animate-pulse">Player {currentPlayer}'s Turn</span>
+                </div>
+                {/* Timer below turn indicator */}
+                <div className={`mt-1 px-2 py-0.5 rounded-lg font-bold text-sm inline-block ${
+                  turnTimeRemaining <= WARNING_THRESHOLD
+                    ? 'bg-destructive/20 text-destructive animate-pulse' 
+                    : 'bg-primary/20 text-primary'
+                }`}>
+                  {turnTimeRemaining}s
+                </div>
+              </>
             )}
           </div>
         </Card>
@@ -519,39 +529,71 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         </div>
       )}
 
-      {/* Game Grids - Stack vertically on mobile */}
-      <div className="flex flex-col items-center gap-1 flex-1 overflow-hidden">
-        {/* All Player Boards */}
-        <div className={`grid gap-2 w-full justify-items-center ${
-          playerCount === 2 ? 'grid-cols-1' : 
-          playerCount <= 3 ? 'grid-cols-1 sm:grid-cols-3' : 
-          'grid-cols-2 sm:grid-cols-3'
-        }`}>
-          {grids.map((_, idx) => {
-            const isActive = currentPlayer === idx + 1 && !gameEnded;
-            return (
-              <div key={idx} className="flex flex-col items-center w-full">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
-                    <div className={`text-xs font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
-                  </div>
-                  {!gameEnded && isActive && (
-                    <div className={`px-2 py-0.5 rounded-lg font-bold text-sm ${
-                      turnTimeRemaining <= WARNING_THRESHOLD
-                        ? 'bg-destructive/20 text-destructive animate-pulse' 
-                        : 'bg-primary/20 text-primary'
-                    }`}>
-                      {turnTimeRemaining}s
+      {/* Game Grids - Side by side on desktop for 2 players, responsive grid for more */}
+      <div className={`flex flex-1 overflow-hidden ${
+        playerCount === 2 
+          ? 'flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8' 
+          : 'flex-col items-center gap-2'
+      }`}>
+        {playerCount === 2 ? (
+          /* 2 players: side by side on desktop */
+          <>
+            {grids.map((_, idx) => {
+              const isActive = currentPlayer === idx + 1 && !gameEnded;
+              return (
+                <div key={idx} className="flex flex-col items-center">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
+                      <div className={`text-sm font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
                     </div>
-                  )}
+                    {!gameEnded && isActive && (
+                      <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
+                        turnTimeRemaining <= WARNING_THRESHOLD
+                          ? 'bg-destructive/20 text-destructive animate-pulse' 
+                          : 'bg-primary/20 text-primary'
+                      }`}>
+                        {turnTimeRemaining}s
+                      </div>
+                    )}
+                  </div>
+                  <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
+                    {renderGrid(idx)}
+                  </div>
                 </div>
-                <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
-                  {renderGrid(idx)}
+              );
+            })}
+          </>
+        ) : (
+          /* 3+ players: responsive grid */
+          <div className={`grid gap-2 w-full justify-items-center ${
+            playerCount <= 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3'
+          }`}>
+            {grids.map((_, idx) => {
+              const isActive = currentPlayer === idx + 1 && !gameEnded;
+              return (
+                <div key={idx} className="flex flex-col items-center">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
+                      <div className={`text-xs font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
+                    </div>
+                    {!gameEnded && isActive && (
+                      <div className={`px-2 py-0.5 rounded-lg font-bold text-xs md:hidden ${
+                        turnTimeRemaining <= WARNING_THRESHOLD
+                          ? 'bg-destructive/20 text-destructive animate-pulse' 
+                          : 'bg-primary/20 text-primary'
+                      }`}>
+                        {turnTimeRemaining}s
+                      </div>
+                    )}
+                  </div>
+                  <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
+                    {renderGrid(idx)}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Turn Transition Overlay */}
