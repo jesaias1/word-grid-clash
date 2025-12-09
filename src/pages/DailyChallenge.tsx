@@ -506,7 +506,7 @@ const DailyChallengePage = () => {
       </div>
       
       {/* Grid with Word List */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-2">
+      <div className="flex-1 flex flex-col items-center justify-center gap-1 min-h-0">
         <div className="inline-grid gap-0.5 p-2 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
           {grid.map((row, rowIndex) => (
             <div key={rowIndex} className="flex gap-0.5">
@@ -516,7 +516,7 @@ const DailyChallengePage = () => {
                   onClick={() => placeLetter(rowIndex, colIndex)}
                   disabled={!selectedLetter || cell.letter !== null}
                   className={`
-                    w-[12vw] h-[12vw] max-w-12 max-h-12 rounded-md font-bold text-lg sm:text-xl
+                    w-[11vw] h-[11vw] max-w-10 max-h-10 rounded-md font-bold text-base sm:text-xl
                     transition-all duration-200 border
                     ${cell.letter 
                       ? 'bg-primary/80 text-primary-foreground border-primary shadow-md' 
@@ -536,7 +536,7 @@ const DailyChallengePage = () => {
       </div>
       
       {/* Letter Choices - No cooldowns in daily challenge */}
-      <div className="flex flex-col items-center gap-1 py-2">
+      <div className="flex flex-col items-center gap-1 py-1 pb-2 shrink-0">
         <div className="text-xs text-muted-foreground">
           Choose a letter
         </div>
@@ -553,7 +553,7 @@ const DailyChallengePage = () => {
                   playFeedback('select');
                 }}
                 variant={isSelected ? 'default' : 'secondary'}
-                className={`w-10 h-10 sm:w-12 sm:h-12 text-lg sm:text-xl font-bold p-0 ${
+                className={`w-9 h-9 sm:w-11 sm:h-11 text-base sm:text-lg font-bold p-0 ${
                   isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''
                 } ${isBonusLetter && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}`}
               >
