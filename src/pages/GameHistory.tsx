@@ -6,9 +6,20 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, Trophy, Calendar, Users, Gamepad2, Wifi, Play } from 'lucide-react';
+import { ChevronDown, Trophy, Calendar, Users, Gamepad2, Wifi, Play, Target } from 'lucide-react';
 import { format } from 'date-fns';
 import { getLocalGameHistory, LocalGameHistoryEntry } from '@/hooks/useGameStatePersistence';
+import { getTierEmoji, getTierColor, Tier } from '@/hooks/useDailyChallenge';
+
+interface DailyAttemptEntry {
+  id: string;
+  challenge_date: string;
+  score: number;
+  tier_achieved: Tier | null;
+  words_found: string[];
+  completed: boolean;
+  completed_at: string | null;
+}
 
 interface OnlineGameHistoryEntry {
   id: string;
@@ -31,16 +42,18 @@ interface OnlineGameHistoryEntry {
 
 type CombinedGameEntry = 
   | { type: 'online'; data: OnlineGameHistoryEntry }
-  | { type: 'local'; data: LocalGameHistoryEntry };
+  | { type: 'local'; data: LocalGameHistoryEntry }
+  | { type: 'daily'; data: DailyAttemptEntry };
 
 const GameHistory = () => {
   const navigate = useNavigate();
   const [onlineGames, setOnlineGames] = useState<OnlineGameHistoryEntry[]>([]);
   const [localGames, setLocalGames] = useState<LocalGameHistoryEntry[]>([]);
+  const [dailyAttempts, setDailyAttempts] = useState<DailyAttemptEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [expandedGames, setExpandedGames] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<'all' | 'online' | 'local'>('all');
+  const [filter, setFilter] = useState<'all' | 'online' | 'local' | 'daily'>('all');
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -53,6 +66,21 @@ const GameHistory = () => {
         
         if (user) {
           setCurrentUserId(user.id);
+
+          // Fetch daily challenge attempts
+          const { data: dailyData, error: dailyError } = await supabase
+            .from('daily_challenge_attempts')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('challenge_date', { ascending: false });
+          
+          if (!dailyError && dailyData) {
+            setDailyAttempts(dailyData.map(d => ({
+              ...d,
+              tier_achieved: d.tier_achieved as Tier | null,
+              words_found: (d.words_found as string[]) || []
+            })));
+          }
 
           // Fetch finished online games where user participated
           const { data: sessions, error: sessionsError } = await supabase
@@ -101,11 +129,22 @@ const GameHistory = () => {
     fetchHistory();
   }, []);
   
+  // Calculate daily challenge stats
+  const dailyStats = {
+    total: dailyAttempts.length,
+    completed: dailyAttempts.filter(a => a.completed).length,
+    diamond: dailyAttempts.filter(a => a.tier_achieved === 'diamond').length,
+    gold: dailyAttempts.filter(a => a.tier_achieved === 'gold').length,
+    silver: dailyAttempts.filter(a => a.tier_achieved === 'silver').length,
+    bronze: dailyAttempts.filter(a => a.tier_achieved === 'bronze').length,
+  };
+
   // Combine and sort all games
   const allGames: CombinedGameEntry[] = [
     ...onlineGames.map(g => ({ type: 'online' as const, data: g })),
-    ...localGames.map(g => ({ type: 'local' as const, data: g }))
-  ].sort((a, b) => new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime());
+    ...localGames.map(g => ({ type: 'local' as const, data: g })),
+    ...dailyAttempts.map(g => ({ type: 'daily' as const, data: { ...g, created_at: g.challenge_date } as DailyAttemptEntry & { created_at: string } }))
+  ].sort((a, b) => new Date(b.data.created_at || (b.data as DailyAttemptEntry).challenge_date).getTime() - new Date(a.data.created_at || (a.data as DailyAttemptEntry).challenge_date).getTime());
   
   const filteredGames = filter === 'all' 
     ? allGames 
@@ -175,15 +214,55 @@ const GameHistory = () => {
         </Button>
       </div>
       
+      {/* Daily Challenge Stats */}
+      {dailyStats.total > 0 && (
+        <Card className="p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border-orange-500/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Target className="w-5 h-5 text-orange-500" />
+            <h3 className="font-bold">Daily Challenge Stats</h3>
+          </div>
+          <div className="grid grid-cols-5 gap-2 text-center">
+            <div>
+              <div className="text-2xl font-bold">{dailyStats.completed}</div>
+              <div className="text-xs text-muted-foreground">Completed</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-cyan-400">{dailyStats.diamond}</div>
+              <div className="text-xs">💎 Diamond</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-yellow-400">{dailyStats.gold}</div>
+              <div className="text-xs">🥇 Gold</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-300">{dailyStats.silver}</div>
+              <div className="text-xs">🥈 Silver</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-orange-600">{dailyStats.bronze}</div>
+              <div className="text-xs">🥉 Bronze</div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Filter Tabs */}
       {totalGames > 0 && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             variant={filter === 'all' ? 'default' : 'outline'} 
             size="sm"
             onClick={() => setFilter('all')}
           >
             All ({allGames.length})
+          </Button>
+          <Button 
+            variant={filter === 'daily' ? 'default' : 'outline'} 
+            size="sm"
+            onClick={() => setFilter('daily')}
+          >
+            <Target className="w-4 h-4 mr-1" />
+            Daily ({dailyAttempts.length})
           </Button>
           <Button 
             variant={filter === 'local' ? 'default' : 'outline'} 
@@ -219,8 +298,80 @@ const GameHistory = () => {
       ) : (
         <ScrollArea className="h-[calc(100vh-260px)]">
           <div className="space-y-3">
-            {filteredGames.map((entry) => {
-              if (entry.type === 'online') {
+            {filteredGames.map((entry, entryIndex) => {
+              // Daily challenge entry
+              if (entry.type === 'daily') {
+                const attempt = entry.data;
+                const isExpanded = expandedGames.has(attempt.id);
+                const tierEmoji = attempt.tier_achieved ? getTierEmoji(attempt.tier_achieved) : '⬜';
+                const tierColor = attempt.tier_achieved ? getTierColor(attempt.tier_achieved) : 'text-muted-foreground';
+
+                return (
+                  <Card key={attempt.id} className="p-4 hover:shadow-lg transition-shadow border-orange-500/20">
+                    <Collapsible open={isExpanded} onOpenChange={() => toggleGameExpanded(attempt.id)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs bg-orange-500/10 border-orange-500/30">
+                              <Target className="w-3 h-3 mr-1" />
+                              Daily
+                            </Badge>
+                            <Badge className={`font-bold ${tierColor} bg-transparent border`}>
+                              {tierEmoji} {attempt.tier_achieved || 'In Progress'}
+                            </Badge>
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Calendar className="w-3 h-3" />
+                              {format(new Date(attempt.challenge_date), 'MMM d, yyyy')}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-primary">{attempt.score}</div>
+                              <div className="text-xs text-muted-foreground">points</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold">{attempt.words_found?.length || 0}</div>
+                              <div className="text-xs text-muted-foreground">words</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" size="sm" className="ml-2">
+                            <ChevronDown 
+                              className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                            />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+
+                      <CollapsibleContent className="mt-4">
+                        <div className="pt-4 border-t">
+                          <h4 className="font-semibold text-sm mb-2">Words Found</h4>
+                          <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto">
+                            {(attempt.words_found || []).length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {(attempt.words_found || []).map((word: string, idx: number) => (
+                                  <span 
+                                    key={idx} 
+                                    className="bg-orange-500/20 text-orange-200 px-2 py-0.5 rounded text-xs font-medium"
+                                  >
+                                    {word}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">No words found</p>
+                            )}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                );
+              }
+              else if (entry.type === 'online') {
                 const game = entry.data;
                 const isPlayer1 = game.player1_id === currentUserId;
                 const myName = isPlayer1 ? game.player1_name : game.player2_name;
