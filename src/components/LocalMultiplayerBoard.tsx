@@ -354,17 +354,17 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               'bg-gradient-player-5'
             ];
             
-            // Responsive cell sizes based on player count - use vw for mobile fit
+            // Responsive cell sizes based on player count - smaller for mobile fit
             const cellSize = playerCount >= 4 
-              ? 'w-[6vw] h-[6vw] max-w-6 max-h-6 sm:w-7 sm:h-7 md:w-9 md:h-9'
+              ? 'w-[5vw] h-[5vw] max-w-5 max-h-5 sm:w-6 sm:h-6 md:w-8 md:h-8'
               : playerCount === 3 
-                ? 'w-[7vw] h-[7vw] max-w-7 max-h-7 sm:w-8 sm:h-8 md:w-10 md:h-10' 
-                : 'w-[8vw] h-[8vw] max-w-8 max-h-8 sm:w-10 sm:h-10 md:w-12 md:h-12';
+                ? 'w-[5.5vw] h-[5.5vw] max-w-6 max-h-6 sm:w-7 sm:h-7 md:w-9 md:h-9' 
+                : 'w-[10vw] h-[10vw] max-w-10 max-h-10 sm:w-10 sm:h-10 md:w-12 md:h-12';
             
             const fontSize = playerCount >= 4
-              ? 'text-[8px] sm:text-[10px] md:text-xs'
+              ? 'text-[7px] sm:text-[9px] md:text-xs'
               : playerCount === 3
-                ? 'text-[10px] sm:text-xs md:text-sm'
+                ? 'text-[8px] sm:text-xs md:text-sm'
                 : 'text-xs sm:text-base md:text-lg';
             
             return (
@@ -462,7 +462,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   return (
-    <div className="min-h-screen p-0.5 sm:p-1 md:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+    <div className="h-[100dvh] p-0.5 sm:p-1 md:p-2 max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
       <div className="text-center mb-0">
         <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
@@ -529,8 +529,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
       <div className={`flex flex-1 overflow-hidden ${
         playerCount === 2 
-          ? 'flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8' 
-          : 'flex-col items-center gap-2'
+          ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-8' 
+          : 'flex-col items-center gap-1'
       }`}>
         {playerCount === 2 ? (
           /* 2 players: side by side on desktop with word lists */
@@ -571,7 +571,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           </>
         ) : (
           /* 3+ players: responsive grid with word lists below each grid */
-          <div className={`grid gap-3 w-full justify-items-center ${
+          <div className={`grid gap-1 w-full justify-items-center ${
             playerCount <= 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3'
           }`}>
             {grids.map((_, idx) => {
