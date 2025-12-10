@@ -597,7 +597,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                     <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
                       {renderGrid(idx)}
                     </div>
-                    <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
+                    {/* Hide WordsList for 4+ players on mobile to save space */}
+                    {playerCount < 4 && (
+                      <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
+                    )}
                   </div>
                 </div>
               );
