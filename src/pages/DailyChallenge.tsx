@@ -610,7 +610,7 @@ const DailyChallengePage = () => {
                 variant={isSelected ? 'default' : 'secondary'}
                 className={`w-10 h-10 sm:w-11 sm:h-11 text-lg sm:text-lg font-bold p-0 ${
                   isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''
-                } ${isBonusLetter && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}`}
+                }`}
               >
                 {letter}
               </Button>

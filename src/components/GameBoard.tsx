@@ -483,8 +483,8 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className={`
-                  w-[9vw] h-[9vw] max-w-8 max-h-8 sm:w-9 sm:h-9 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
+              className={`
+                  w-[13vw] h-[13vw] max-w-14 max-h-14 sm:w-12 sm:h-12 md:w-14 md:h-14 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isAI ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -539,7 +539,6 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
                       : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
                 }
                 ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
-                ${isBonusLetter && !isOnCooldown && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}
               `}
             >
               {letter}

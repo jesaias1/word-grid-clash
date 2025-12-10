@@ -617,7 +617,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                         : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
                 }
                 ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
-                ${isBonusLetter && !isOnCooldown && !isSelected ? 'text-amber-400 border-amber-400/50' : ''}
               `}
             >
               {letter}
