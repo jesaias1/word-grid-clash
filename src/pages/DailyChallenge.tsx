@@ -498,16 +498,15 @@ const DailyChallengePage = () => {
                 <Share2 className="w-4 h-4 mr-2" />
                 Share Results
               </Button>
+              <Button onClick={handleStartPractice} variant="secondary" className="w-full">
+                🎲 Practice Mode (doesn't count)
+              </Button>
             </div>
           ) : (
             <Button onClick={handleStartGame} size="lg" className="w-full h-14 text-lg">
               Start Challenge
             </Button>
           )}
-          
-          <Button onClick={handleStartPractice} variant="secondary" className="w-full">
-            🎲 Practice Mode (doesn't count)
-          </Button>
           
           <Button onClick={() => navigate('/')} variant="outline" className="w-full">
             <ArrowLeft className="w-4 h-4 mr-2" />
