@@ -296,25 +296,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_or_create_daily_challenge: {
-        Args: never
-        Returns: {
-          bronze_target: number
-          challenge_date: string
-          created_at: string
-          gold_target: number
-          id: string
-          letter_sequence: Json
-          silver_target: number
-          starting_grid: Json
-        }
-        SetofOptions: {
-          from: "*"
-          to: "daily_challenges"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      get_or_create_daily_challenge:
+        | {
+            Args: never
+            Returns: {
+              bronze_target: number
+              challenge_date: string
+              created_at: string
+              gold_target: number
+              id: string
+              letter_sequence: Json
+              silver_target: number
+              starting_grid: Json
+            }
+            SetofOptions: {
+              from: "*"
+              to: "daily_challenges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { p_date?: string }
+            Returns: {
+              bronze_target: number
+              challenge_date: string
+              created_at: string
+              gold_target: number
+              id: string
+              letter_sequence: Json
+              silver_target: number
+              starting_grid: Json
+            }
+            SetofOptions: {
+              from: "*"
+              to: "daily_challenges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       get_user_streak: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
