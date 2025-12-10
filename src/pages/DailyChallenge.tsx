@@ -294,22 +294,31 @@ const DailyChallengePage = () => {
     // Check if grid is full or advance
     const isFull = newGrid.every(row => row.every(cell => cell.letter !== null));
     if (isFull) {
-      endGame();
+      // Pass current values to endGame since state hasn't updated yet
+      endGame(newScore, result.words.map(w => w.text));
     } else {
       advanceToNextTurn();
     }
   };
   
-  const endGame = async () => {
+  const endGame = async (finalScore?: number, finalWords?: string[]) => {
+    // Use passed values if available (from last letter placement), otherwise use state
+    const scoreToSave = finalScore ?? score;
+    const wordsToSave = finalWords ?? words;
+    
     setGameEnded(true);
     setGameStarted(false);
     playFeedback('gameEnd');
     
+    // Update state with final values
+    if (finalScore !== undefined) setScore(finalScore);
+    if (finalWords !== undefined) setWords(finalWords);
+    
     if (!isPracticeMode) {
-      await completeAttempt(score, words);
+      await completeAttempt(scoreToSave, wordsToSave);
     }
     
-    const tier = challenge ? getTierFromScore(score, {
+    const tier = challenge ? getTierFromScore(scoreToSave, {
       bronze: challenge.bronze_target,
       silver: challenge.silver_target,
       gold: challenge.gold_target,

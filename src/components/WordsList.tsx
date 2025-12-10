@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface WordsListProps {
   words: string[];
@@ -9,17 +9,36 @@ interface WordsListProps {
 const WordsList = ({ words, playerName, colorClass = 'text-primary' }: WordsListProps) => {
   const listRef = useRef<HTMLDivElement>(null);
   const prevWordsRef = useRef<string[]>([]);
+  const [recentWords, setRecentWords] = useState<Set<string>>(new Set());
   
-  // Scroll to bottom when new words are added
+  // Track new words and highlight them temporarily
   useEffect(() => {
-    if (listRef.current && words.length > prevWordsRef.current.length) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
+    const newWords = words.filter(w => !prevWordsRef.current.includes(w));
+    if (newWords.length > 0) {
+      setRecentWords(new Set(newWords));
+      // Clear highlight after 2 seconds
+      const timer = setTimeout(() => {
+        setRecentWords(new Set());
+      }, 2000);
+      return () => clearTimeout(timer);
     }
     prevWordsRef.current = words;
   }, [words]);
   
-  // Find newly added words for animation
-  const newWords = words.filter(w => !prevWordsRef.current.includes(w));
+  // Update prevWordsRef after processing
+  useEffect(() => {
+    prevWordsRef.current = words;
+  }, [words]);
+  
+  // Scroll to top when new words are added (newest at top)
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
+  }, [words.length]);
+  
+  // Show words in reverse order (newest first)
+  const reversedWords = [...words].reverse();
   
   return (
     <div className="flex flex-col h-full min-w-[80px] max-w-[100px] md:min-w-[100px] md:max-w-[120px]">
@@ -36,13 +55,15 @@ const WordsList = ({ words, playerName, colorClass = 'text-primary' }: WordsList
           </div>
         ) : (
           <div className="flex flex-col gap-0.5">
-            {words.map((word, index) => {
-              const isNew = newWords.includes(word) && index >= words.length - newWords.length;
+            {reversedWords.map((word, index) => {
+              const isRecent = recentWords.has(word);
               return (
                 <div 
                   key={`${word}-${index}`}
-                  className={`text-[10px] md:text-xs px-1.5 py-0.5 rounded ${colorClass} bg-current/10 font-medium transition-all ${
-                    isNew ? 'animate-fade-in scale-105' : ''
+                  className={`text-[10px] md:text-xs px-1.5 py-0.5 rounded font-medium transition-all ${
+                    isRecent 
+                      ? 'bg-primary/30 text-primary animate-pulse ring-1 ring-primary/50' 
+                      : `${colorClass} bg-current/10`
                   }`}
                 >
                   {word} <span className="opacity-60">+{word.length}</span>
