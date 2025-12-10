@@ -120,7 +120,7 @@ const Index = () => {
           
           <p className="text-muted-foreground">How many players?</p>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3 w-full max-w-xs">
             {[2, 3, 4].map((count) => (
               <Button
                 key={count}
@@ -132,7 +132,7 @@ const Index = () => {
                 }}
                 size="lg"
                 variant="secondary"
-                className="h-20 text-xl font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105"
+                className="w-full h-16 text-xl font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105"
               >
                 {count} Players
               </Button>
@@ -232,7 +232,7 @@ const Index = () => {
               variant="secondary"
             >
               <Users className="w-5 h-5 mr-2" />
-              Local Multiplayer (2-5 Players)
+              Local Multiplayer (2-4 Players)
             </Button>
           </div>
 
