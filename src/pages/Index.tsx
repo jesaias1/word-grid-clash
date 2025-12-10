@@ -121,7 +121,7 @@ const Index = () => {
           <p className="text-muted-foreground">How many players?</p>
           
           <div className="grid grid-cols-2 gap-3">
-            {[2, 3, 4, 5].map((count) => (
+            {[2, 3, 4].map((count) => (
               <Button
                 key={count}
                 onClick={() => {
