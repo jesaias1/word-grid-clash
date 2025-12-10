@@ -356,10 +356,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             
             // Responsive cell sizes based on player count - use vw for mobile fit
             const cellSize = playerCount >= 4 
-              ? 'w-[8vw] h-[8vw] max-w-8 max-h-8 sm:w-8 sm:h-8 md:w-10 md:h-10'
+              ? 'w-[6vw] h-[6vw] max-w-6 max-h-6 sm:w-7 sm:h-7 md:w-9 md:h-9'
               : playerCount === 3 
-                ? 'w-[10vw] h-[10vw] max-w-10 max-h-10 sm:w-10 sm:h-10 md:w-12 md:h-12' 
-                : 'w-[13vw] h-[13vw] max-w-14 max-h-14 sm:w-12 sm:h-12 md:w-14 md:h-14';
+                ? 'w-[7vw] h-[7vw] max-w-7 max-h-7 sm:w-8 sm:h-8 md:w-10 md:h-10' 
+                : 'w-[8vw] h-[8vw] max-w-8 max-h-8 sm:w-10 sm:h-10 md:w-12 md:h-12';
             
             const fontSize = playerCount >= 4
               ? 'text-[8px] sm:text-[10px] md:text-xs'
