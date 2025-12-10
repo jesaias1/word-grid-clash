@@ -484,7 +484,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
               <div
                 key={`${rowIndex}-${colIndex}`}
               className={`
-                  w-[10vw] h-[10vw] max-w-10 max-h-10 sm:w-10 sm:h-10 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
+                  w-[8vw] h-[8vw] max-w-9 max-h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isAI ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -559,7 +559,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   };
 
   return (
-    <div className="h-screen p-1 sm:p-2 md:p-4 pt-safe max-w-7xl mx-auto flex flex-col justify-between overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+    <div className="h-[100dvh] p-1 sm:p-2 md:p-4 pt-safe max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
       <div className="text-center">
         <h1 className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">

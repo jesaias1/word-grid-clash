@@ -354,12 +354,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               'bg-gradient-player-5'
             ];
             
-            // Responsive cell sizes based on player count - smaller for mobile fit
+            // Responsive cell sizes based on player count - compact for mobile fit
             const cellSize = playerCount >= 4 
-              ? 'w-[5vw] h-[5vw] max-w-5 max-h-5 sm:w-6 sm:h-6 md:w-8 md:h-8'
+              ? 'w-[8vw] h-[8vw] max-w-7 max-h-7 sm:w-6 sm:h-6 md:w-8 md:h-8'
               : playerCount === 3 
                 ? 'w-[5.5vw] h-[5.5vw] max-w-6 max-h-6 sm:w-7 sm:h-7 md:w-9 md:h-9' 
-                : 'w-[10vw] h-[10vw] max-w-10 max-h-10 sm:w-10 sm:h-10 md:w-12 md:h-12';
+                : 'w-[8vw] h-[8vw] max-w-9 max-h-9 sm:w-10 sm:h-10 md:w-12 md:h-12';
             
             const fontSize = playerCount >= 4
               ? 'text-[7px] sm:text-[9px] md:text-xs'
@@ -571,8 +571,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           </>
         ) : (
           /* 3+ players: responsive grid with word lists below each grid */
-          <div className={`grid gap-1 w-full justify-items-center ${
-            playerCount <= 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3'
+          <div className={`grid gap-0.5 w-full justify-items-center ${
+            playerCount <= 3 ? 'grid-cols-1 md:grid-cols-3' : playerCount === 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3 md:grid-cols-5'
           }`}>
             {grids.map((_, idx) => {
               const isActive = currentPlayer === idx + 1 && !gameEnded;
