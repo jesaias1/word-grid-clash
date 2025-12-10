@@ -97,9 +97,12 @@ export const useDailyChallenge = () => {
 
   const fetchDailyData = async (uid: string) => {
     try {
-      // Get or create today's challenge using the database function
+      // Get local date for the challenge
+      const localDate = getLocalDateString();
+      
+      // Get or create today's challenge using the database function with local date
       const { data: challengeData, error: challengeError } = await supabase
-        .rpc('get_or_create_daily_challenge');
+        .rpc('get_or_create_daily_challenge', { p_date: localDate });
       
       if (challengeError) throw challengeError;
       
