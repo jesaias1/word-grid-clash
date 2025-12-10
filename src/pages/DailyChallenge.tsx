@@ -707,7 +707,18 @@ const DailyChallengePage = () => {
                     </Button>
                   </div>
                   
-                  <Button onClick={() => navigate('/')} size="lg" className="w-full mt-2">
+                  <Button 
+                    onClick={() => {
+                      setShowResultDialog(false);
+                      handleStartPractice();
+                    }} 
+                    variant="secondary" 
+                    className="w-full mt-2"
+                  >
+                    🎲 Practice Mode (doesn't count)
+                  </Button>
+                  
+                  <Button onClick={() => navigate('/')} size="lg" className="w-full">
                     Back to Home
                   </Button>
                 </>
