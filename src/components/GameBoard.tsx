@@ -597,7 +597,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         />
       )}
       
-    <div className="h-[100dvh] p-1 sm:p-2 md:p-4 pt-safe max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+    <div className="h-[100dvh] p-1 sm:p-2 md:p-3 pt-safe mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* New Minimal Header */}
       <div className="flex items-center justify-between mb-2 px-2">
         {/* Home Button - Cabbage Logo */}
@@ -661,10 +661,10 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
       <div 
-        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-6 flex-1 min-h-0"
+        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-4 lg:gap-6 flex-1 min-h-0"
       >
         {/* Your Section */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-2 lg:gap-4">
           <WordsList words={playerWords} playerName="You" colorClass="text-player-1" />
           <div className="flex flex-col items-center">
             <div className="px-3 py-1 rounded-lg text-center shadow-md bg-card/80 border border-border mb-1">
@@ -675,7 +675,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         </div>
 
         {/* AI Section */}
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-2 lg:gap-4">
           <div className="flex flex-col items-center">
             <div className="px-3 py-1 rounded-lg text-center shadow-md bg-card/80 border border-border mb-1">
               <div className="text-sm font-bold text-player-2">AI: {aiScore}</div>
@@ -688,7 +688,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
 
       {/* Available Letters - Below the boards */}
       {!gameEnded && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-1 sm:mx-auto mt-2">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-auto mt-auto mb-1 shrink-0">
           {renderAvailableLetters()}
         </div>
       )}
