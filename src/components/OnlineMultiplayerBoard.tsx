@@ -555,7 +555,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
                 disabled={isOpponent || !canPlace}
                 className={`
-                  w-[9vw] h-[9vw] max-w-8 max-h-8 sm:w-9 sm:h-9 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  w-[9vw] h-[9vw] max-w-8 max-h-8 sm:w-9 sm:h-9 md:w-12 md:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -563,7 +563,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 `}
               >
                 {cell.letter && (
-                  <span className="font-bold text-xs sm:text-base md:text-lg drop-shadow-lg text-white">
+                  <span className="font-bold text-xs sm:text-base md:text-lg lg:text-xl xl:text-2xl drop-shadow-lg text-white">
                     {cell.letter}
                   </span>
                 )}

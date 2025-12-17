@@ -76,6 +76,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [gameEnded, setGameEnded] = useState(() => savedState?.gameEnded || false);
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
+  const [showBackConfirmDialog, setShowBackConfirmDialog] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(() => savedState?.turnTimeRemaining || TURN_TIME_LIMIT);
   const [playerWords, setPlayerWords] = useState<string[][]>(() => savedState?.playerWords || Array(playerCount).fill(null).map(() => []));
   const [winner, setWinner] = useState<Player | null>(null);
@@ -364,18 +365,18 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               'bg-gradient-player-5'
             ];
             
-            // Responsive cell sizes based on player count - compact for mobile fit
+            // Responsive cell sizes based on player count - scales with monitor on desktop
             const cellSize = playerCount >= 4 
-              ? 'w-[8vw] h-[8vw] max-w-7 max-h-7 sm:w-6 sm:h-6 md:w-8 md:h-8'
+              ? 'w-[8vw] h-[8vw] max-w-7 max-h-7 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 xl:w-12 xl:h-12'
               : playerCount === 3 
-                ? 'w-[5.5vw] h-[5.5vw] max-w-6 max-h-6 sm:w-7 sm:h-7 md:w-9 md:h-9' 
-                : 'w-[8vw] h-[8vw] max-w-9 max-h-9 sm:w-10 sm:h-10 md:w-12 md:h-12';
+                ? 'w-[5.5vw] h-[5.5vw] max-w-6 max-h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 lg:w-12 lg:h-12 xl:w-14 xl:h-14' 
+                : 'w-[8vw] h-[8vw] max-w-9 max-h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16';
             
             const fontSize = playerCount >= 4
-              ? 'text-[7px] sm:text-[9px] md:text-xs'
+              ? 'text-[7px] sm:text-[9px] md:text-xs lg:text-sm xl:text-base'
               : playerCount === 3
-                ? 'text-[8px] sm:text-xs md:text-sm'
-                : 'text-xs sm:text-base md:text-lg';
+                ? 'text-[8px] sm:text-xs md:text-sm lg:text-base xl:text-lg'
+                : 'text-xs sm:text-base md:text-lg lg:text-xl xl:text-2xl';
             
             return (
               <div
@@ -496,7 +497,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           <Button 
             onClick={() => {
               playFeedback('click');
-              onBackToMenu();
+              if (!gameEnded) {
+                setShowBackConfirmDialog(true);
+              } else {
+                clearLocalMultiplayerState(playerCount);
+                onBackToMenu();
+              }
             }} 
             variant="outline" 
             className="w-full text-xs h-7 sm:h-8"
@@ -704,6 +710,33 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                 Home
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Back Confirmation Dialog */}
+      <Dialog open={showBackConfirmDialog} onOpenChange={setShowBackConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-center">Leave Game?</DialogTitle>
+            <DialogDescription className="text-center">
+              Are you sure you want to go back? Your current game progress will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-center mt-4">
+            <Button variant="outline" onClick={() => setShowBackConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                clearLocalMultiplayerState(playerCount);
+                setShowBackConfirmDialog(false);
+                onBackToMenu();
+              }}
+            >
+              Leave Game
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

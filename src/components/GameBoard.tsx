@@ -484,7 +484,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
               <div
                 key={`${rowIndex}-${colIndex}`}
               className={`
-                  w-[8vw] h-[8vw] max-w-9 max-h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
+                  w-[8vw] h-[8vw] max-w-9 max-h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16 cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isAI ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -492,7 +492,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
                 onClick={() => canPlace && placeLetter(rowIndex, colIndex)}
               >
                 {cell.letter && (
-                  <span className="font-bold text-xs sm:text-base md:text-lg drop-shadow-lg text-white">
+                  <span className="font-bold text-xs sm:text-base md:text-lg lg:text-xl xl:text-2xl drop-shadow-lg text-white">
                     {cell.letter}
                   </span>
                 )}
