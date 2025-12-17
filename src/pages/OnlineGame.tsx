@@ -156,8 +156,25 @@ const OnlineGame = () => {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="p-6 max-w-md w-full shadow-lg border-2 text-center space-y-4 animate-fade-in">
+          {/* Pulsing waiting indicator */}
+          <div className="flex justify-center mb-2">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-primary/20 animate-ping absolute" />
+              <div className="w-16 h-16 rounded-full bg-primary/30 flex items-center justify-center relative">
+                <div className="w-10 h-10 rounded-full bg-primary animate-pulse" />
+              </div>
+            </div>
+          </div>
+          
           <h2 className="text-xl font-bold text-foreground">Waiting for Opponent</h2>
           <p className="text-muted-foreground">Share this game link with a friend:</p>
+          
+          {/* Animated dots */}
+          <div className="flex justify-center gap-1 py-2">
+            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
           
           <div className="bg-muted p-4 rounded-lg">
             <code className="text-3xl font-mono font-bold text-primary tracking-wider">{session?.invite_code || gameId}</code>

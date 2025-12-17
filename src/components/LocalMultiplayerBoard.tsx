@@ -9,6 +9,7 @@ import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useNavigate } from 'react-router-dom';
 import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultiplayerState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 import WordsList from '@/components/WordsList';
+import PlayerSpinner from '@/components/PlayerSpinner';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -80,6 +81,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const [winner, setWinner] = useState<Player | null>(null);
   const [showTurnTransition, setShowTurnTransition] = useState(false);
   const [transitionToPlayer, setTransitionToPlayer] = useState<number | null>(null);
+  
+  // Show spinner only for new games (no saved state)
+  const [showSpinner, setShowSpinner] = useState(() => !savedState);
   
   // Mark as initialized
   useEffect(() => {
@@ -249,6 +253,12 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     setWinner(null);
     setShowTurnTransition(false);
     setTransitionToPlayer(null);
+    setShowSpinner(true); // Show spinner for new game
+  };
+  
+  const handleSpinnerComplete = (selectedPlayer: number) => {
+    setCurrentPlayer(selectedPlayer);
+    setShowSpinner(false);
   };
 
   const placeLetter = (playerIndex: number, row: number, col: number) => {
@@ -462,6 +472,16 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   };
 
   return (
+    <>
+      {/* Player Spinner for new games */}
+      {showSpinner && (
+        <PlayerSpinner 
+          playerCount={playerCount} 
+          onComplete={handleSpinnerComplete}
+          playerNames={Array.from({ length: playerCount }, (_, i) => `Player ${i + 1}`)}
+        />
+      )}
+      
     <div className="h-[100dvh] p-0.5 sm:p-1 md:p-2 max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
       <div className="text-center mb-0">
@@ -688,6 +708,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 
