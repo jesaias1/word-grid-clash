@@ -11,7 +11,9 @@ import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultipl
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFullscreen } from '@/hooks/useFullscreen';
 import lettusLogo from '@/assets/lettuslogo.png';
+import { Maximize, Minimize } from 'lucide-react';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -60,6 +62,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const { celebrate } = useVictoryCelebration();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
   const initializedRef = useRef(false);
   
   // Try to load saved state
@@ -549,15 +552,21 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           )}
         </div>
 
-        {/* Spacer to balance layout */}
-        <div className="w-10 h-10 md:w-12 md:h-12" />
+        {/* Fullscreen Toggle */}
+        <button
+          onClick={toggleFullscreen}
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform flex items-center justify-center bg-card/50 border border-border/50"
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+          {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
       <div 
-        className={`flex flex-1 min-h-0 overflow-auto ${
+        className={`flex flex-1 min-h-0 ${
           playerCount === 2 
-            ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-8' 
+            ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-6' 
             : 'flex-col items-center gap-1'
         }`}
       >

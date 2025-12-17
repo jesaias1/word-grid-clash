@@ -13,7 +13,9 @@ import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useFullscreen } from '@/hooks/useFullscreen';
 import lettusLogo from '@/assets/lettuslogo.png';
+import { Maximize, Minimize } from 'lucide-react';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -36,6 +38,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
   const isMobile = useIsMobile();
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   const [session, setSession] = useState<any>(null);
   const [myPlayerIndex, setMyPlayerIndex] = useState<number | null>(null);
@@ -916,13 +919,19 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           )}
         </div>
 
-        {/* Spacer to balance layout */}
-        <div className="w-10 h-10 md:w-12 md:h-12" />
+        {/* Fullscreen Toggle */}
+        <button
+          onClick={toggleFullscreen}
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform flex items-center justify-center bg-card/50 border border-border/50"
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+          {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
       <div 
-        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 min-h-0 overflow-auto"
+        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-6 flex-1 min-h-0"
       >
         {/* Your Section */}
         <div className="flex items-start gap-4">
