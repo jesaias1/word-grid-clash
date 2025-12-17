@@ -12,6 +12,8 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
+import { useBoardScale } from '@/hooks/useBoardScale';
+import { BoardScaleControl } from '@/components/BoardScaleControl';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -33,6 +35,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
+  const { scale, increaseScale, decreaseScale, resetScale, canIncrease, canDecrease } = useBoardScale();
 
   const [session, setSession] = useState<any>(null);
   const [myPlayerIndex, setMyPlayerIndex] = useState<number | null>(null);
@@ -861,10 +864,18 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     <div className="min-h-screen p-0.5 sm:p-1 md:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
 
       {/* Header */}
-      <div className="text-center mb-0">
+      <div className="text-center mb-0 flex items-center justify-center gap-4">
         <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - Online
         </h1>
+        <BoardScaleControl
+          scale={scale}
+          onIncrease={increaseScale}
+          onDecrease={decreaseScale}
+          onReset={resetScale}
+          canIncrease={canIncrease}
+          canDecrease={canDecrease}
+        />
       </div>
 
       {/* Game Stats and Controls */}
@@ -932,7 +943,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       )}
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
-      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
+      <div 
+        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden origin-top"
+        style={{ transform: `scale(${scale})` }}
+      >
         {/* Your Section */}
         <div className="flex items-start gap-4">
           <WordsList words={myState.words_found || []} playerName={myName} colorClass="text-player-1" />

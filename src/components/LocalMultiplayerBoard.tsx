@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultiplayerState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
+import { useBoardScale } from '@/hooks/useBoardScale';
+import { BoardScaleControl } from '@/components/BoardScaleControl';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -57,6 +59,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
   const navigate = useNavigate();
+  const { scale, increaseScale, decreaseScale, resetScale, canIncrease, canDecrease } = useBoardScale();
   const initializedRef = useRef(false);
   
   // Try to load saved state
@@ -486,10 +489,18 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       
     <div className="h-[100dvh] p-0.5 sm:p-1 md:p-2 max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
-      <div className="text-center mb-0">
+      <div className="text-center mb-0 flex items-center justify-center gap-4">
         <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - {playerCount} Player Local
         </h1>
+        <BoardScaleControl
+          scale={scale}
+          onIncrease={increaseScale}
+          onDecrease={decreaseScale}
+          onReset={resetScale}
+          canIncrease={canIncrease}
+          canDecrease={canDecrease}
+        />
       </div>
 
       {/* Game Stats and Controls */}
@@ -554,11 +565,14 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       )}
 
       {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
-      <div className={`flex flex-1 overflow-hidden ${
-        playerCount === 2 
-          ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-8' 
-          : 'flex-col items-center gap-1'
-      }`}>
+      <div 
+        className={`flex flex-1 overflow-hidden origin-top ${
+          playerCount === 2 
+            ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-8' 
+            : 'flex-col items-center gap-1'
+        }`}
+        style={{ transform: `scale(${scale})` }}
+      >
         {playerCount === 2 ? (
           /* 2 players: side by side on desktop with word lists */
           <>
