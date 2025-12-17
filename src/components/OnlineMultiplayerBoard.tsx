@@ -11,6 +11,7 @@ import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import WordsList from '@/components/WordsList';
+import PlayerSpinner from '@/components/PlayerSpinner';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -43,6 +44,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
   const [rematchRequestedBy, setRematchRequestedBy] = useState<number | null>(null);
   const [lastOpponentWordCount, setLastOpponentWordCount] = useState(0);
+  const [showSpinner, setShowSpinner] = useState(true);
+  const [spinnerCompleted, setSpinnerCompleted] = useState(false);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -825,7 +828,33 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     navigate('/');
   };
 
+  const handleSpinnerComplete = async (selectedPlayer: number) => {
+    setShowSpinner(false);
+    setSpinnerCompleted(true);
+    
+    // Update the session to set the starting player (only player 1 does this to avoid race condition)
+    if (myPlayerIndex === 1) {
+      await supabase
+        .from('game_sessions')
+        .update({ current_player: selectedPlayer })
+        .eq('id', sessionId);
+    }
+  };
+
+  // Only show spinner if game just started and both states are loaded
+  const shouldShowSpinner = showSpinner && !spinnerCompleted && session?.status === 'playing' && myState && opponentState;
+
   return (
+    <>
+      {/* Player Spinner for new games */}
+      {shouldShowSpinner && (
+        <PlayerSpinner 
+          playerCount={2} 
+          onComplete={handleSpinnerComplete}
+          playerNames={[session.player1_name, session.player2_name || 'Player 2']}
+        />
+      )}
+      
     <div className="min-h-screen p-0.5 sm:p-1 md:p-2 space-y-0.5 sm:space-y-1 max-w-7xl mx-auto flex flex-col" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
 
       {/* Header */}
@@ -1061,6 +1090,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 
