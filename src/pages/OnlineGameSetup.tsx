@@ -133,8 +133,9 @@ const OnlineGameSetup = () => {
           board_size: boardSize,
           cooldown_turns: cooldownTurns,
           status: 'waiting',
-          current_player: 1,  // Explicitly set Player 1 to start
-          invite_code: inviteCode
+          current_player: 1,
+          invite_code: inviteCode,
+          turn_started_at: null  // Don't start timer until game begins
         })
         .select()
         .single();
@@ -244,7 +245,8 @@ const OnlineGameSetup = () => {
         .update({ 
           player2_name: username,
           player2_id: authData.user.id,
-          status: 'playing'
+          status: 'playing',
+          turn_started_at: new Date().toISOString()  // NOW start the timer
         })
         .eq('id', session.id);
 
