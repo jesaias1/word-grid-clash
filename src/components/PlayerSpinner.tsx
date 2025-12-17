@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface PlayerSpinnerProps {
@@ -17,56 +17,84 @@ const PLAYER_COLORS = [
 
 const PlayerSpinner = ({ playerCount, onComplete, playerNames }: PlayerSpinnerProps) => {
   const [spinning, setSpinning] = useState(true);
-  const [currentHighlight, setCurrentHighlight] = useState(0);
+  const [currentHighlight, setCurrentHighlight] = useState(1);
   const [finalPlayer, setFinalPlayer] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  const hasCompletedRef = useRef(false);
+  
+  // Keep ref updated
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
-    // Randomly select final player
+    if (hasCompletedRef.current) return;
+    
+    // Randomly select final player at the start
     const selected = Math.floor(Math.random() * playerCount) + 1;
     
-    // Spinning animation - quick cycles then dramatic slowdown
-    let cycles = 0;
-    const maxCycles = 10 + Math.floor(Math.random() * 4); // 10-13 cycles total
+    // Calculate how many steps we need to reach the selected player with a nice slowdown
+    // We want to cycle through all players multiple times, then land on selected
+    const minFullCycles = 2; // At least 2 full rotations
+    const extraSteps = Math.floor(Math.random() * playerCount); // Random extra steps
+    const totalSteps = (minFullCycles * playerCount) + extraSteps;
     
-    const getInterval = (cycle: number) => {
-      // Exponential slowdown for dramatic effect
-      const progress = cycle / maxCycles;
-      if (progress < 0.5) return 60; // Fast at start
-      if (progress < 0.7) return 100;
-      if (progress < 0.85) return 180;
-      return 300 + (progress - 0.85) * 800; // Dramatic slowdown at end
+    // Calculate final landing position - we need to end on selected
+    // Start from 1, and we need to land on selected after totalSteps
+    // Adjust totalSteps so we land exactly on selected
+    const stepsToSelected = ((selected - 1) % playerCount);
+    const adjustedTotalSteps = totalSteps - (totalSteps % playerCount) + stepsToSelected;
+    const finalTotalSteps = adjustedTotalSteps < totalSteps ? adjustedTotalSteps + playerCount : adjustedTotalSteps;
+    
+    let step = 0;
+    let currentPos = 1;
+    
+    const getInterval = (currentStep: number, total: number) => {
+      const progress = currentStep / total;
+      // Smooth slowdown curve
+      if (progress < 0.4) return 80;      // Fast
+      if (progress < 0.6) return 120;     // Medium
+      if (progress < 0.75) return 200;    // Slower
+      if (progress < 0.85) return 350;    // Much slower
+      if (progress < 0.92) return 500;    // Very slow
+      return 700;                         // Crawling to final selection
     };
     
     const spin = () => {
-      setCurrentHighlight(prev => (prev % playerCount) + 1);
-      cycles++;
+      step++;
+      currentPos = ((currentPos) % playerCount) + 1;
+      setCurrentHighlight(currentPos);
       
-      if (cycles >= maxCycles) {
-        // Final spin to selected player
-        setCurrentHighlight(selected);
+      if (step >= finalTotalSteps) {
+        // We've landed on the selected player
         setFinalPlayer(selected);
         setSpinning(false);
+        hasCompletedRef.current = true;
         
         setTimeout(() => {
           setShowResult(true);
-          setTimeout(() => onComplete(selected), 1200);
-        }, 400);
+          setTimeout(() => {
+            onCompleteRef.current(selected);
+          }, 1500);
+        }, 600);
         return;
       }
       
-      setTimeout(spin, getInterval(cycles));
+      const nextInterval = getInterval(step, finalTotalSteps);
+      setTimeout(spin, nextInterval);
     };
     
-    setTimeout(spin, 60);
-  }, [playerCount, onComplete]);
+    // Start spinning
+    setTimeout(spin, 80);
+  }, [playerCount]);
 
-  const getPlayerName = (index: number) => {
+  const getPlayerName = useCallback((index: number) => {
     if (playerNames && playerNames[index - 1]) {
       return playerNames[index - 1];
     }
     return `Player ${index}`;
-  };
+  }, [playerNames]);
 
   return (
     <motion.div
@@ -94,18 +122,18 @@ const PlayerSpinner = ({ playerCount, onComplete, playerNames }: PlayerSpinnerPr
                 <motion.div
                   key={player}
                   animate={{
-                    scale: isHighlighted ? 1.2 : 1,
-                    opacity: isSelected ? 1 : isHighlighted ? 1 : 0.5,
+                    scale: isHighlighted ? 1.25 : 1,
+                    opacity: isSelected ? 1 : isHighlighted ? 1 : 0.4,
                   }}
-                  transition={{ duration: 0.1 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
                   className={`
                     relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center
-                    font-bold text-lg md:text-xl transition-all duration-100
+                    font-bold text-lg md:text-xl
                     ${isSelected ? 'ring-4 ring-white shadow-2xl' : ''}
                   `}
                   style={{ 
                     backgroundColor: PLAYER_COLORS[player - 1],
-                    boxShadow: isHighlighted ? `0 0 30px ${PLAYER_COLORS[player - 1]}` : 'none'
+                    boxShadow: isHighlighted ? `0 0 40px ${PLAYER_COLORS[player - 1]}` : 'none'
                   }}
                 >
                   <span className="text-white drop-shadow-lg">P{player}</span>
@@ -113,9 +141,10 @@ const PlayerSpinner = ({ playerCount, onComplete, playerNames }: PlayerSpinnerPr
                   {/* Selection indicator */}
                   {isSelected && (
                     <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -bottom-2 left-1/2 -translate-x-1/2"
+                      initial={{ scale: 0, y: 10 }}
+                      animate={{ scale: 1, y: 0 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="absolute -bottom-3 left-1/2 -translate-x-1/2"
                     >
                       <div className="w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white" 
                         style={{ transform: 'rotate(180deg)' }}
@@ -134,6 +163,7 @@ const PlayerSpinner = ({ playerCount, onComplete, playerNames }: PlayerSpinnerPr
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
               className="space-y-2"
             >
               <p className="text-lg text-muted-foreground">First turn goes to:</p>

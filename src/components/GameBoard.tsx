@@ -10,6 +10,7 @@ import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useNavigate } from 'react-router-dom';
 import { saveSoloGameState, loadSoloGameState, clearSoloGameState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 import WordsList from '@/components/WordsList';
+import PlayerSpinner from '@/components/PlayerSpinner';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -90,6 +91,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const [playerWords, setPlayerWords] = useState<string[]>(() => savedState?.playerWords || []);
   const [aiWords, setAIWords] = useState<string[]>(() => savedState?.aiWords || []);
   const [difficulty] = useState<DifficultyLevel>('medium');
+  const [showSpinner, setShowSpinner] = useState(() => !savedState);
   
   // Mark as initialized
   useEffect(() => {
@@ -145,7 +147,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
 
   // Turn timer
   useEffect(() => {
-    if (gameEnded) return;
+    if (gameEnded || showSpinner) return;
 
     // Skip turn if current player's grid is full
     if (currentPlayer === 1 && isPlayerGridFull) {
@@ -181,11 +183,11 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentPlayer, gameEnded, playerGrid, aiGrid]);
+  }, [currentPlayer, gameEnded, playerGrid, aiGrid, showSpinner]);
 
   // AI turn logic
   useEffect(() => {
-    if (currentPlayer === 2 && !gameEnded) {
+    if (currentPlayer === 2 && !gameEnded && !showSpinner) {
       // Skip AI turn if its grid is full
       const aiFull = aiGrid.every(row => row.every(cell => cell.letter !== null));
       if (aiFull) {
@@ -199,7 +201,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       
       return () => clearTimeout(timer);
     }
-  }, [currentPlayer, gameEnded, aiGrid]);
+  }, [currentPlayer, gameEnded, aiGrid, showSpinner]);
 
   const handleTurnTimeout = () => {
     if (currentPlayer === 1) {
@@ -464,6 +466,13 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
     setGameEnded(false);
     setShowVictoryDialog(false);
     setTurnTimeRemaining(TURN_TIME_LIMIT);
+    setShowSpinner(true);
+  };
+
+  const handleSpinnerComplete = (selectedPlayer: number) => {
+    setCurrentPlayer(selectedPlayer as Player);
+    setShowSpinner(false);
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
 
   const renderGrid = (isAI: boolean) => {
@@ -559,6 +568,16 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   };
 
   return (
+    <>
+      {/* Player Spinner for new games */}
+      {showSpinner && (
+        <PlayerSpinner 
+          playerCount={2} 
+          onComplete={handleSpinnerComplete}
+          playerNames={['You', 'AI']}
+        />
+      )}
+      
     <div className="h-[100dvh] p-1 sm:p-2 md:p-4 pt-safe max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
       <div className="text-center">
@@ -796,6 +815,7 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 

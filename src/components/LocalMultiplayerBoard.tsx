@@ -146,7 +146,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
   // Turn timer
   useEffect(() => {
-    if (gameEnded) return;
+    if (gameEnded || showSpinner) return;
 
     // Skip turn immediately if current player's board is full
     if (isPlayerGridFull(currentPlayer - 1)) {
@@ -182,7 +182,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentPlayer, gameEnded, grids]);
+  }, [currentPlayer, gameEnded, grids, showSpinner]);
   
   const endLocalGame = (finalScores: number[], finalWords: string[][]) => {
     setGameEnded(true);
@@ -260,6 +260,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const handleSpinnerComplete = (selectedPlayer: number) => {
     setCurrentPlayer(selectedPlayer);
     setShowSpinner(false);
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
   };
 
   const placeLetter = (playerIndex: number, row: number, col: number) => {
