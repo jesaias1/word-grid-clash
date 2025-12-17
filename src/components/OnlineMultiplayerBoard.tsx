@@ -12,8 +12,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
-import { useBoardScale } from '@/hooks/useBoardScale';
-import { BoardScaleControl } from '@/components/BoardScaleControl';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -35,7 +34,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const navigate = useNavigate();
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
-  const { scale, increaseScale, decreaseScale, resetScale, canIncrease, canDecrease } = useBoardScale();
+  const isMobile = useIsMobile();
 
   const [session, setSession] = useState<any>(null);
   const [myPlayerIndex, setMyPlayerIndex] = useState<number | null>(null);
@@ -558,7 +557,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
                 disabled={isOpponent || !canPlace}
                 className={`
-                  w-[9vw] h-[9vw] max-w-8 max-h-8 sm:w-9 sm:h-9 md:w-12 md:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16 cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                  ${isMobile 
+                    ? 'w-[9vw] h-[9vw] max-w-8 max-h-8' 
+                    : 'w-[min(5vw,80px)] h-[min(5vw,80px)]'
+                  } sm:w-9 sm:h-9 md:w-[min(5vw,80px)] md:h-[min(5vw,80px)] cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -582,6 +584,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     if (!myState || !opponentState) return null;
 
     const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const row1 = allLetters.slice(0, 13); // A-M
+    const row2 = allLetters.slice(13);    // N-Z
     
     // Merge cooldowns from both players - use the highest cooldown value for each letter
     const myCooldowns = myState.cooldowns || {};
@@ -599,54 +603,60 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     
     const availableLetters = myState.available_letters || [];
     
+    const renderLetter = (letter: string) => {
+      const cooldown = mergedCooldowns[letter] || 0;
+      const isOnCooldown = cooldown > 0;
+      const isAvailable = availableLetters.includes(letter);
+      const isSelected = selectedLetter === letter;
+      const canSelect = isAvailable && !isOnCooldown && isMyTurn;
+      
+      return (
+        <button
+          key={letter}
+          onClick={() => {
+            if (canSelect) {
+              setSelectedLetter(letter);
+              playFeedback('select');
+            }
+          }}
+          disabled={!canSelect}
+          className={`
+            w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded font-bold text-[10px] sm:text-sm md:text-base transition-all duration-200 relative
+            ${isSelected && canSelect
+              ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
+              : isOnCooldown
+                ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
+                : !isAvailable
+                  ? 'bg-muted/30 text-muted-foreground/30 cursor-not-allowed opacity-40'
+                  : canSelect
+                    ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
+                    : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
+            }
+            ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
+          `}
+        >
+          {letter}
+          {isOnCooldown && (
+            <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background ${
+              cooldown === 1 
+                ? 'bg-yellow-500 text-yellow-950' 
+                : 'bg-destructive text-destructive-foreground'
+            }`}>
+              {cooldown}
+            </div>
+          )}
+        </button>
+      );
+    };
+    
     return (
-      <div className="flex flex-wrap gap-[2px] sm:gap-1 md:gap-2 justify-center max-w-xl mx-auto px-1">
-        {allLetters.map((letter: string) => {
-          const cooldown = mergedCooldowns[letter] || 0;
-          const isOnCooldown = cooldown > 0;
-          const isAvailable = availableLetters.includes(letter);
-          const isSelected = selectedLetter === letter;
-          const canSelect = isAvailable && !isOnCooldown && isMyTurn;
-          const isBonusLetter = ['Q', 'X', 'Z'].includes(letter);
-          
-          return (
-            <button
-              key={letter}
-              onClick={() => {
-                if (canSelect) {
-                  setSelectedLetter(letter);
-                  playFeedback('select');
-                }
-              }}
-              disabled={!canSelect}
-              className={`
-                w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded font-bold text-[10px] sm:text-sm md:text-base transition-all duration-200 relative
-                ${isSelected && canSelect
-                  ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
-                  : isOnCooldown
-                    ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
-                    : !isAvailable
-                      ? 'bg-muted/30 text-muted-foreground/30 cursor-not-allowed opacity-40'
-                      : canSelect
-                        ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
-                        : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
-                }
-                ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
-              `}
-            >
-              {letter}
-              {isOnCooldown && (
-                <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text[10px] font-bold shadow-lg border border-background ${
-                  cooldown === 1 
-                    ? 'bg-yellow-500 text-yellow-950' 
-                    : 'bg-destructive text-destructive-foreground'
-                }`}>
-                  {cooldown}
-                </div>
-              )}
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-1 sm:gap-2 justify-center items-center px-1">
+        <div className="flex gap-[2px] sm:gap-1 md:gap-2 justify-center">
+          {row1.map(renderLetter)}
+        </div>
+        <div className="flex gap-[2px] sm:gap-1 md:gap-2 justify-center">
+          {row2.map(renderLetter)}
+        </div>
       </div>
     );
   };
@@ -868,14 +878,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - Online
         </h1>
-        <BoardScaleControl
-          scale={scale}
-          onIncrease={increaseScale}
-          onDecrease={decreaseScale}
-          onReset={resetScale}
-          canIncrease={canIncrease}
-          canDecrease={canDecrease}
-        />
       </div>
 
       {/* Game Stats and Controls */}
@@ -935,17 +937,9 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         </Card>
       </div>
 
-      {/* Available Letters */}
-      {session.status === 'playing' && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-1 sm:mx-auto mb-2">
-          {renderAvailableLetters()}
-        </div>
-      )}
-
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
       <div 
-        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden origin-top"
-        style={{ transform: `scale(${scale})` }}
+        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden"
       >
         {/* Your Section */}
         <div className="flex items-start gap-4">
@@ -1003,6 +997,13 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
           <WordsList words={opponentState?.words_found || []} playerName={opponentName} colorClass="text-player-2" />
         </div>
       </div>
+
+      {/* Available Letters - Below the boards */}
+      {session.status === 'playing' && (
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-1 sm:mx-auto mt-2">
+          {renderAvailableLetters()}
+        </div>
+      )}
 
       {/* Victory Dialog */}
       <Dialog open={showVictoryDialog} onOpenChange={setShowVictoryDialog}>

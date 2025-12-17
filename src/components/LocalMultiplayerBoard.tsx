@@ -10,8 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultiplayerState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
-import { useBoardScale } from '@/hooks/useBoardScale';
-import { BoardScaleControl } from '@/components/BoardScaleControl';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -59,7 +58,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
   const navigate = useNavigate();
-  const { scale, increaseScale, decreaseScale, resetScale, canIncrease, canDecrease } = useBoardScale();
+  const isMobile = useIsMobile();
   const initializedRef = useRef(false);
   
   // Try to load saved state
@@ -369,12 +368,18 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
               'bg-gradient-player-5'
             ];
             
-            // Responsive cell sizes based on player count - scales with monitor on desktop
-            const cellSize = playerCount >= 4 
-              ? 'w-[8vw] h-[8vw] max-w-7 max-h-7 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 xl:w-12 xl:h-12'
-              : playerCount === 3 
-                ? 'w-[5.5vw] h-[5.5vw] max-w-6 max-h-6 sm:w-7 sm:h-7 md:w-9 md:h-9 lg:w-12 lg:h-12 xl:w-14 xl:h-14' 
-                : 'w-[8vw] h-[8vw] max-w-9 max-h-9 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 xl:w-16 xl:h-16';
+            // Responsive cell sizes based on player count - scales dynamically on desktop
+            const cellSize = isMobile
+              ? (playerCount >= 4 
+                  ? 'w-[8vw] h-[8vw] max-w-7 max-h-7' 
+                  : playerCount === 3 
+                    ? 'w-[5.5vw] h-[5.5vw] max-w-6 max-h-6' 
+                    : 'w-[8vw] h-[8vw] max-w-9 max-h-9')
+              : (playerCount >= 4 
+                  ? 'w-[min(4vw,48px)] h-[min(4vw,48px)]' 
+                  : playerCount === 3 
+                    ? 'w-[min(4.5vw,60px)] h-[min(4.5vw,60px)]' 
+                    : 'w-[min(5vw,80px)] h-[min(5vw,80px)]');
             
             const fontSize = playerCount >= 4
               ? 'text-[7px] sm:text-[9px] md:text-xs lg:text-sm xl:text-base'
@@ -408,52 +413,60 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
   const renderAvailableLetters = () => {
     const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const row1 = allLetters.slice(0, 13); // A-M
+    const row2 = allLetters.slice(13);    // N-Z
+    
+    const renderLetter = (letter: string) => {
+      const cooldown = cooldowns[letter] || 0;
+      const isOnCooldown = cooldown > 0;
+      const isSelected = selectedLetter === letter;
+      const canSelect = !isOnCooldown && !gameEnded;
+      
+      return (
+        <button
+          key={letter}
+          onClick={() => {
+            if (canSelect) {
+              setSelectedLetter(letter);
+              playFeedback('select');
+            }
+          }}
+          disabled={!canSelect}
+          className={`
+            w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded font-bold text-[10px] sm:text-sm md:text-base transition-all duration-200 relative
+            ${isSelected && canSelect
+              ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
+              : isOnCooldown
+                ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
+                : canSelect
+                  ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
+                  : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
+            }
+            ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
+          `}
+        >
+          {letter}
+          {isOnCooldown && (
+            <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background ${
+              cooldown === 1 
+                ? 'bg-yellow-500 text-yellow-950' 
+                : 'bg-destructive text-destructive-foreground'
+            }`}>
+              {cooldown}
+            </div>
+          )}
+        </button>
+      );
+    };
     
     return (
-      <div className="flex flex-wrap gap-[2px] sm:gap-1 md:gap-2 justify-center max-w-xl mx-auto px-1">
-        {allLetters.map((letter: string) => {
-          const cooldown = cooldowns[letter] || 0;
-          const isOnCooldown = cooldown > 0;
-          const isSelected = selectedLetter === letter;
-          const canSelect = !isOnCooldown && !gameEnded;
-          const isBonusLetter = ['Q', 'X', 'Z'].includes(letter);
-          
-          return (
-            <button
-              key={letter}
-              onClick={() => {
-                if (canSelect) {
-                  setSelectedLetter(letter);
-                  playFeedback('select');
-                }
-              }}
-              disabled={!canSelect}
-              className={`
-                w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11 rounded font-bold text-[10px] sm:text-sm md:text-base transition-all duration-200 relative
-                ${isSelected && canSelect
-                  ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
-                  : isOnCooldown
-                    ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
-                    : canSelect
-                      ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
-                      : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
-                }
-                ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
-              `}
-            >
-              {letter}
-              {isOnCooldown && (
-                <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background ${
-                  cooldown === 1 
-                    ? 'bg-yellow-500 text-yellow-950' 
-                    : 'bg-destructive text-destructive-foreground'
-                }`}>
-                  {cooldown}
-                </div>
-              )}
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-1 sm:gap-2 justify-center items-center px-1">
+        <div className="flex gap-[2px] sm:gap-1 md:gap-2 justify-center">
+          {row1.map(renderLetter)}
+        </div>
+        <div className="flex gap-[2px] sm:gap-1 md:gap-2 justify-center">
+          {row2.map(renderLetter)}
+        </div>
       </div>
     );
   };
@@ -493,14 +506,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - {playerCount} Player Local
         </h1>
-        <BoardScaleControl
-          scale={scale}
-          onIncrease={increaseScale}
-          onDecrease={decreaseScale}
-          onReset={resetScale}
-          canIncrease={canIncrease}
-          canDecrease={canDecrease}
-        />
       </div>
 
       {/* Game Stats and Controls */}
@@ -557,21 +562,13 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         </Card>
       </div>
 
-      {/* Available Letters */}
-      {!gameEnded && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 mx-1 sm:mx-auto mb-2">
-          {renderAvailableLetters()}
-        </div>
-      )}
-
       {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
       <div 
-        className={`flex flex-1 overflow-hidden origin-top ${
+        className={`flex flex-1 overflow-hidden ${
           playerCount === 2 
             ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-8' 
             : 'flex-col items-center gap-1'
         }`}
-        style={{ transform: `scale(${scale})` }}
       >
         {playerCount === 2 ? (
           /* 2 players: side by side on desktop with word lists */
@@ -649,6 +646,13 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           </div>
         )}
       </div>
+
+      {/* Available Letters - Below the boards */}
+      {!gameEnded && (
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-1 sm:mx-auto mt-2">
+          {renderAvailableLetters()}
+        </div>
+      )}
 
       {/* Turn Transition Overlay */}
       {showTurnTransition && transitionToPlayer && (
