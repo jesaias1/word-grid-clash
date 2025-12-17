@@ -58,8 +58,8 @@ const GameHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        // Load local games immediately
-        const localHistory = getLocalGameHistory();
+        // Load local games immediately - filter out incomplete games
+        const localHistory = getLocalGameHistory().filter(game => game.completed !== false);
         setLocalGames(localHistory);
         
         const { data: { user } } = await supabase.auth.getUser();

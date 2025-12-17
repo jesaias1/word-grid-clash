@@ -11,6 +11,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyChallenge, getTierColor, getTierEmoji, getTierFromScore, Tier } from '@/hooks/useDailyChallenge';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ArrowLeft, Share2, Flame, Trophy, Target, Clock } from 'lucide-react';
 import WordsList from '@/components/WordsList';
 import TierBadge from '@/components/TierBadge';
@@ -61,6 +62,7 @@ const DailyChallengePage = () => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const {
     challenge,
@@ -618,32 +620,77 @@ const DailyChallengePage = () => {
       </div>
       
       {/* Letter Choices - No cooldowns in daily challenge */}
-      <div className="flex flex-col items-center gap-0.5 py-1 pb-3 shrink-0">
+      <div className="flex flex-col items-center gap-1 py-1 pb-3 shrink-0">
         <div className="text-[10px] text-muted-foreground">
           Choose a letter
         </div>
-        <div className="flex gap-1">
-          {availableLetters.map((letter, index) => {
-            const isSelected = selectedLetter === letter;
-            const isBonusLetter = ['Q', 'X', 'Z'].includes(letter);
-            
-            return (
-              <Button
-                key={`${letter}-${index}`}
-                onClick={() => {
-                  setSelectedLetter(letter);
-                  playFeedback('select');
-                }}
-                variant={isSelected ? 'default' : 'secondary'}
-                className={`w-10 h-10 sm:w-11 sm:h-11 text-lg sm:text-lg font-bold p-0 ${
-                  isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''
-                }`}
-              >
-                {letter}
-              </Button>
-            );
-          })}
-        </div>
+        {isMobile ? (
+          // Mobile: Bigger buttons in 2 rows (4 + 3)
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 justify-center">
+              {availableLetters.slice(0, 4).map((letter, index) => {
+                const isSelected = selectedLetter === letter;
+                return (
+                  <Button
+                    key={`${letter}-${index}`}
+                    onClick={() => {
+                      setSelectedLetter(letter);
+                      playFeedback('select');
+                    }}
+                    variant={isSelected ? 'default' : 'secondary'}
+                    className={`w-14 h-14 text-xl font-bold p-0 ${
+                      isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : ''
+                    }`}
+                  >
+                    {letter}
+                  </Button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 justify-center">
+              {availableLetters.slice(4).map((letter, index) => {
+                const isSelected = selectedLetter === letter;
+                return (
+                  <Button
+                    key={`${letter}-${index + 4}`}
+                    onClick={() => {
+                      setSelectedLetter(letter);
+                      playFeedback('select');
+                    }}
+                    variant={isSelected ? 'default' : 'secondary'}
+                    className={`w-14 h-14 text-xl font-bold p-0 ${
+                      isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : ''
+                    }`}
+                  >
+                    {letter}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          // Desktop: Single row
+          <div className="flex gap-1">
+            {availableLetters.map((letter, index) => {
+              const isSelected = selectedLetter === letter;
+              return (
+                <Button
+                  key={`${letter}-${index}`}
+                  onClick={() => {
+                    setSelectedLetter(letter);
+                    playFeedback('select');
+                  }}
+                  variant={isSelected ? 'default' : 'secondary'}
+                  className={`w-11 h-11 text-lg font-bold p-0 ${
+                    isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''
+                  }`}
+                >
+                  {letter}
+                </Button>
+              );
+            })}
+          </div>
+        )}
       </div>
       
       {/* Result Dialog */}

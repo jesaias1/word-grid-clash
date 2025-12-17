@@ -22,6 +22,31 @@ const TierBadge = ({ currentTier, score, targets }: TierBadgeProps) => {
 
   const diamondTarget = targets.gold + 20;
 
+  // Calculate how close we are to the next tier (0-1)
+  const getProgressToNextTier = () => {
+    if (currentTier === 'diamond') return 0;
+    
+    let currentThreshold = 0;
+    let nextThreshold = targets.bronze;
+    
+    if (currentTier === 'bronze') {
+      currentThreshold = targets.bronze;
+      nextThreshold = targets.silver;
+    } else if (currentTier === 'silver') {
+      currentThreshold = targets.silver;
+      nextThreshold = targets.gold;
+    } else if (currentTier === 'gold') {
+      currentThreshold = targets.gold;
+      nextThreshold = diamondTarget;
+    }
+    
+    const progress = (score - currentThreshold) / (nextThreshold - currentThreshold);
+    return Math.max(0, Math.min(1, progress));
+  };
+
+  const progressToNext = getProgressToNextTier();
+  const isCloseToNextTier = progressToNext >= 0.75 && currentTier !== 'diamond';
+
   useEffect(() => {
     // Only animate if we've moved up a tier and haven't animated this tier yet
     if (currentTier !== 'none' && currentTier !== previousTier && !hasAnimatedRef.current.has(currentTier)) {
@@ -117,6 +142,27 @@ const TierBadge = ({ currentTier, score, targets }: TierBadgeProps) => {
 
   return (
     <div className="relative flex flex-col items-center">
+      {/* Pulsing glow when close to next tier */}
+      {isCloseToNextTier && (
+        <motion.div
+          animate={{ 
+            scale: [1, 1.3, 1],
+            opacity: [0.3, 0.6, 0.3]
+          }}
+          transition={{ 
+            duration: 1.5, 
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className={`absolute inset-0 rounded-full blur-lg ${
+            currentTier === 'none' ? 'bg-orange-500' :
+            currentTier === 'bronze' ? 'bg-gray-300' :
+            currentTier === 'silver' ? 'bg-yellow-400' :
+            'bg-cyan-400'
+          }`}
+        />
+      )}
+      
       {/* Main Badge */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -133,9 +179,10 @@ const TierBadge = ({ currentTier, score, targets }: TierBadgeProps) => {
             times: currentTier === 'diamond' ? [0, 0.5, 1] : [0, 0.6, 1]
           }}
           className={`
-            flex items-center gap-2 px-3 py-1.5 rounded-full border-2
+            relative z-10 flex items-center gap-2 px-3 py-1.5 rounded-full border-2
             ${config.bgColor} ${config.borderColor}
             ${showAnimation && currentTier === 'diamond' ? `shadow-lg ${config.glowColor}` : ''}
+            ${isCloseToNextTier ? 'animate-pulse' : ''}
           `}
         >
           <span className="text-xl">{config.emoji}</span>

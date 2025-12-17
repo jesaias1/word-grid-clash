@@ -39,6 +39,7 @@ export interface LocalGameHistoryEntry {
     words: string[];
   }[];
   winnerIndex: number | null; // 0-based, null for tie
+  completed: boolean; // Whether the game was played to completion
 }
 
 // Max age for saved games (1 hour in ms)
