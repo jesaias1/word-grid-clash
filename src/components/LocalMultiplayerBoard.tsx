@@ -504,7 +504,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         />
       )}
       
-    <div className="h-[100dvh] p-0.5 sm:p-1 md:p-2 max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+    <div className="h-[100dvh] p-0.5 sm:p-1 md:p-2 mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* New Minimal Header */}
       <div className="flex items-center justify-between mb-2 px-2">
         {/* Home Button - Cabbage Logo */}
@@ -566,7 +566,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       <div 
         className={`flex flex-1 min-h-0 ${
           playerCount === 2 
-            ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-6' 
+            ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-4 lg:gap-6' 
             : 'flex-col items-center gap-1'
         }`}
       >
@@ -576,7 +576,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             {grids.map((_, idx) => {
               const playerColorClasses = ['text-player-1', 'text-player-2'];
               return (
-                <div key={idx} className="flex items-start gap-4">
+                <div key={idx} className="flex items-start gap-2 lg:gap-4">
                   {idx === 0 && (
                     <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
                   )}
@@ -621,7 +621,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
       {/* Available Letters - Below the boards */}
       {!gameEnded && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-1 sm:mx-auto mt-2">
+        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-auto mt-auto mb-1 shrink-0">
           {renderAvailableLetters()}
         </div>
       )}
