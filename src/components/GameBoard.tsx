@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { getDictionary } from '@/game/dictionary';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
@@ -12,6 +12,7 @@ import { saveSoloGameState, loadSoloGameState, clearSoloGameState, saveGameToHis
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import lettusLogo from '@/assets/lettuslogo.png';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -481,11 +482,12 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const renderGrid = (isAI: boolean) => {
     const grid = isAI ? aiGrid : playerGrid;
     const canInteract = !isAI && isMyTurn && !gameEnded;
+    const isActiveBoard = isAI ? (!isMyTurn && !gameEnded) : (isMyTurn && !gameEnded);
     
     return (
-      <div className={`inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl border-2 shadow-lg transition-all ${
-        canInteract ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
-      }`} 
+      <div className={`inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl shadow-lg transition-all ${
+        isActiveBoard ? 'ring-4 ring-primary border-2 border-primary' : 'border-2 border-border/50'
+      } bg-card/80`}
       style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
@@ -593,73 +595,52 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       )}
       
     <div className="h-[100dvh] p-1 sm:p-2 md:p-4 pt-safe max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-      {/* Header */}
-      <div className="text-center flex items-center justify-center gap-4">
-        <h1 className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          LETTUS - Solo Game
-        </h1>
-      </div>
-
-      {/* Game Stats and Controls */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-2">
-        <Card className="p-1 sm:p-2 bg-gradient-card">
-          <Button 
-            onClick={() => {
-              playFeedback('click');
-              if (!gameEnded) {
-                setShowBackConfirmDialog(true);
+      {/* New Minimal Header */}
+      <div className="flex items-center justify-between mb-2 px-2">
+        {/* Home Button - Cabbage Logo */}
+        <button
+          onClick={() => {
+            playFeedback('click');
+            if (!gameEnded) {
+              setShowBackConfirmDialog(true);
+            } else {
+              clearSoloGameState();
+              if (onBackToMenu) {
+                onBackToMenu();
               } else {
-                clearSoloGameState();
-                if (onBackToMenu) {
-                  onBackToMenu();
-                } else {
-                  navigate('/');
-                }
+                navigate('/');
               }
-            }} 
-            variant="outline" 
-            className="w-full text-xs h-7 sm:h-8"
-          >
-            Back
-          </Button>
-        </Card>
+            }
+          }}
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform"
+        >
+          <img src={lettusLogo} alt="Home" className="w-full h-full object-contain" />
+        </button>
 
-        <Card className="p-1 sm:p-2 bg-gradient-card">
-          <div className="text-center">
-            {gameEnded ? (
-              <div className="text-xs sm:text-sm font-bold text-accent">
-                {playerScore > aiScore ? 'You Win!' : playerScore < aiScore ? 'AI Wins' : 'Tie!'}
-              </div>
-            ) : (
-              <>
-                <div className="text-xs sm:text-sm font-semibold">
-                  {isMyTurn ? (
-                    <span className="text-primary animate-pulse">Your Turn</span>
-                  ) : (
-                    <span className="text-muted-foreground">AI's Turn</span>
-                  )}
-                </div>
-                {/* Timer below turn indicator */}
-                <div className={`mt-1 px-2 py-0.5 rounded-lg font-bold text-sm inline-block ${
-                  turnTimeRemaining <= WARNING_THRESHOLD
-                    ? 'bg-destructive/20 text-destructive animate-pulse' 
-                    : 'bg-primary/20 text-primary'
-                }`}>
-                  {turnTimeRemaining}s
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-
-        <Card className="p-1 sm:p-2 bg-gradient-card">
-          <div className="text-center">
-            <div className="text-xs text-muted-foreground">Selected</div>
-            <div className="text-lg sm:text-xl font-bold text-accent">
-              {selectedLetter || '?'}
+        {/* Center: Timer and Progress Bar */}
+        <div className="flex flex-col items-center flex-1 mx-4">
+          <h1 className="text-sm md:text-base font-bold text-foreground mb-1">Solo Game</h1>
+          {gameEnded ? (
+            <div className="text-lg md:text-xl font-bold text-accent">
+              {playerScore > aiScore ? 'You Win!' : playerScore < aiScore ? 'AI Wins' : 'Tie!'}
             </div>
-          </div>
-        </Card>
+          ) : (
+            <>
+              <div className={`text-3xl md:text-4xl font-bold tabular-nums ${
+                turnTimeRemaining <= WARNING_THRESHOLD ? 'text-destructive animate-pulse' : 'text-foreground'
+              }`}>
+                {turnTimeRemaining}
+              </div>
+              <Progress 
+                value={(turnTimeRemaining / TURN_TIME_LIMIT) * 100} 
+                className="w-32 md:w-48 h-2 mt-1"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Spacer to balance layout */}
+        <div className="w-10 h-10 md:w-12 md:h-12" />
       </div>
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
@@ -670,54 +651,20 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         <div className="flex items-start gap-4">
           <WordsList words={playerWords} playerName="You" colorClass="text-player-1" />
           <div className="flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
-                isMyTurn 
-                  ? 'bg-player-1/20 border-2 border-player-1/30 scale-105' 
-                  : 'bg-card/80 border border-border opacity-70'
-              }`}>
-                <div className="text-sm font-bold text-player-1">You: {playerScore}</div>
-              </div>
-              {!gameEnded && isMyTurn && (
-                <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                  turnTimeRemaining <= WARNING_THRESHOLD
-                    ? 'bg-destructive/20 text-destructive animate-pulse' 
-                    : 'bg-primary/20 text-primary'
-                }`}>
-                  {turnTimeRemaining}s
-                </div>
-              )}
+            <div className="px-3 py-1 rounded-lg text-center shadow-md bg-card/80 border border-border mb-1">
+              <div className="text-sm font-bold text-player-1">You: {playerScore}</div>
             </div>
-            <div className={`transition-all duration-500 ${isMyTurn ? 'scale-100' : 'opacity-80 scale-95'}`}>
-              {renderGrid(false)}
-            </div>
+            {renderGrid(false)}
           </div>
         </div>
 
         {/* AI Section */}
         <div className="flex items-start gap-4">
           <div className="flex flex-col items-center">
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${
-                !isMyTurn && !gameEnded
-                  ? 'bg-player-2/20 border-2 border-player-2/30 scale-105' 
-                  : 'bg-card/80 border border-border opacity-70'
-              }`}>
-                <div className="text-sm font-bold text-player-2">AI: {aiScore}</div>
-              </div>
-              {!gameEnded && !isMyTurn && (
-                <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                  turnTimeRemaining <= WARNING_THRESHOLD
-                    ? 'bg-destructive/20 text-destructive animate-pulse' 
-                    : 'bg-primary/20 text-primary'
-                }`}>
-                  {turnTimeRemaining}s
-                </div>
-              )}
+            <div className="px-3 py-1 rounded-lg text-center shadow-md bg-card/80 border border-border mb-1">
+              <div className="text-sm font-bold text-player-2">AI: {aiScore}</div>
             </div>
-            <div className={`transition-all duration-500 ${!isMyTurn && !gameEnded ? 'scale-100' : 'opacity-80 scale-95'}`}>
-              {renderGrid(true)}
-            </div>
+            {renderGrid(true)}
           </div>
           <WordsList words={aiWords} playerName="AI" colorClass="text-player-2" />
         </div>
