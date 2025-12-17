@@ -513,6 +513,14 @@ const DailyChallengePage = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-1 px-2">
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
+            className="p-1 h-7 w-7"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
           <Target className="w-5 h-5 text-primary" />
           <span className="font-bold">{isPracticeMode ? 'Practice' : 'Daily'}</span>
           {!isPracticeMode && streak > 0 && (

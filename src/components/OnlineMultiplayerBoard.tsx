@@ -365,7 +365,16 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     // Track words found and only score new words
     const existingWords = new Set(myState.words_found || []);
     const newWordsFound = result.words.filter(w => !existingWords.has(w.text));
-    const newScore = newWordsFound.reduce((s, w) => s + w.text.length, 0);
+    
+    // Apply bonus scoring: Z, X, Q = 2 points each, others = 1 point
+    const BONUS_LETTERS = new Set(['Z', 'X', 'Q']);
+    const newScore = newWordsFound.reduce((s, w) => {
+      let wordScore = 0;
+      for (const letter of w.text) {
+        wordScore += BONUS_LETTERS.has(letter.toUpperCase()) ? 2 : 1;
+      }
+      return s + wordScore;
+    }, 0);
 
     // Play sound effects
     playFeedback('place');
@@ -688,6 +697,9 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
   const createRematchGame = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       // Generate a random 5-character invite code
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       let inviteCode = '';
@@ -695,14 +707,21 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         inviteCode += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
-      // Create new game session with same players
+      // Current user creating the rematch must be player1 for RLS to allow insert
+      const currentUserIsOriginalPlayer1 = user.id === session.player1_id;
+      const newPlayer1Id = user.id;
+      const newPlayer1Name = currentUserIsOriginalPlayer1 ? session.player1_name : session.player2_name;
+      const newPlayer2Id = currentUserIsOriginalPlayer1 ? session.player2_id : session.player1_id;
+      const newPlayer2Name = currentUserIsOriginalPlayer1 ? session.player2_name : session.player1_name;
+
+      // Create new game session - current user is always player1
       const { data: newSession, error: sessionError } = await supabase
         .from('game_sessions')
         .insert({
-          player1_id: session.player1_id,
-          player1_name: session.player1_name,
-          player2_id: session.player2_id,
-          player2_name: session.player2_name,
+          player1_id: newPlayer1Id,
+          player1_name: newPlayer1Name,
+          player2_id: newPlayer2Id,
+          player2_name: newPlayer2Name,
           invite_code: inviteCode,
           status: 'playing',
           board_size: session.board_size,
