@@ -376,10 +376,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                     ? 'w-[5.5vw] h-[5.5vw] max-w-6 max-h-6' 
                     : 'w-[8vw] h-[8vw] max-w-9 max-h-9')
               : (playerCount >= 4 
-                  ? 'w-[min(4vw,48px)] h-[min(4vw,48px)]' 
+                  ? 'w-[min(5vw,80px)] h-[min(5vw,80px)]' 
                   : playerCount === 3 
-                    ? 'w-[min(4.5vw,60px)] h-[min(4.5vw,60px)]' 
-                    : 'w-[min(5vw,80px)] h-[min(5vw,80px)]');
+                    ? 'w-[min(5.5vw,100px)] h-[min(5.5vw,100px)]' 
+                    : 'w-[min(6vw,120px)] h-[min(6vw,120px)]');
             
             const fontSize = playerCount >= 4
               ? 'text-[7px] sm:text-[9px] md:text-xs lg:text-sm xl:text-base'
@@ -509,7 +509,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       </div>
 
       {/* Game Stats and Controls */}
-      <div className="grid grid-cols-3 gap-1 sm:gap-2">
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-2">
         <Card className="p-1 sm:p-2 bg-gradient-card">
           <Button 
             onClick={() => {
