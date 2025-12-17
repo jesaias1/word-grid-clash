@@ -559,8 +559,8 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                 className={`
                   ${isMobile 
                     ? 'w-[9vw] h-[9vw] max-w-8 max-h-8' 
-                    : 'w-[min(5vw,80px)] h-[min(5vw,80px)]'
-                  } sm:w-9 sm:h-9 md:w-[min(5vw,80px)] md:h-[min(5vw,80px)] cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
+                    : 'w-[min(6vw,120px)] h-[min(6vw,120px)]'
+                  } cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
                   ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
                   ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
                   ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
@@ -881,7 +881,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       </div>
 
       {/* Game Stats and Controls */}
-      <div className="grid grid-cols-3 gap-1 sm:gap-2">
+      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-2">
         {/* Back Button */}
         <Card className="p-1 sm:p-2 bg-gradient-card">
           <Button 
