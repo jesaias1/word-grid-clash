@@ -11,6 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { saveSoloGameState, loadSoloGameState, clearSoloGameState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
+import { useBoardScale } from '@/hooks/useBoardScale';
+import { BoardScaleControl } from '@/components/BoardScaleControl';
 
 type Player = 1 | 2;
 type Letter = string;
@@ -59,7 +61,9 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
   const navigate = useNavigate();
+  const { scale, increaseScale, decreaseScale, resetScale, canIncrease, canDecrease } = useBoardScale();
   const initializedRef = useRef(false);
+  const cooldownTurns = 4;
   
   // Try to load saved state
   const savedState = !initializedRef.current ? loadSoloGameState() : null;
@@ -580,10 +584,18 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       
     <div className="h-[100dvh] p-1 sm:p-2 md:p-4 pt-safe max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center flex items-center justify-center gap-4">
         <h1 className="text-sm sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           LETTUS - Solo Game
         </h1>
+        <BoardScaleControl
+          scale={scale}
+          onIncrease={increaseScale}
+          onDecrease={decreaseScale}
+          onReset={resetScale}
+          canIncrease={canIncrease}
+          canDecrease={canDecrease}
+        />
       </div>
 
       {/* Game Stats and Controls */}
@@ -656,7 +668,10 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
       )}
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
-      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden">
+      <div 
+        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden origin-top"
+        style={{ transform: `scale(${scale})` }}
+      >
         {/* Your Section */}
         <div className="flex items-start gap-4">
           <WordsList words={playerWords} playerName="You" colorClass="text-player-1" />
