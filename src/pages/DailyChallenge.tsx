@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { getDictionary } from '@/game/dictionary';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
@@ -12,6 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useDailyChallenge, getTierColor, getTierEmoji, getTierFromScore, Tier } from '@/hooks/useDailyChallenge';
 import { ArrowLeft, Share2, Flame, Trophy, Target, Clock } from 'lucide-react';
 import WordsList from '@/components/WordsList';
+import TierBadge from '@/components/TierBadge';
+import lettusLogo from '@/assets/lettuslogo.png';
 
 type GridCell = { letter: string | null };
 type Grid = GridCell[][];
@@ -509,91 +512,107 @@ const DailyChallengePage = () => {
   }
   
   return (
-    <div className="h-[100dvh] p-2 flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-1 px-2">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/')}
-            className="p-1 h-7 w-7"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <Target className="w-5 h-5 text-primary" />
-          <span className="font-bold">{isPracticeMode ? 'Practice' : 'Daily'}</span>
-          {!isPracticeMode && streak > 0 && (
-            <span className="flex items-center gap-1 text-orange-500">
-              <Flame className="w-4 h-4" />
-              {streak}
-            </span>
-          )}
-          {isPracticeMode && (
-            <span className="text-xs text-muted-foreground">(for fun)</span>
+    <div className="h-[100dvh] p-1 sm:p-2 md:p-3 flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+      {/* Minimal Header - matches GameBoard */}
+      <div className="flex items-center justify-between mb-2 px-2">
+        {/* Home Button - Cabbage Logo */}
+        <button
+          onClick={() => navigate('/')}
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform"
+        >
+          <img src={lettusLogo} alt="Home" className="w-full h-full object-contain" />
+        </button>
+
+        {/* Center: Timer and Progress Bar */}
+        <div className="flex flex-col items-center flex-1 mx-4">
+          <h1 className="text-sm md:text-base font-bold text-foreground mb-1">
+            {isPracticeMode ? 'Practice Mode' : 'Daily Challenge'}
+            {!isPracticeMode && streak > 0 && (
+              <span className="ml-2 text-orange-500">
+                <Flame className="w-4 h-4 inline" /> {streak}
+              </span>
+            )}
+          </h1>
+          {gameEnded ? (
+            <div className="text-lg md:text-xl font-bold text-primary">
+              Challenge Complete!
+            </div>
+          ) : (
+            <>
+              <div className={`text-3xl md:text-4xl font-bold tabular-nums transition-colors ${
+                turnTimeRemaining <= 5 ? 'text-red-500' : 
+                turnTimeRemaining <= 10 ? 'text-yellow-500' : 
+                'text-primary'
+              } ${turnTimeRemaining <= 5 ? 'animate-pulse' : ''}`}>
+                {turnTimeRemaining}
+              </div>
+              <Progress 
+                value={(turnTimeRemaining / TURN_TIME_LIMIT) * 100} 
+                className="w-48 md:w-64 h-3 mt-1"
+                indicatorClassName={
+                  turnTimeRemaining <= 5 ? 'bg-red-500' : 
+                  turnTimeRemaining <= 10 ? 'bg-yellow-500' : 
+                  'bg-primary'
+                }
+              />
+            </>
           )}
         </div>
-        
-        <div className={`text-lg font-bold ${getTierColor(currentTier)}`}>
-          {getTierEmoji(currentTier)} {score} pts
+
+        {/* Score Display */}
+        <div className={`text-lg md:text-xl font-bold ${getTierColor(currentTier)}`}>
+          {score} pts
         </div>
       </div>
       
-      {/* Tier Progress Bar */}
-      <div className="flex justify-center gap-1 mb-1">
-        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.bronze_target ? 'bg-orange-600/20 text-orange-500' : 'bg-secondary/50'}`}>
-          🥉{challenge.bronze_target}
-        </div>
-        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.silver_target ? 'bg-gray-400/20 text-gray-300' : 'bg-secondary/50'}`}>
-          🥈{challenge.silver_target}
-        </div>
-        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.gold_target ? 'bg-yellow-400/20 text-yellow-400' : 'bg-secondary/50'}`}>
-          🥇{challenge.gold_target}
-        </div>
-        <div className={`px-1 py-0.5 rounded text-[9px] ${score >= challenge.gold_target + 20 ? 'bg-cyan-400/20 text-cyan-400' : 'bg-secondary/50'}`}>
-          💎{challenge.gold_target + 20}
-        </div>
-      </div>
-      
-      {/* Timer - Below ranks, compact */}
-      <div className="flex justify-center mb-1">
-        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-base font-bold ${
-          turnTimeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-secondary'
-        }`}>
-          <Clock className="w-3 h-3" />
-          {turnTimeRemaining}s
-        </div>
+      {/* Tier Badge - positioned above board */}
+      <div className="flex justify-center mb-2">
+        <TierBadge 
+          currentTier={currentTier} 
+          score={score} 
+          targets={{
+            bronze: challenge.bronze_target,
+            silver: challenge.silver_target,
+            gold: challenge.gold_target,
+          }}
+        />
       </div>
       
       {/* Grid with Word List side by side on desktop */}
-      <div className="flex-1 flex items-center justify-center gap-4 min-h-0">
-        <div className="inline-grid gap-0.5 p-1.5 rounded-xl border-2 bg-gradient-card ring-2 ring-primary/30 border-primary/40 shadow-lg">
-          {grid.map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-0.5">
-              {row.map((cell, colIndex) => (
-                <button
-                  key={colIndex}
-                  onClick={() => placeLetter(rowIndex, colIndex)}
-                  disabled={!selectedLetter || cell.letter !== null}
+      <div className="flex-1 flex items-center justify-center gap-2 lg:gap-4 min-h-0">
+        <div 
+          className="inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl shadow-lg ring-4 ring-primary border-2 border-primary bg-card/80"
+          style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
+        >
+          {grid.map((row, rowIndex) =>
+            row.map((cell, colIndex) => {
+              const isLightSquare = (rowIndex + colIndex) % 2 === 0;
+              const canPlace = selectedLetter && !cell.letter && !gameEnded;
+              
+              return (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  onClick={() => canPlace && placeLetter(rowIndex, colIndex)}
                   className={`
-                    w-[12vw] h-[12vw] max-w-12 max-h-12 rounded-md font-bold text-lg sm:text-xl
-                    transition-all duration-200 border
-                    ${cell.letter 
-                      ? 'bg-primary/80 text-primary-foreground border-primary shadow-md' 
-                      : selectedLetter && !gameEnded
-                        ? 'bg-secondary/50 border-border hover:bg-primary/20 hover:border-primary/50 cursor-pointer'
-                        : 'bg-secondary/30 border-border/50'
-                    }
+                    w-[10vw] h-[10vw] max-w-12 max-h-12 md:w-[min(6vw,100px)] md:h-[min(6vw,100px)]
+                    cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
+                    ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
+                    ${cell.letter ? 'bg-gradient-player-1' : ''}
+                    ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
                   `}
                 >
-                  {cell.letter || ''}
-                </button>
-              ))}
-            </div>
-          ))}
+                  {cell.letter && (
+                    <span className="font-bold text-sm sm:text-base md:text-lg lg:text-xl drop-shadow-lg text-white">
+                      {cell.letter}
+                    </span>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
         {/* Words list only visible on larger screens */}
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <WordsList words={words} playerName="You" colorClass="text-primary" />
         </div>
       </div>
