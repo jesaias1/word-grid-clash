@@ -832,11 +832,14 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     setShowSpinner(false);
     setSpinnerCompleted(true);
     
-    // Update the session to set the starting player (only player 1 does this to avoid race condition)
+    // Update the session to set the starting player and reset timer (only player 1 does this to avoid race condition)
     if (myPlayerIndex === 1) {
       await supabase
         .from('game_sessions')
-        .update({ current_player: selectedPlayer })
+        .update({ 
+          current_player: selectedPlayer,
+          turn_started_at: new Date().toISOString()
+        })
         .eq('id', sessionId);
     }
   };
