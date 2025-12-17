@@ -6,6 +6,9 @@ interface ResizableKeyboardProps {
   children: ReactNode;
 }
 
+const MIN_SCALE = 0.6;
+const MAX_SCALE = 1.5;
+
 const ResizableKeyboard = ({ children }: ResizableKeyboardProps) => {
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,7 +37,7 @@ const ResizableKeyboard = ({ children }: ResizableKeyboardProps) => {
     const handleMouseMove = (e: MouseEvent) => {
       const deltaY = startYRef.current - e.clientY;
       const scaleDelta = deltaY / 100;
-      const newScale = Math.min(1.5, Math.max(0.6, startScaleRef.current + scaleDelta));
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, startScaleRef.current + scaleDelta));
       setScale(newScale);
     };
 
@@ -61,21 +64,21 @@ const ResizableKeyboard = ({ children }: ResizableKeyboardProps) => {
   }
 
   return (
-    <div className="mt-auto mb-1 shrink-0">
+    <div className="mt-auto mb-1 shrink-0 flex justify-center">
       <div 
         ref={containerRef}
-        className="relative bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-auto"
+        className="relative bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 inline-flex items-center gap-1"
         style={{ transform: `scale(${scale})`, transformOrigin: 'bottom center' }}
       >
-        {/* Resize handle at top-right corner */}
+        {children}
+        {/* Resize handle inline beside the keyboard */}
         <div
           onMouseDown={handleMouseDown}
-          className={`absolute -top-2 -right-2 w-5 h-5 bg-muted hover:bg-accent border border-border rounded cursor-ns-resize flex items-center justify-center transition-colors ${isResizing ? 'bg-accent' : ''}`}
-          title="Drag to resize keyboard"
+          className={`w-5 h-8 bg-muted hover:bg-accent border border-border rounded cursor-ns-resize flex items-center justify-center transition-colors shrink-0 ${isResizing ? 'bg-accent' : ''}`}
+          title="Drag up/down to resize keyboard"
         >
-          <GripVertical className="w-3 h-3 text-muted-foreground rotate-90" />
+          <GripVertical className="w-3 h-3 text-muted-foreground" />
         </div>
-        {children}
       </div>
     </div>
   );
