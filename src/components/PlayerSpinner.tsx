@@ -25,10 +25,18 @@ const PlayerSpinner = ({ playerCount, onComplete, playerNames }: PlayerSpinnerPr
     // Randomly select final player
     const selected = Math.floor(Math.random() * playerCount) + 1;
     
-    // Spinning animation - cycles through players with decreasing speed
-    let interval = 80;
+    // Spinning animation - quick cycles then dramatic slowdown
     let cycles = 0;
-    const maxCycles = 20 + Math.floor(Math.random() * 10);
+    const maxCycles = 10 + Math.floor(Math.random() * 4); // 10-13 cycles total
+    
+    const getInterval = (cycle: number) => {
+      // Exponential slowdown for dramatic effect
+      const progress = cycle / maxCycles;
+      if (progress < 0.5) return 60; // Fast at start
+      if (progress < 0.7) return 100;
+      if (progress < 0.85) return 180;
+      return 300 + (progress - 0.85) * 800; // Dramatic slowdown at end
+    };
     
     const spin = () => {
       setCurrentHighlight(prev => (prev % playerCount) + 1);
@@ -42,17 +50,15 @@ const PlayerSpinner = ({ playerCount, onComplete, playerNames }: PlayerSpinnerPr
         
         setTimeout(() => {
           setShowResult(true);
-          setTimeout(() => onComplete(selected), 1500);
-        }, 500);
+          setTimeout(() => onComplete(selected), 1200);
+        }, 400);
         return;
       }
       
-      // Gradually slow down
-      interval = Math.min(interval + 15, 300);
-      setTimeout(spin, interval);
+      setTimeout(spin, getInterval(cycles));
     };
     
-    setTimeout(spin, interval);
+    setTimeout(spin, 60);
   }, [playerCount, onComplete]);
 
   const getPlayerName = (index: number) => {
