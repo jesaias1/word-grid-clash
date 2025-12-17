@@ -529,14 +529,21 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             </div>
           ) : (
             <>
-              <div className={`text-3xl md:text-4xl font-bold tabular-nums ${
-                turnTimeRemaining <= WARNING_THRESHOLD ? 'text-destructive animate-pulse' : 'text-foreground'
-              }`}>
+              <div className={`text-3xl md:text-4xl font-bold tabular-nums transition-colors ${
+                turnTimeRemaining <= 5 ? 'text-red-500' : 
+                turnTimeRemaining <= 10 ? 'text-yellow-500' : 
+                'text-primary'
+              } ${turnTimeRemaining <= 5 ? 'animate-pulse' : ''}`}>
                 {turnTimeRemaining}
               </div>
               <Progress 
                 value={(turnTimeRemaining / TURN_TIME_LIMIT) * 100} 
-                className="w-32 md:w-48 h-2 mt-1"
+                className="w-48 md:w-64 h-3 mt-1"
+                indicatorClassName={
+                  turnTimeRemaining <= 5 ? 'bg-red-500' : 
+                  turnTimeRemaining <= 10 ? 'bg-yellow-500' : 
+                  'bg-primary'
+                }
               />
             </>
           )}
