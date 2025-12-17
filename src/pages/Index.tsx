@@ -120,7 +120,7 @@ const Index = () => {
           
           <p className="text-muted-foreground">How many players?</p>
           
-          <div className="flex flex-col gap-3 w-full max-w-xs">
+          <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
             {[2, 3, 4].map((count) => (
               <Button
                 key={count}
