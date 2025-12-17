@@ -447,7 +447,8 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
         { name: 'You', score: playerScore, words: playerWords },
         { name: 'AI', score: aiScore, words: aiWords }
       ],
-      winnerIndex: tie ? null : (playerWon ? 0 : 1)
+      winnerIndex: tie ? null : (playerWon ? 0 : 1),
+      completed: true
     });
     
     if (playerWon) {

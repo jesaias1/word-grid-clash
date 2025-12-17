@@ -215,7 +215,8 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
         score,
         words: finalWords[idx] || []
       })),
-      winnerIndex: winnerIdx
+      winnerIndex: winnerIdx,
+      completed: true
     });
     
     setTimeout(() => setShowVictoryDialog(true), 500);
