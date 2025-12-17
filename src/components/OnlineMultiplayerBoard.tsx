@@ -922,7 +922,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
       <div 
-        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 overflow-hidden"
+        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4 md:gap-8 flex-1 min-h-0 overflow-auto"
       >
         {/* Your Section */}
         <div className="flex items-start gap-4">

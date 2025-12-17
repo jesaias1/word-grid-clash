@@ -555,7 +555,7 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
 
       {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
       <div 
-        className={`flex flex-1 overflow-hidden ${
+        className={`flex flex-1 min-h-0 overflow-auto ${
           playerCount === 2 
             ? 'flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-8' 
             : 'flex-col items-center gap-1'

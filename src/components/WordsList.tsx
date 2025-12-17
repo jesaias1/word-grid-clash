@@ -41,13 +41,13 @@ const WordsList = ({ words, playerName, colorClass = 'text-primary' }: WordsList
   const reversedWords = [...words].reverse();
   
   return (
-    <div className="flex flex-col h-full min-w-[80px] max-w-[100px] md:min-w-[100px] md:max-w-[120px]">
+    <div className="flex flex-col min-w-[80px] max-w-[100px] md:min-w-[100px] md:max-w-[120px] max-h-[40vh]">
       <div className={`text-xs font-semibold mb-1 text-center ${colorClass}`}>
         {playerName}'s Words
       </div>
       <div 
         ref={listRef}
-        className="flex-1 bg-card/50 border border-border/50 rounded-lg p-1.5 overflow-y-auto max-h-[200px] md:max-h-[280px]"
+        className="flex-1 bg-card/50 border border-border/50 rounded-lg p-1.5 overflow-y-auto min-h-0"
       >
         {words.length === 0 ? (
           <div className="text-[10px] text-muted-foreground/50 text-center italic">
