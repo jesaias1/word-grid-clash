@@ -12,6 +12,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
+import ResizableKeyboard from '@/components/ResizableKeyboard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import lettusLogo from '@/assets/lettuslogo.png';
@@ -958,9 +959,9 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
       {/* Available Letters - Below the boards */}
       {session.status === 'playing' && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-auto mt-auto mb-1 shrink-0">
+        <ResizableKeyboard>
           {renderAvailableLetters()}
-        </div>
+        </ResizableKeyboard>
       )}
 
       {/* Victory Dialog */}

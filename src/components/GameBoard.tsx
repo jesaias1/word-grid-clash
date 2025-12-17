@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { saveSoloGameState, loadSoloGameState, clearSoloGameState, saveGameToHistory } from '@/hooks/useGameStatePersistence';
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
+import ResizableKeyboard from '@/components/ResizableKeyboard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import lettusLogo from '@/assets/lettuslogo.png';
@@ -688,9 +689,9 @@ const GameBoard = ({ boardSize = 5, onBackToMenu }: GameBoardProps) => {
 
       {/* Available Letters - Below the boards */}
       {!gameEnded && (
-        <div className="bg-card/90 backdrop-blur-sm border rounded-lg p-1 sm:p-2 mx-auto mt-auto mb-1 shrink-0">
+        <ResizableKeyboard>
           {renderAvailableLetters()}
-        </div>
+        </ResizableKeyboard>
       )}
 
       {/* Back Confirmation Dialog */}
