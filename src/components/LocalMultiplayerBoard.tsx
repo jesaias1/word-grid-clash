@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -11,6 +11,7 @@ import { saveLocalMultiplayerState, loadLocalMultiplayerState, clearLocalMultipl
 import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import lettusLogo from '@/assets/lettuslogo.png';
 
 type Player = number;
 type GridCell = { letter: string | null };
@@ -351,9 +352,9 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
     const canInteract = isCurrentPlayer && !gameEnded;
     
     return (
-      <div className={`inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl border-2 shadow-lg transition-all ${
-        canInteract ? 'bg-gradient-card ring-2 ring-primary/30 border-primary/40' : 'bg-card/80 border-border'
-      }`} 
+      <div className={`inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl shadow-lg transition-all ${
+        canInteract ? 'ring-4 ring-primary border-2 border-primary' : 'border-2 border-border/50'
+      } bg-card/80`}
       style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)` }}>
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => {
@@ -501,65 +502,48 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
       )}
       
     <div className="h-[100dvh] p-0.5 sm:p-1 md:p-2 max-w-7xl mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-      {/* Header */}
-      <div className="text-center mb-0 flex items-center justify-center gap-4">
-        <h1 className="text-base sm:text-lg md:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          LETTUS - {playerCount} Player Local
-        </h1>
-      </div>
+      {/* New Minimal Header */}
+      <div className="flex items-center justify-between mb-2 px-2">
+        {/* Home Button - Cabbage Logo */}
+        <button
+          onClick={() => {
+            playFeedback('click');
+            if (!gameEnded) {
+              setShowBackConfirmDialog(true);
+            } else {
+              clearLocalMultiplayerState(playerCount);
+              onBackToMenu();
+            }
+          }}
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform"
+        >
+          <img src={lettusLogo} alt="Home" className="w-full h-full object-contain" />
+        </button>
 
-      {/* Game Stats and Controls */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4 mb-2">
-        <Card className="p-1 sm:p-2 bg-gradient-card">
-          <Button 
-            onClick={() => {
-              playFeedback('click');
-              if (!gameEnded) {
-                setShowBackConfirmDialog(true);
-              } else {
-                clearLocalMultiplayerState(playerCount);
-                onBackToMenu();
-              }
-            }} 
-            variant="outline" 
-            className="w-full text-xs h-7 sm:h-8"
-          >
-            Back
-          </Button>
-        </Card>
-
-        <Card className="p-1 sm:p-2 bg-gradient-card">
-          <div className="text-center">
-            {gameEnded ? (
-              <div className="text-xs sm:text-sm font-bold text-accent">
-                {winner ? `Player ${winner} Wins!` : 'Tie!'}
-              </div>
-            ) : (
-              <>
-                <div className="text-xs sm:text-sm font-semibold">
-                  <span className="text-primary animate-pulse">Player {currentPlayer}'s Turn</span>
-                </div>
-                {/* Timer below turn indicator */}
-                <div className={`mt-1 px-2 py-0.5 rounded-lg font-bold text-sm inline-block ${
-                  turnTimeRemaining <= WARNING_THRESHOLD
-                    ? 'bg-destructive/20 text-destructive animate-pulse' 
-                    : 'bg-primary/20 text-primary'
-                }`}>
-                  {turnTimeRemaining}s
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-
-        <Card className="p-1 sm:p-2 bg-gradient-card">
-          <div className="text-center">
-            <div className="text-xs text-muted-foreground">Selected</div>
-            <div className="text-lg sm:text-xl font-bold text-accent">
-              {selectedLetter || '?'}
+        {/* Center: Timer and Progress Bar */}
+        <div className="flex flex-col items-center flex-1 mx-4">
+          <h1 className="text-sm md:text-base font-bold text-foreground mb-1">{playerCount} Player Local</h1>
+          {gameEnded ? (
+            <div className="text-lg md:text-xl font-bold text-accent">
+              {winner ? `Player ${winner} Wins!` : 'Tie!'}
             </div>
-          </div>
-        </Card>
+          ) : (
+            <>
+              <div className={`text-3xl md:text-4xl font-bold tabular-nums ${
+                turnTimeRemaining <= WARNING_THRESHOLD ? 'text-destructive animate-pulse' : 'text-foreground'
+              }`}>
+                {turnTimeRemaining}
+              </div>
+              <Progress 
+                value={(turnTimeRemaining / TURN_TIME_LIMIT) * 100} 
+                className="w-32 md:w-48 h-2 mt-1"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Spacer to balance layout */}
+        <div className="w-10 h-10 md:w-12 md:h-12" />
       </div>
 
       {/* Game Grids with Word Lists - Side by side on desktop for 2 players, responsive grid for more */}
@@ -574,7 +558,6 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
           /* 2 players: side by side on desktop with word lists */
           <>
             {grids.map((_, idx) => {
-              const isActive = currentPlayer === idx + 1 && !gameEnded;
               const playerColorClasses = ['text-player-1', 'text-player-2'];
               return (
                 <div key={idx} className="flex items-start gap-4">
@@ -582,23 +565,10 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
                     <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
                   )}
                   <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={`px-3 py-1 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
-                        <div className={`text-sm font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
-                      </div>
-                      {!gameEnded && isActive && (
-                        <div className={`px-2 py-0.5 rounded-lg font-bold text-sm md:hidden ${
-                          turnTimeRemaining <= WARNING_THRESHOLD
-                            ? 'bg-destructive/20 text-destructive animate-pulse' 
-                            : 'bg-primary/20 text-primary'
-                        }`}>
-                          {turnTimeRemaining}s
-                        </div>
-                      )}
+                    <div className="px-3 py-1 rounded-lg text-center shadow-md bg-card/80 border border-border mb-1">
+                      <div className={`text-sm font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
                     </div>
-                    <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
-                      {renderGrid(idx)}
-                    </div>
+                    {renderGrid(idx)}
                   </div>
                   {idx === 1 && (
                     <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
@@ -613,28 +583,14 @@ const LocalMultiplayerBoard = ({ onBackToMenu, boardSize = 5, playerCount = 2, c
             playerCount <= 3 ? 'grid-cols-1 md:grid-cols-3' : playerCount === 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3 md:grid-cols-5'
           }`}>
             {grids.map((_, idx) => {
-              const isActive = currentPlayer === idx + 1 && !gameEnded;
               const playerColorClasses = ['text-player-1', 'text-player-2', 'text-player-3', 'text-player-4', 'text-player-5'];
               return (
                 <div key={idx} className="flex flex-col items-center">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <div className={`px-2 py-0.5 rounded-lg text-center shadow-md transition-all duration-500 ${getPlayerBgColor(idx, isActive)}`}>
-                      <div className={`text-xs font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
-                    </div>
-                    {!gameEnded && isActive && (
-                      <div className={`px-2 py-0.5 rounded-lg font-bold text-xs md:hidden ${
-                        turnTimeRemaining <= WARNING_THRESHOLD
-                          ? 'bg-destructive/20 text-destructive animate-pulse' 
-                          : 'bg-primary/20 text-primary'
-                      }`}>
-                        {turnTimeRemaining}s
-                      </div>
-                    )}
+                  <div className="px-2 py-0.5 rounded-lg text-center shadow-md bg-card/80 border border-border mb-0.5">
+                    <div className={`text-xs font-bold ${getPlayerColor(idx)}`}>P{idx + 1}: {scores[idx]}</div>
                   </div>
                   <div className="flex items-start gap-1">
-                    <div className={`transition-all duration-500 ${isActive ? 'scale-100' : 'opacity-80 scale-95'}`}>
-                      {renderGrid(idx)}
-                    </div>
+                    {renderGrid(idx)}
                     {/* Hide WordsList for 4+ players on mobile to save space */}
                     {playerCount < 4 && (
                       <WordsList words={playerWords[idx] || []} playerName={`P${idx + 1}`} colorClass={playerColorClasses[idx]} />
