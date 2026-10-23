@@ -1,73 +1,46 @@
-# Welcome to your Lovable project
+<p align="center"><img src="src/assets/lettus-logo.png" alt="Lettus" width="360"></p>
+<p align="center"><b>A free grid word game. Build words across, down and backwards against an AI or friends on one screen.</b></p>
 
-## Project info
+<p align="center">
+  <a href="https://lettus.vercel.app"><b>Play Lettus</b></a>
+</p>
 
-**URL**: https://lovable.dev/projects/7070d062-099f-4326-907f-1d9c30324f1c
+<p align="center">
+  <img alt="React" src="https://img.shields.io/badge/React-20232a?style=flat-square&logo=react&logoColor=61dafb">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646cff?style=flat-square&logo=vite&logoColor=white">
+  <img alt="Tailwind" src="https://img.shields.io/badge/Tailwind_CSS-06b6d4?style=flat-square&logo=tailwindcss&logoColor=white">
+  <img alt="PWA" src="https://img.shields.io/badge/PWA-installable-7ed942?style=flat-square">
+</p>
 
-## How can I edit this code?
+![Lettus solo game: two five-by-five grids, one for you and one for the AI, with a letter keyboard below](docs/readme/game.webp)
 
-There are several ways of editing your application.
+Lettus is a strategic word-building game. You and your opponent each build on a five-by-five grid: pick a letter, then try to make the highest-scoring words across, down and backwards. Play a solo game against the AI, take on friends on the same screen, play a friend online, or try the daily challenge.
 
-**Use Lovable**
+<table>
+<tr>
+<td width="62%"><img src="docs/readme/home.webp" alt="Lettus home screen: Daily Challenge, Solo Game, Online 1v1, Local Multiplayer, Game History, Tutorial"></td>
+<td width="38%"><img src="docs/readme/game-mobile.webp" alt="Lettus on a phone"></td>
+</tr>
+</table>
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/7070d062-099f-4326-907f-1d9c30324f1c) and start prompting.
+## Modes
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Daily Challenge.**
+- **Solo Game:** play against an AI opponent.
+- **Online 1v1:** play another person online.
+- **Local Multiplayer:** 2 to 4 players on one screen.
+- **Game History** and a seven-step **Tutorial**.
 
-**Use your preferred IDE**
+## Built with
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Vite, React, TypeScript, shadcn/ui and Tailwind CSS, shipped as an installable PWA and deployed on Vercel.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Run it locally
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+git clone https://github.com/jesaias1/word-grid-clash.git
+cd word-grid-clash
+npm install
 npm run dev
 ```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/7070d062-099f-4326-907f-1d9c30324f1c) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
