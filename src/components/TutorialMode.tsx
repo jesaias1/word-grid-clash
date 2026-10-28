@@ -58,12 +58,12 @@ const TutorialMode = ({ onComplete, forceOpen = false }: TutorialModeProps) => {
     },
     {
       title: "Scoring Words",
-      description: "Points are awarded for ALL valid words on the board (horizontal and vertical). Words also count when spelled backwards! Each letter = 1 point. Bonus: Z, X, Q = 2 points each!",
+      description: "Points are awarded for ALL valid words on the board (horizontal and vertical). Words also count backwards, and words hidden inside longer words count too. Each letter = 1 point; Z, X and Q = 2 points. Make several words with one letter for a COMBO!",
       icon: <Trophy className="w-10 h-10 text-primary" />
     },
     {
       title: "Letter Cooldowns",
-      description: "After using a letter, it goes on cooldown for 4 turns. Plan strategically!",
+      description: "After a letter is used, it is locked for everyone for 4 turns. Grab the letter your opponent needs before they do!",
       icon: <Clock className="w-10 h-10 text-primary" />
     },
     {

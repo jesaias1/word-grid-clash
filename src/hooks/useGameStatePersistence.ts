@@ -10,6 +10,7 @@ export interface PersistedGameState {
   playerWords: string[][];
   turnTimeRemaining: number;
   gameEnded: boolean;
+  penalties?: number[];
   timestamp: number;
 }
 
@@ -25,6 +26,8 @@ export interface SoloPersistedGameState {
   aiWords: string[];
   turnTimeRemaining: number;
   gameEnded: boolean;
+  penalties?: [number, number];
+  difficulty?: string;
   timestamp: number;
 }
 

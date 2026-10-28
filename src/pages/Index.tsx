@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import GameBoard from '@/components/GameBoard';
+import { motion, type Variants } from 'framer-motion';
+import GameBoard, { DIFFICULTY_LABEL } from '@/components/GameBoard';
 import LocalMultiplayerBoard from '@/components/LocalMultiplayerBoard';
 import TutorialMode from '@/components/TutorialMode';
 import InstallInstructionsDialog from '@/components/InstallInstructionsDialog';
-import { Button } from '@/components/ui/button';
+import FloatingTiles from '@/components/home/FloatingTiles';
+import ProgressCard from '@/components/home/ProgressCard';
+import { SoundToggle } from '@/components/game/GameChrome';
 import lettusLogo from '@/assets/lettus-logo.png';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useDailyChallenge } from '@/hooks/useDailyChallenge';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { GraduationCap, Users, ArrowLeft, Target, Flame, Clock, Download } from 'lucide-react';
+import { loadSoloGameState } from '@/hooks/useGameStatePersistence';
+import type { Difficulty } from '@/game/ai';
+import { BOARD_SIZE, COOLDOWN_TURNS } from '@/game/constants';
+import { useProgress } from '@/lib/progress';
+import { GraduationCap, Users, ArrowLeft, Target, Flame, Clock, Download, Bot, Globe, History, Play } from 'lucide-react';
 
 // Calculate time until midnight for next daily challenge
 const getTimeUntilMidnight = () => {
@@ -27,286 +34,284 @@ const formatCountdown = (ms: number) => {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-type GameMode = 'menu' | 'local' | 'local-multiplayer-select' | 'local-multiplayer';
+type GameMode = 'menu' | 'solo-select' | 'local' | 'local-multiplayer-select' | 'local-multiplayer';
 
 // Store the deferred prompt for PWA installation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let deferredPrompt: any = null;
+
+const DIFFICULTIES: { id: Difficulty; emoji: string; blurb: string }[] = [
+  { id: 'easy', emoji: '🌱', blurb: 'Relaxed. Great for learning.' },
+  { id: 'medium', emoji: '🥬', blurb: 'A fair fight. Plays solid words.' },
+  { id: 'hard', emoji: '🦖', blurb: 'Hunts the best move every turn. 2× XP for a win.' },
+];
+
+const container: Variants = { hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } } };
+const item: Variants = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } } };
+
+const MenuButton = ({ onClick, className = '', children }: { onClick: () => void; className?: string; children: React.ReactNode }) => (
+  <motion.button
+    type="button"
+    variants={item}
+    whileHover={{ scale: 1.03, y: -2 }}
+    whileTap={{ scale: 0.97 }}
+    onClick={onClick}
+    className={`btn-game w-full flex items-center justify-center gap-2 ${className}`}
+  >
+    {children}
+  </motion.button>
+);
 
 const Index = () => {
   const [gameMode, setGameMode] = useState<GameMode>('menu');
   const [localPlayerCount, setLocalPlayerCount] = useState<number>(2);
+  const [difficulty, setDifficulty] = useState<Difficulty>(() => {
+    try { return (localStorage.getItem('lettus_difficulty') as Difficulty) || 'medium'; } catch { return 'medium'; }
+  });
   const [showTutorial, setShowTutorial] = useState(false);
   const [canInstall, setCanInstall] = useState(false);
   const [showInstallDialog, setShowInstallDialog] = useState(false);
   const navigate = useNavigate();
-  const { playFeedback } = useSoundEffects(true, true);
+  const { playFeedback } = useSoundEffects();
   const { trackGameStart, trackTutorial } = useAnalytics();
-  const { streak, hasCompletedToday, loading: dailyLoading } = useDailyChallenge();
+  const { streak, hasCompletedToday } = useDailyChallenge();
   const [countdown, setCountdown] = useState(getTimeUntilMidnight());
   const isMobile = useIsMobile();
-  
-  const boardSize = 5;
-  const cooldownTurns = 4;
+  const progress = useProgress();
+  const savedSolo = gameMode === 'menu' ? loadSoloGameState() : null;
 
   // Listen for PWA install prompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('[PWA] beforeinstallprompt event fired!');
       e.preventDefault();
       deferredPrompt = e;
       setCanInstall(true);
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Check if already installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    console.log('[PWA] Running in standalone mode:', isStandalone);
-    
-    if (isStandalone) {
-      setCanInstall(false);
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    if (window.matchMedia('(display-mode: standalone)').matches) setCanInstall(false);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-    
-    playFeedback('click');
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      setCanInstall(false);
-    }
+    if (outcome === 'accepted') setCanInstall(false);
     deferredPrompt = null;
   };
 
   // Countdown timer for next daily challenge
   useEffect(() => {
     if (!hasCompletedToday) return;
-    
-    const interval = setInterval(() => {
-      setCountdown(getTimeUntilMidnight());
-    }, 1000);
-    
+    const interval = setInterval(() => setCountdown(getTimeUntilMidnight()), 1000);
     return () => clearInterval(interval);
   }, [hasCompletedToday]);
 
-  // Check if user has seen tutorial
+  // First visit: show the tutorial
   useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
-    }
+    try {
+      if (!localStorage.getItem('hasSeenTutorial')) setShowTutorial(true);
+    } catch { /* storage blocked */ }
   }, []);
 
-  const handleBackToMenu = () => {
-    setGameMode('menu');
+  const startSolo = (d: Difficulty) => {
+    playFeedback('click');
+    setDifficulty(d);
+    try { localStorage.setItem('lettus_difficulty', d); } catch { /* ignore */ }
+    trackGameStart('solo');
+    setGameMode('local');
   };
 
-  // Player count selection screen
+  const handleBackToMenu = () => setGameMode('menu');
+
+  const subScreen = (title: string, icon: React.ReactNode, body: React.ReactNode) => (
+    <div className="min-h-[100dvh] flex items-center justify-center p-4 pt-safe">
+      <FloatingTiles count={8} />
+      <motion.div initial="hidden" animate="show" variants={container} className="relative text-center space-y-5 max-w-sm w-full">
+        <motion.div variants={item} className="flex items-center justify-center gap-3">
+          {icon}
+          <h1 className="text-3xl font-bold">{title}</h1>
+        </motion.div>
+        {body}
+        <motion.button
+          variants={item}
+          onClick={() => { playFeedback('click'); setGameMode('menu'); }}
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors pt-2"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </motion.button>
+      </motion.div>
+    </div>
+  );
+
+  if (gameMode === 'solo-select') {
+    return subScreen('Choose your rival', <Bot className="w-9 h-9 text-primary" />, (
+      <div className="flex flex-col gap-3">
+        {DIFFICULTIES.map(d => (
+          <motion.button
+            key={d.id}
+            variants={item}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => startSolo(d.id)}
+            className={`glass rounded-2xl p-4 flex items-center gap-4 text-left ${difficulty === d.id ? 'ring-2 ring-primary' : ''}`}
+          >
+            <span className="text-4xl">{d.emoji}</span>
+            <span className="flex-1">
+              <span className="block font-display font-semibold text-xl">{DIFFICULTY_LABEL[d.id]}</span>
+              <span className="block text-sm text-muted-foreground">{d.blurb}</span>
+            </span>
+            {d.id === 'hard' && progress.stats.hardWins > 0 && <span className="text-xs text-gold font-bold">🗡️ ×{progress.stats.hardWins}</span>}
+          </motion.button>
+        ))}
+      </div>
+    ));
+  }
+
   if (gameMode === 'local-multiplayer-select') {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}>
-        <div className="text-center space-y-6 max-w-md w-full animate-fade-in">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Users className="w-10 h-10 text-primary" />
-            <h1 className="text-3xl font-bold">Local Multiplayer</h1>
-          </div>
-          
-          <p className="text-muted-foreground">How many players?</p>
-          
-          <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
-            {[2, 3, 4].map((count) => (
-              <Button
-                key={count}
-                onClick={() => {
-                  playFeedback('click');
-                  trackGameStart('local-multiplayer', count);
-                  setLocalPlayerCount(count);
-                  setGameMode('local-multiplayer');
-                }}
-                size="lg"
-                variant="secondary"
-                className="w-full h-16 text-xl font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105"
-              >
-                {count} Players
-              </Button>
-            ))}
-          </div>
-          
-          <Button
-            onClick={() => {
-              playFeedback('click');
-              setGameMode('menu');
-            }}
-            variant="outline"
-            className="mt-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Menu
-          </Button>
+    return subScreen('Local Multiplayer', <Users className="w-9 h-9 text-primary" />, (
+      <>
+        <motion.p variants={item} className="text-muted-foreground">Pass the device around. How many players?</motion.p>
+        <div className="grid grid-cols-3 gap-3">
+          {[2, 3, 4].map(count => (
+            <motion.button
+              key={count}
+              variants={item}
+              whileHover={{ scale: 1.06, y: -3 }}
+              whileTap={{ scale: 0.94 }}
+              onClick={() => {
+                playFeedback('click');
+                trackGameStart('local-multiplayer', count);
+                setLocalPlayerCount(count);
+                setGameMode('local-multiplayer');
+              }}
+              className={`tile ${count === 3 ? 'tile-leaf' : 'tile-p1'} aspect-square flex flex-col items-center justify-center`}
+            >
+              <span className="text-5xl">{count}</span>
+              <span className="text-xs font-sans font-bold opacity-80">players</span>
+            </motion.button>
+          ))}
         </div>
-      </div>
-    );
+      </>
+    ));
   }
 
-  // Menu screen
-  if (gameMode === 'menu') {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-2 py-2" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-        {showTutorial && (
-          <TutorialMode
-            forceOpen={true}
-            onComplete={() => {
-              setShowTutorial(false);
-              trackTutorial('complete');
-              localStorage.setItem('hasSeenTutorial', 'true');
-            }}
-          />
-        )}
-        <div className="text-center space-y-1.5 max-w-2xl w-full animate-fade-in-up">
-          <div className="flex items-center justify-center mb-4 animate-float">
-            <img src={lettusLogo} alt="Lettus Logo" className="max-w-full h-auto w-[380px] sm:w-[480px] object-contain drop-shadow-2xl transition-transform duration-300 hover:scale-105" />
-          </div>
-
-          {/* Daily Challenge Button - Featured */}
-          <Button 
-            onClick={() => {
-              playFeedback('click');
-              navigate('/daily');
-            }}
-            size="lg" 
-            className="w-full max-w-md mx-auto h-16 text-base font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white border-0"
-          >
-            <Target className="w-5 h-5 mr-2" />
-            Daily Challenge
-            {streak > 0 && (
-              <span className="ml-2 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full text-sm">
-                <Flame className="w-4 h-4" />
-                {streak}
-              </span>
-            )}
-            {hasCompletedToday && (
-              <span className="ml-2 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full text-sm">
-                <Clock className="w-3 h-3" />
-                {formatCountdown(countdown)}
-              </span>
-            )}
-          </Button>
-
-          <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
-            <Button 
-              onClick={() => {
-                playFeedback('click');
-                trackGameStart('solo');
-                setGameMode('local');
-              }}
-              size="lg" 
-              className="w-full h-14 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-            >
-              Solo Game
-            </Button>
-            <Button 
-              onClick={() => {
-                playFeedback('click');
-                navigate('/online-setup');
-              }}
-              size="lg" 
-              className="w-full h-14 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-              variant="default"
-            >
-              Online 1v1
-            </Button>
-            <Button 
-              onClick={() => {
-                playFeedback('click');
-                setGameMode('local-multiplayer-select');
-              }}
-              size="lg" 
-              className="w-full h-14 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up col-span-2"
-              variant="secondary"
-            >
-              <Users className="w-5 h-5 mr-2" />
-              Local Multiplayer (2-4 Players)
-            </Button>
-          </div>
-
-          {/* Game History and Tutorial Buttons */}
-          <div className="grid grid-cols-2 gap-2 max-w-md mx-auto">
-            <Button 
-              onClick={() => {
-                playFeedback('click');
-                navigate('/history');
-              }}
-              size="lg" 
-              variant="outline"
-              className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-            >
-              Game History
-            </Button>
-            <Button 
-              onClick={() => {
-                playFeedback('click');
-                setShowTutorial(true);
-              }}
-              size="lg" 
-              variant="outline"
-              className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up"
-            >
-              <GraduationCap className="w-4 h-4 mr-2" />
-              Tutorial
-            </Button>
-          </div>
-
-          {/* Add to Home Screen Button - Only shows on mobile */}
-          {isMobile && (
-            <div className="max-w-md mx-auto">
-              <Button 
-                onClick={() => {
-                  playFeedback('click');
-                  if (canInstall) {
-                    console.log('[PWA] Native install prompt available, showing...');
-                    handleInstallClick();
-                  } else {
-                    console.log('[PWA] No native prompt, showing instructions dialog');
-                    setShowInstallDialog(true);
-                  }
-                }}
-                size="lg" 
-                variant="outline"
-                className="w-full h-12 text-sm font-bold shadow-lg hover:shadow-glow transition-all duration-300 hover:scale-105 animate-fade-in-up border-primary/50 text-primary hover:bg-primary/10"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                {canInstall ? 'Install App' : 'Add to Home Screen'}
-              </Button>
-            </div>
-          )}
-
-          <InstallInstructionsDialog 
-            open={showInstallDialog} 
-            onOpenChange={setShowInstallDialog} 
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Local solo game
   if (gameMode === 'local') {
-    return <GameBoard boardSize={boardSize} onBackToMenu={handleBackToMenu} />;
+    return <GameBoard boardSize={BOARD_SIZE} difficulty={difficulty} onBackToMenu={handleBackToMenu} />;
   }
 
-  // Local multiplayer game (2-5 players)
   if (gameMode === 'local-multiplayer') {
-    return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={boardSize} playerCount={localPlayerCount} cooldownTurns={cooldownTurns} />;
+    return <LocalMultiplayerBoard onBackToMenu={handleBackToMenu} boardSize={BOARD_SIZE} playerCount={localPlayerCount} cooldownTurns={COOLDOWN_TURNS} />;
   }
 
-  return <GameBoard boardSize={boardSize} onBackToMenu={handleBackToMenu} />;
+  // Menu
+  return (
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 py-4 pt-safe relative">
+      <FloatingTiles />
+      {showTutorial && (
+        <TutorialMode
+          forceOpen={true}
+          onComplete={() => {
+            setShowTutorial(false);
+            trackTutorial('complete');
+            localStorage.setItem('hasSeenTutorial', 'true');
+          }}
+        />
+      )}
+      <div className="absolute top-3 right-3" style={{ top: 'max(env(safe-area-inset-top), 0.75rem)' }}>
+        <SoundToggle />
+      </div>
+
+      <motion.div initial="hidden" animate="show" variants={container} className="relative text-center max-w-md w-full space-y-3">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.7, y: -20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 14 }}
+          className="flex items-center justify-center mb-1"
+        >
+          <motion.img
+            src={lettusLogo}
+            alt="Lettus"
+            className="w-[min(92vw,440px)] h-auto object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.5)]"
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.div>
+        <motion.p variants={item} className="text-sm text-muted-foreground -mt-1 mb-2">Grow words. Grab letters. Outscore everyone.</motion.p>
+
+        <motion.div variants={item}><ProgressCard /></motion.div>
+
+        <MenuButton
+          onClick={() => { playFeedback('click'); navigate('/daily'); }}
+          className="h-16 text-lg text-white bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 overflow-hidden shimmer"
+        >
+          <Target className="w-5 h-5" />
+          Daily Challenge
+          {streak > 0 && (
+            <span className="ml-1 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full text-sm font-sans">
+              <Flame className="w-4 h-4" />{streak}
+            </span>
+          )}
+          {hasCompletedToday && (
+            <span className="ml-1 flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded-full text-sm font-sans tabular-nums">
+              <Clock className="w-3 h-3" />{formatCountdown(countdown)}
+            </span>
+          )}
+        </MenuButton>
+
+        <div className="grid grid-cols-2 gap-3">
+          <MenuButton
+            onClick={() => {
+              playFeedback('click');
+              // A game in progress resumes straight away
+              if (savedSolo) setGameMode('local'); else setGameMode('solo-select');
+            }}
+            className="h-16 tile-p1 text-primary-foreground text-lg flex-col !gap-0"
+          >
+            <span className="flex items-center gap-2">{savedSolo ? <Play className="w-5 h-5" /> : <Bot className="w-5 h-5" />} Solo</span>
+            <span className="text-[11px] font-sans font-bold opacity-75">{savedSolo ? 'Continue game' : 'vs AI'}</span>
+          </MenuButton>
+          <MenuButton
+            onClick={() => { playFeedback('click'); navigate('/online-setup'); }}
+            className="h-16 tile-leaf text-cream text-lg flex-col !gap-0"
+          >
+            <span className="flex items-center gap-2"><Globe className="w-5 h-5" /> Online</span>
+            <span className="text-[11px] font-sans font-bold opacity-75">1v1 with a friend</span>
+          </MenuButton>
+        </div>
+
+        <MenuButton
+          onClick={() => { playFeedback('click'); setGameMode('local-multiplayer-select'); }}
+          className="h-14 bg-secondary/80 text-secondary-foreground"
+        >
+          <Users className="w-5 h-5" /> Local Multiplayer <span className="font-sans text-xs opacity-70">(2–4)</span>
+        </MenuButton>
+
+        <div className="grid grid-cols-2 gap-3">
+          <MenuButton onClick={() => { playFeedback('click'); navigate('/history'); }} className="h-12 bg-muted text-foreground text-sm">
+            <History className="w-4 h-4" /> History
+          </MenuButton>
+          <MenuButton onClick={() => { playFeedback('click'); setShowTutorial(true); }} className="h-12 bg-muted text-foreground text-sm">
+            <GraduationCap className="w-4 h-4" /> How to play
+          </MenuButton>
+        </div>
+
+        {isMobile && (
+          <MenuButton
+            onClick={() => {
+              playFeedback('click');
+              if (canInstall) handleInstallClick(); else setShowInstallDialog(true);
+            }}
+            className="h-11 bg-transparent border border-primary/40 text-primary text-sm !shadow-none"
+          >
+            <Download className="w-4 h-4" /> {canInstall ? 'Install App' : 'Add to Home Screen'}
+          </MenuButton>
+        )}
+
+        <InstallInstructionsDialog open={showInstallDialog} onOpenChange={setShowInstallDialog} />
+      </motion.div>
+    </div>
+  );
 };
 
 export default Index;

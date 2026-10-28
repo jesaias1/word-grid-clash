@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { getDictionary } from '@/game/dictionary';
 import { calculateScore } from '@/game/calculateScore';
 import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -14,9 +12,14 @@ import WordsList from '@/components/WordsList';
 import PlayerSpinner from '@/components/PlayerSpinner';
 import ResizableKeyboard from '@/components/ResizableKeyboard';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useFullscreen } from '@/hooks/useFullscreen';
-import lettusLogo from '@/assets/lettuslogo.png';
-import { Maximize, Minimize } from 'lucide-react';
+import GameGrid from '@/components/game/GameGrid';
+import LetterKeyboard from '@/components/game/LetterKeyboard';
+import { GameHeader, ScorePill, TurnTimer } from '@/components/game/GameChrome';
+import { MoveFeedbackLayer, useMoveFeedback } from '@/components/game/MoveFeedback';
+import { wordPoints } from '@/game/constants';
+import { scoredCells } from '@/game/moveAnalysis';
+import { useDictionaryReady } from '@/hooks/useDictionaryReady';
+import { recordGame, recordMove } from '@/lib/progress';
 
 interface OnlineMultiplayerBoardProps {
   sessionId: string;
@@ -39,7 +42,14 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   const { playFeedback } = useSoundEffects(true, true);
   const { celebrate } = useVictoryCelebration();
   const isMobile = useIsMobile();
-  const { isFullscreen, toggleFullscreen } = useFullscreen();
+  const dictReady = useDictionaryReady();
+  const feedback = useMoveFeedback();
+  // Guards so a timeout or a finished game is only handled once
+  const timedOutTurnRef = useRef<string | null>(null);
+  const recordedRef = useRef(false);
+  const prevOpponentGridRef = useRef<Grid | null>(null);
+  const [lastPlaced, setLastPlaced] = useState<{ who: 'me' | 'opp'; row: number; col: number } | null>(null);
+  const [flash, setFlash] = useState<{ who: 'me' | 'opp'; cells: Set<string>; key: number } | null>(null);
 
   const [session, setSession] = useState<any>(null);
   const [myPlayerIndex, setMyPlayerIndex] = useState<number | null>(null);
@@ -216,6 +226,9 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
 
   const handleTurnTimeout = async () => {
     if (!myState || !session) return;
+    // The clock keeps ticking until the server confirms the pass, so only penalise once per turn
+    if (timedOutTurnRef.current === session.turn_started_at) return;
+    timedOutTurnRef.current = session.turn_started_at;
 
     const pointDeduction = 5;
     const newScore = myState.score - pointDeduction;
@@ -320,12 +333,40 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     const oppName = myPlayerIndex === 1 ? session.player2_name : session.player1_name;
     
     if (opponentWords.length > lastOpponentWordCount && lastOpponentWordCount > 0) {
-      // Words are now shown in the WordsList component instead of toast
-      playFeedback('score');
+      const fresh: string[] = opponentWords.slice(lastOpponentWordCount);
+      feedback.push({
+        who: oppName || 'Opponent',
+        player: 2,
+        words: fresh.map(text => ({ text, path: [], dir: '→' as const, points: wordPoints(text) })),
+        gained: fresh.reduce((n, w) => n + wordPoints(w), 0),
+        mine: false,
+      });
+      playFeedback('score', 2);
     }
     
     setLastOpponentWordCount(opponentWords.length);
   }, [opponentState?.words_found, session, myPlayerIndex, lastOpponentWordCount, playFeedback, toast]);
+
+  // Mark the opponent's newest tile
+  useEffect(() => {
+    const grid = opponentState?.grid_data as Grid | undefined;
+    if (!grid) return;
+    const prev = prevOpponentGridRef.current;
+    if (prev) {
+      for (let r = 0; r < grid.length; r++) for (let c = 0; c < grid[r].length; c++) {
+        if (grid[r][c].letter && !prev[r]?.[c]?.letter) setLastPlaced({ who: 'opp', row: r, col: c });
+      }
+    }
+    prevOpponentGridRef.current = grid;
+  }, [opponentState?.grid_data]);
+
+  // Record the finished game once for XP and stats
+  useEffect(() => {
+    if (session?.status !== 'finished' || recordedRef.current || !myState) return;
+    recordedRef.current = true;
+    const won = session.winner_index === myPlayerIndex;
+    recordGame({ mode: 'online', won, tied: !session.winner_index, score: myState.score || 0, words: myState.words_found || [] });
+  }, [session?.status, session?.winner_index, myPlayerIndex, myState]);
 
   const placeLetter = async (row: number, col: number) => {
     if (!isMyTurn || !selectedLetter || !myState) {
@@ -386,10 +427,17 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       return s + wordScore;
     }, 0);
 
-    // Play sound effects
+    // Play sound effects and show what the move made
     playFeedback('place');
-    if (newScore > 0) {
-      playFeedback('score');
+    setLastPlaced({ who: 'me', row, col });
+    if (newWordsFound.length > 0) {
+      const cells = new Set<string>();
+      newWordsFound.forEach(w => w.path.forEach(p => cells.add(`${p.r}-${p.c}`)));
+      setFlash({ who: 'me', cells, key: Date.now() });
+      const scoredWords = newWordsFound.map(w => ({ ...w, points: wordPoints(w.text) }));
+      feedback.push({ who: 'You', player: 1, words: scoredWords, gained: newScore, mine: true });
+      recordMove(newScore, newWordsFound.map(w => w.text));
+      playFeedback(newWordsFound.length >= 2 ? 'combo' : 'score', newWordsFound.length >= 2 ? newWordsFound.length : newScore);
     }
 
     // Process existing cooldowns first - decrement and collect expired letters
@@ -417,12 +465,6 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       }
     });
     
-    console.log('Setting cooldowns:', { 
-      selectedLetter, 
-      cooldownValue: session.cooldown_turns,
-      allCooldowns: newCooldowns,
-      lettersToAddBack 
-    });
 
     const updatedScore = myState.score + newScore;
     const newTurnNumber = myState.turn_number + 1;
@@ -537,132 +579,50 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     }
   };
 
+  const myScored = useMemo(() => (dictReady && myState ? scoredCells(myState.grid_data as Grid) : undefined), [dictReady, myState]);
+  const oppScored = useMemo(() => (dictReady && opponentState ? scoredCells(opponentState.grid_data as Grid) : undefined), [dictReady, opponentState]);
+
   const renderGrid = (isOpponent: boolean = false) => {
     const gridState = isOpponent ? opponentState : myState;
     if (!gridState) return null;
-    
-    const grid = gridState.grid_data as Grid;
-    const size = grid.length;
-    const canPlace = !isOpponent && isMyTurn && selectedLetter;
-
-    const isActiveBoard = isOpponent ? (!isMyTurn && session.status === 'playing') : (isMyTurn && session.status === 'playing');
+    const who = isOpponent ? 'opp' : 'me';
+    const playing = session.status === 'playing';
+    const myCell = isMobile ? 'min(12vw, 6dvh, 56px)' : 'min(5.4vw, 8.6dvh, 92px)';
+    const oppCell = isMobile ? 'min(8.6vw, 4.3dvh, 40px)' : myCell;
 
     return (
-      <div className={`inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl shadow-lg transition-all ${
-        isActiveBoard ? 'ring-4 ring-primary border-2 border-primary' : 'border-2 border-border/50'
-      } bg-card/80 ${isOpponent ? 'opacity-80' : ''}`}
-      style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
-        {grid.map((row: GridCell[], rowIndex: number) =>
-          row.map((cell, colIndex) => {
-            const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-            
-            return (
-              <button
-                key={`${rowIndex}-${colIndex}`}
-                onClick={() => !isOpponent && canPlace && placeLetter(rowIndex, colIndex)}
-                disabled={isOpponent || !canPlace}
-                className={`
-                  ${isMobile 
-                    ? 'w-[9vw] h-[9vw] max-w-8 max-h-8' 
-                    : 'w-[min(6vw,120px)] h-[min(6vw,120px)]'
-                  } cursor-pointer flex items-center justify-center transition-all duration-300 border border-border/40 rounded-lg
-                  ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
-                  ${cell.letter ? (isOpponent ? 'bg-gradient-player-2' : 'bg-gradient-player-1') : ''}
-                  ${canPlace && !cell.letter ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
-                  ${isOpponent || !canPlace ? 'cursor-not-allowed' : ''}
-                `}
-              >
-                {cell.letter && (
-                  <span className="font-bold text-xs sm:text-base md:text-lg lg:text-xl xl:text-2xl drop-shadow-lg text-white">
-                    {cell.letter}
-                  </span>
-                )}
-              </button>
-            );
-          })
-        )}
-      </div>
+      <GameGrid
+        grid={gridState.grid_data as Grid}
+        player={isOpponent ? 2 : 1}
+        interactive={!isOpponent && isMyTurn && playing}
+        active={playing && (isOpponent ? !isMyTurn : isMyTurn)}
+        selectedLetter={selectedLetter}
+        onCellClick={placeLetter}
+        flashCells={flash?.who === who ? flash.cells : undefined}
+        flashKey={flash?.key}
+        scoredCells={isOpponent ? oppScored : myScored}
+        lastPlaced={lastPlaced?.who === who ? lastPlaced : null}
+        cellSize={isOpponent ? oppCell : myCell}
+      />
     );
   };
 
   const renderAvailableLetters = () => {
     if (!myState || !opponentState) return null;
-
-    const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    const row1 = allLetters.slice(0, 13); // A-M
-    const row2 = allLetters.slice(13);    // N-Z
-    
-    // Merge cooldowns from both players - use the highest cooldown value for each letter
-    const myCooldowns = myState.cooldowns || {};
-    const opponentCooldowns = opponentState.cooldowns || {};
-    const mergedCooldowns: CooldownState = {};
-    
-    allLetters.forEach(letter => {
-      const myCooldown = myCooldowns[letter] || 0;
-      const oppCooldown = opponentCooldowns[letter] || 0;
-      const maxCooldown = Math.max(myCooldown, oppCooldown);
-      if (maxCooldown > 0) {
-        mergedCooldowns[letter] = maxCooldown;
-      }
-    });
-    
-    const availableLetters = myState.available_letters || [];
-    
-    const renderLetter = (letter: string) => {
-      const cooldown = mergedCooldowns[letter] || 0;
-      const isOnCooldown = cooldown > 0;
-      const isAvailable = availableLetters.includes(letter);
-      const isSelected = selectedLetter === letter;
-      const canSelect = isAvailable && !isOnCooldown && isMyTurn;
-      
-      return (
-        <button
-          key={letter}
-          onClick={() => {
-            if (canSelect) {
-              setSelectedLetter(letter);
-              playFeedback('select');
-            }
-          }}
-          disabled={!canSelect}
-          className={`
-            w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-11 lg:h-11 rounded font-bold text-[10px] sm:text-sm md:text-base transition-all duration-200 relative
-            ${isSelected && canSelect
-              ? 'bg-primary text-primary-foreground scale-110 shadow-lg'
-              : isOnCooldown
-                ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
-                : !isAvailable
-                  ? 'bg-muted/30 text-muted-foreground/30 cursor-not-allowed opacity-40'
-                  : canSelect
-                    ? 'bg-card hover:bg-accent hover:text-accent-foreground cursor-pointer hover:scale-105 border border-border'
-                    : 'bg-card text-muted-foreground cursor-not-allowed opacity-50 border border-border'
-            }
-            ${cooldown === 1 ? 'ring-2 ring-yellow-500/70' : ''}
-          `}
-        >
-          {letter}
-          {isOnCooldown && (
-            <div className={`absolute -top-1 -right-1 rounded-full w-3.5 h-3.5 sm:w-4 sm:h-4 flex items-center justify-center text-[9px] sm:text-[10px] font-bold shadow-lg border border-background ${
-              cooldown === 1 
-                ? 'bg-yellow-500 text-yellow-950' 
-                : 'bg-destructive text-destructive-foreground'
-            }`}>
-              {cooldown}
-            </div>
-          )}
-        </button>
-      );
-    };
-    
+    // A letter is locked if it is cooling down for either player
+    const merged: CooldownState = {};
+    for (const src of [myState.cooldowns || {}, opponentState.cooldowns || {}]) {
+      for (const [l, v] of Object.entries(src as CooldownState)) if (v > 0) merged[l] = Math.max(merged[l] || 0, v);
+    }
     return (
-      <div className="flex flex-col gap-1 sm:gap-2 justify-center items-center px-1">
-        <div className="flex gap-[2px] sm:gap-1 md:gap-2 justify-center">
-          {row1.map(renderLetter)}
-        </div>
-        <div className="flex gap-[2px] sm:gap-1 md:gap-2 justify-center">
-          {row2.map(renderLetter)}
-        </div>
-      </div>
+      <LetterKeyboard
+        cooldowns={merged}
+        selected={selectedLetter}
+        enabled={isMyTurn && session.status === 'playing'}
+        allowed={myState.available_letters || []}
+        cooldownTurns={session.cooldown_turns || 4}
+        onSelect={letter => { setSelectedLetter(prev => (prev === letter ? null : letter)); playFeedback('select'); }}
+      />
     );
   };
 
@@ -876,83 +836,35 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         />
       )}
       
-    <div className="h-[100dvh] p-0.5 sm:p-1 md:p-2 mx-auto flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-      {/* New Minimal Header */}
-      <div className="flex items-center justify-between mb-2 px-2">
-        {/* Home Button - Cabbage Logo */}
-        <button
-          onClick={() => {
-            playFeedback('click');
-            navigate('/');
-          }}
-          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform"
-        >
-          <img src={lettusLogo} alt="Home" className="w-full h-full object-contain" />
-        </button>
-
-        {/* Center: Timer and Progress Bar */}
-        <div className="flex flex-col items-center flex-1 mx-4">
-          <h1 className="text-sm md:text-base font-bold text-foreground mb-1">Online Game</h1>
-          {session.status === 'finished' ? (
-            <div className="text-lg md:text-xl font-bold text-accent">
-              {session.winner_index === myPlayerIndex ? 'You Win!' : 
-               session.winner_index ? 'You Lost' : 'Tie!'}
+    <MoveFeedbackLayer events={feedback.events} />
+    <div className="h-[100dvh] p-1.5 sm:p-3 pt-safe mx-auto flex flex-col overflow-hidden">
+      <GameHeader
+        title="Online 1v1"
+        onHome={() => { playFeedback('click'); navigate('/'); }}
+        center={
+          session.status === 'finished' ? (
+            <div className="font-display font-bold text-xl text-gold">
+              {session.winner_index === myPlayerIndex ? 'You win!' : session.winner_index ? 'You lost' : 'Tie!'}
             </div>
           ) : (
-            <>
-              <div className={`text-3xl md:text-4xl font-bold tabular-nums transition-colors ${
-                turnTimeRemaining <= 5 ? 'text-red-500' : 
-                turnTimeRemaining <= 10 ? 'text-yellow-500' : 
-                'text-primary'
-              } ${turnTimeRemaining <= 5 ? 'animate-pulse' : ''}`}>
-                {turnTimeRemaining}
-              </div>
-              <Progress 
-                value={(turnTimeRemaining / TURN_TIME_LIMIT) * 100} 
-                className="w-48 md:w-64 h-3 mt-1"
-                indicatorClassName={
-                  turnTimeRemaining <= 5 ? 'bg-red-500' : 
-                  turnTimeRemaining <= 10 ? 'bg-yellow-500' : 
-                  'bg-primary'
-                }
-              />
-            </>
-          )}
-        </div>
+            <TurnTimer remaining={turnTimeRemaining} label={isMyTurn ? (selectedLetter ? `Place ${selectedLetter}` : 'Your turn') : `${opponentName || 'Opponent'}'s turn`} />
+          )
+        }
+      />
 
-        {/* Fullscreen Toggle */}
-        <button
-          onClick={toggleFullscreen}
-          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform flex items-center justify-center bg-card/50 border border-border/50"
-          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-        >
-          {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-        </button>
+      <div className="flex justify-center gap-2 mb-1.5 sm:mb-3 shrink-0">
+        <ScorePill name={myName || 'You'} score={myScore} player={1} active={session.status === 'playing' && isMyTurn} />
+        <ScorePill name={opponentName || 'Waiting…'} score={opponentScore} player={2} active={session.status === 'playing' && !isMyTurn} />
       </div>
 
-      {/* Game Grids with Word Lists - Side by side on desktop, stacked on mobile */}
-      <div 
-        className="flex flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-4 lg:gap-6 flex-1 min-h-0"
-      >
-        {/* Your Section */}
-        <div className="flex items-start gap-2 lg:gap-4">
-          <WordsList words={myState.words_found || []} playerName={myName} colorClass="text-player-1" />
-          <div className="flex flex-col items-center">
-            <div className="px-3 py-1 rounded-lg text-center shadow-md bg-card/80 border border-border mb-1">
-              <div className="text-sm font-bold text-player-1 truncate max-w-[120px]">{myName}: {myScore}</div>
-            </div>
-            {renderGrid(false)}
-          </div>
+      {/* Boards: side by side on desktop; on a phone the opponent's smaller board goes on top */}
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-2 md:gap-6 lg:gap-10 flex-1 min-h-0">
+        <div className={`flex items-start gap-2 lg:gap-4 ${isMobile ? 'order-2' : ''}`}>
+          <WordsList words={myState.words_found || []} playerName="You" colorClass="text-player-1" />
+          {renderGrid(false)}
         </div>
-
-        {/* Opponent Section */}
-        <div className="flex items-start gap-2 lg:gap-4">
-          <div className="flex flex-col items-center">
-            <div className="px-3 py-1 rounded-lg text-center shadow-md bg-card/80 border border-border mb-1">
-              <div className="text-sm font-bold text-player-2 truncate max-w-[120px]">{opponentName}: {opponentScore}</div>
-            </div>
-            {renderGrid(true)}
-          </div>
+        <div className={`flex items-start gap-2 lg:gap-4 ${isMobile ? 'order-1' : ''}`}>
+          {renderGrid(true)}
           <WordsList words={opponentState?.words_found || []} playerName={opponentName} colorClass="text-player-2" />
         </div>
       </div>
@@ -969,10 +881,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-3xl text-center">
-              {session.winner_index === myPlayerIndex ? '🎉 Victory! 🎉' : '😔 Defeat'}
+              {session.winner_index === myPlayerIndex ? '🎉 Victory!' : session.winner_index ? '😤 So close!' : '🤝 Tie!'}
             </DialogTitle>
             <DialogDescription className="text-center text-lg">
-              Game Over - Review the final scores and words below
+              {myName} {myScore} – {opponentScore} {opponentName}
             </DialogDescription>
           </DialogHeader>
           
@@ -997,7 +909,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                   {(myState?.words_found || []).length > 0 ? (
                     (myState.words_found || []).map((word: string, idx: number) => (
                       <div key={idx} className="text-sm bg-accent/50 rounded px-2 py-1">
-                        {word} <span className="text-muted-foreground">({word.length})</span>
+                        {word} <span className="text-muted-foreground">+{wordPoints(word)}</span>
                       </div>
                     ))
                   ) : (
@@ -1011,7 +923,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
                   {(opponentState?.words_found || []).length > 0 ? (
                     (opponentState.words_found || []).map((word: string, idx: number) => (
                       <div key={idx} className="text-sm bg-accent/50 rounded px-2 py-1">
-                        {word} <span className="text-muted-foreground">({word.length})</span>
+                        {word} <span className="text-muted-foreground">+{wordPoints(word)}</span>
                       </div>
                     ))
                   ) : (

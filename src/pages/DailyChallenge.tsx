@@ -1,85 +1,104 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { getDictionary } from '@/game/dictionary';
-import { calculateScore } from '@/game/calculateScore';
-import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import { useToast } from '@/hooks/use-toast';
-import { useDailyChallenge, getTierColor, getTierEmoji, getTierFromScore, Tier } from '@/hooks/useDailyChallenge';
+import { useDailyChallenge, getTierColor, getTierEmoji, getTierFromScore } from '@/hooks/useDailyChallenge';
+import { useDictionaryReady } from '@/hooks/useDictionaryReady';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ArrowLeft, Share2, Flame, Trophy, Target, Clock } from 'lucide-react';
+import { ArrowLeft, Share2, Flame, Target, Clock, Dices } from 'lucide-react';
 import WordsList from '@/components/WordsList';
 import TierBadge from '@/components/TierBadge';
-import lettusLogo from '@/assets/lettuslogo.png';
+import GameGrid from '@/components/game/GameGrid';
+import FloatingTiles from '@/components/home/FloatingTiles';
+import { GameHeader, TurnTimer, AnimatedNumber } from '@/components/game/GameChrome';
+import { MoveFeedbackLayer, useMoveFeedback } from '@/components/game/MoveFeedback';
+import { TURN_TIME_LIMIT, TIMEOUT_PENALTY, WARNING_THRESHOLD, cloneGrid, emptyGrid, isGridFull, wordPoints, type Grid } from '@/game/constants';
+import { analyzeMove, scoreGrid, scoredCells } from '@/game/moveAnalysis';
+import { recordGame, recordMove } from '@/lib/progress';
 
-type GridCell = { letter: string | null };
-type Grid = GridCell[][];
+const ALL_LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
+const VOWELS = ['A', 'E', 'I', 'O', 'U'];
 
-interface CooldownState {
-  [letter: string]: number;
+// Small seeded random generator so everyone gets the same letters on the same day
+function seededRandom(seed: string) {
+  let h = 1779033703 ^ seed.length;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
 }
 
-const TURN_TIME_LIMIT = 30;
+// 7 unique letters, at least one vowel, none from the previous set
+function generateLetterChoices(previous: string[], rand: () => number) {
+  const prev = new Set(previous);
+  const pool = ALL_LETTERS.filter(l => !prev.has(l));
+  const vowels = VOWELS.filter(v => !prev.has(v));
+  const source = pool.length >= 7 ? pool : ALL_LETTERS;
+  const vowelSource = vowels.length ? vowels : VOWELS;
 
-// Countdown to next daily challenge (midnight local time)
+  const shuffle = (arr: string[]) => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  const choices = [vowelSource[Math.floor(rand() * vowelSource.length)]];
+  for (const l of shuffle(source)) {
+    if (choices.length >= 7) break;
+    if (!choices.includes(l)) choices.push(l);
+  }
+  return shuffle(choices);
+}
+
 const NextChallengeCountdown = () => {
   const [timeLeft, setTimeLeft] = useState('');
-  
   useEffect(() => {
-    const updateCountdown = () => {
+    const update = () => {
       const now = new Date();
       const midnight = new Date(now);
       midnight.setHours(24, 0, 0, 0);
-      
       const diff = midnight.getTime() - now.getTime();
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      
-      setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      const h = Math.floor(diff / 3600000), m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
     };
-    
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 1000);
-    return () => clearInterval(timer);
+    update();
+    const t = setInterval(update, 1000);
+    return () => clearInterval(t);
   }, []);
-  
   return (
     <div className="flex items-center justify-center gap-2 text-muted-foreground">
       <Clock className="w-4 h-4" />
-      <span>Next challenge in {timeLeft}</span>
+      <span>Next challenge in <span className="tabular-nums text-foreground">{timeLeft}</span></span>
     </div>
   );
 };
 
 const DailyChallengePage = () => {
   const navigate = useNavigate();
-  const { playFeedback } = useSoundEffects(true, true);
+  const { playFeedback } = useSoundEffects();
   const { celebrate } = useVictoryCelebration();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  
-  const {
-    challenge,
-    attempt,
-    streak,
-    loading,
-    startAttempt,
-    updateAttempt,
-    completeAttempt,
-    generateShareText,
-    hasCompletedToday,
-  } = useDailyChallenge();
-  
-  const [grid, setGrid] = useState<Grid>([]);
-  const [score, setScore] = useState(0);
-  const [words, setWords] = useState<string[]>([]);
-  const [cooldowns, setCooldowns] = useState<CooldownState>({});
+  const dictReady = useDictionaryReady();
+  const feedback = useMoveFeedback();
+
+  const { challenge, attempt, streak, loading, startAttempt, updateAttempt, completeAttempt, generateShareText, hasCompletedToday } = useDailyChallenge();
+
+  const [grid, setGrid] = useState<Grid>(() => emptyGrid());
+  const [penalty, setPenalty] = useState(0);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [availableLetters, setAvailableLetters] = useState<string[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
@@ -87,716 +106,413 @@ const DailyChallengePage = () => {
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [turnTimeRemaining, setTurnTimeRemaining] = useState(TURN_TIME_LIMIT);
   const [isPracticeMode, setIsPracticeMode] = useState(false);
-  
-  const ALL_LETTERS = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
-  const VOWELS = ['A', 'E', 'I', 'O', 'U'];
-  
-  // Generate 7 unique random letters (at least 1 vowel, none from previous set) - no cooldowns in daily challenge
-  const generateLetterChoices = useCallback((previousLetters: string[] = []) => {
-    const previousSet = new Set(previousLetters);
-    const availablePool = ALL_LETTERS.filter(l => !previousSet.has(l));
-    const availableVowels = VOWELS.filter(v => !previousSet.has(v));
-    
-    // If not enough letters available (unlikely), use full alphabet
-    const pool = availablePool.length >= 7 ? availablePool : ALL_LETTERS;
-    const vowelPool = availableVowels.length > 0 ? availableVowels : VOWELS;
-    
-    const shuffled = [...pool].sort(() => Math.random() - 0.5);
-    const choices: string[] = [];
-    const used = new Set<string>();
-    
-    // Ensure at least 1 vowel from available vowels
-    const vowel = vowelPool[Math.floor(Math.random() * vowelPool.length)];
-    choices.push(vowel);
-    used.add(vowel);
-    
-    // Fill remaining 6 with unique random letters
-    for (const letter of shuffled) {
-      if (choices.length >= 7) break;
-      if (!used.has(letter)) {
-        choices.push(letter);
-        used.add(letter);
-      }
-    }
-    
-    return choices.sort(() => Math.random() - 0.5);
+  const [lastPlaced, setLastPlaced] = useState<{ row: number; col: number } | null>(null);
+  const [flash, setFlash] = useState<{ cells: Set<string>; key: number } | null>(null);
+  // Completed result loaded from the server (score/words aren't recomputed from a grid)
+  const [savedResult, setSavedResult] = useState<{ score: number; words: string[] } | null>(null);
+  const turnRef = useRef(0);
+  const randRef = useRef<() => number>(Math.random);
+
+  const result = useMemo(() => (dictReady ? scoreGrid(grid) : null), [grid, dictReady]);
+  const score = savedResult ? savedResult.score : Math.max(0, (result?.score || 0) - penalty);
+  const words = useMemo(() => savedResult ? savedResult.words : result?.words.map(w => w.text) || [], [savedResult, result]);
+  const scored = useMemo(() => (dictReady ? scoredCells(grid) : undefined), [grid, dictReady]);
+
+  const targets = challenge ? { bronze: challenge.bronze_target, silver: challenge.silver_target, gold: challenge.gold_target } : null;
+  const currentTier = targets ? getTierFromScore(score, targets) : 'none';
+
+  const nextLetters = useCallback((prev: string[]) => {
+    turnRef.current++;
+    return generateLetterChoices(prev, randRef.current);
   }, []);
-  
-  // Initialize grid from challenge
+
+  // Show the challenge's starting grid, or today's finished result
   useEffect(() => {
-    if (challenge && !gameStarted) {
-      const initialGrid: Grid = challenge.starting_grid.map(row => 
-        row.map(cell => ({ letter: cell }))
-      );
-      setGrid(initialGrid);
-      
-      // If already completed today, show results
-      if (hasCompletedToday && attempt) {
-        setScore(attempt.score);
-        setWords(attempt.words_found);
-        setGameEnded(true);
-        setShowResultDialog(true);
-      }
+    if (!challenge || gameStarted) return;
+    setGrid(challenge.starting_grid.map(row => row.map(cell => ({ letter: cell }))));
+    if (hasCompletedToday && attempt) {
+      setSavedResult({ score: attempt.score, words: attempt.words_found });
+      setGameEnded(true);
+      setShowResultDialog(true);
     }
   }, [challenge, gameStarted, hasCompletedToday, attempt]);
-  
-  // Turn timer
+
+  const playing = gameStarted && !gameEnded && dictReady;
+
+  const endGame = useCallback(async (finalGrid: Grid, finalPenalty: number) => {
+    const r = scoreGrid(finalGrid);
+    const finalScore = Math.max(0, r.score - finalPenalty);
+    const finalWords = r.words.map(w => w.text);
+
+    setGameEnded(true);
+    setGameStarted(false);
+    setSelectedLetter(null);
+    playFeedback('gameEnd');
+
+    if (!isPracticeMode) {
+      await completeAttempt(finalScore, finalWords);
+    }
+    const tier = targets ? getTierFromScore(finalScore, targets) : 'none';
+    recordGame({ mode: 'daily', won: !isPracticeMode && tier !== 'none', score: finalScore, words: finalWords });
+    if (tier === 'gold' || tier === 'diamond') celebrate();
+    setTimeout(() => setShowResultDialog(true), 700);
+  }, [celebrate, completeAttempt, isPracticeMode, playFeedback, targets]);
+
+  // Turn clock
   useEffect(() => {
-    if (!gameStarted || gameEnded) return;
-    
-    const timer = setInterval(() => {
-      setTurnTimeRemaining(prev => {
-        if (prev <= 1) {
-          handleTurnTimeout();
-          return TURN_TIME_LIMIT;
-        }
-        if (prev === 6) {
-          playFeedback('timerWarning');
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    
-    return () => clearInterval(timer);
-  }, [gameStarted, gameEnded]);
-  
-  // Keyboard support - no cooldowns in daily challenge
+    if (!playing) return;
+    const t = setInterval(() => setTurnTimeRemaining(v => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(t);
+  }, [playing]);
+
   useEffect(() => {
-    if (!gameStarted || gameEnded) return;
-    
-    const handleKeyPress = (e: KeyboardEvent) => {
+    if (!playing) return;
+    if (turnTimeRemaining === WARNING_THRESHOLD) playFeedback('timerWarning');
+    else if (turnTimeRemaining > 0 && turnTimeRemaining < WARNING_THRESHOLD) playFeedback('tick');
+    if (turnTimeRemaining === 0) {
+      const newPenalty = penalty + TIMEOUT_PENALTY;
+      setPenalty(newPenalty);
+      if (!isPracticeMode) updateAttempt(Math.max(0, (result?.score || 0) - newPenalty), words);
+      setSelectedLetter(null);
+      setAvailableLetters(prev => nextLetters(prev));
+      setTurnTimeRemaining(TURN_TIME_LIMIT);
+      playFeedback('invalid');
+      toast({ title: "Time's up!", description: `-${TIMEOUT_PENALTY} points`, variant: 'destructive' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnTimeRemaining]);
+
+  useEffect(() => {
+    if (!playing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Escape') { setSelectedLetter(null); return; }
       const key = e.key.toUpperCase();
-      
       if (availableLetters.includes(key)) {
         setSelectedLetter(key);
         playFeedback('select');
       }
     };
-    
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameStarted, gameEnded, availableLetters, playFeedback]);
-  
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [playing, availableLetters, playFeedback]);
+
+  const beginRound = (startGrid: Grid, practice: boolean) => {
+    randRef.current = practice || !challenge ? Math.random : seededRandom(`lettus-${challenge.challenge_date}`);
+    turnRef.current = 0;
+    setGrid(startGrid);
+    setPenalty(0);
+    setSavedResult(null);
+    setLastPlaced(null);
+    setFlash(null);
+    setSelectedLetter(null);
+    setGameStarted(true);
+    setGameEnded(false);
+    setShowResultDialog(false);
+    setIsPracticeMode(practice);
+    setTurnTimeRemaining(TURN_TIME_LIMIT);
+    setAvailableLetters(generateLetterChoices([], randRef.current));
+    playFeedback('click');
+  };
+
   const handleStartGame = async () => {
     if (hasCompletedToday) {
       setShowResultDialog(true);
       return;
     }
-    
-    const attemptResult = await startAttempt();
-    if (attemptResult) {
-      setGameStarted(true);
-      setIsPracticeMode(false);
-      setTurnTimeRemaining(TURN_TIME_LIMIT);
-      setAvailableLetters(generateLetterChoices([]));
-      playFeedback('click');
-    }
-  };
-  
-  const handleStartPractice = () => {
-    // Generate random starting grid for practice
-    const vowels = ['A', 'E', 'I', 'O', 'U'];
-    const consonants = ['B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S', 'T', 'V', 'W', 'Y'];
-    
-    const practiceGrid: Grid = Array(5).fill(null).map(() => 
-      Array(5).fill(null).map(() => ({ letter: null }))
-    );
-    
-    // Place 2 vowels and 3 consonants randomly
-    const positions: [number, number][] = [];
-    while (positions.length < 5) {
-      const row = Math.floor(Math.random() * 5);
-      const col = Math.floor(Math.random() * 5);
-      if (!positions.some(p => p[0] === row && p[1] === col)) {
-        positions.push([row, col]);
-      }
-    }
-    
-    positions.forEach((pos, i) => {
-      if (i < 2) {
-        practiceGrid[pos[0]][pos[1]] = { letter: vowels[Math.floor(Math.random() * vowels.length)] };
-      } else {
-        practiceGrid[pos[0]][pos[1]] = { letter: consonants[Math.floor(Math.random() * consonants.length)] };
-      }
-    });
-    
-    setGrid(practiceGrid);
-    setScore(0);
-    setWords([]);
-    setGameStarted(true);
-    setGameEnded(false);
-    setIsPracticeMode(true);
-    setTurnTimeRemaining(TURN_TIME_LIMIT);
-    setAvailableLetters(generateLetterChoices([]));
-    playFeedback('click');
-  };
-  
-  const handleTurnTimeout = () => {
-    const newScore = Math.max(0, score - 5);
-    setScore(newScore);
-    if (!isPracticeMode) {
-      updateAttempt(newScore, words);
-    }
-    
-    // Generate new letters on timeout (different from current set)
-    setSelectedLetter(null);
-    setAvailableLetters(prev => generateLetterChoices(prev));
-    setTurnTimeRemaining(TURN_TIME_LIMIT);
-    
-    toast({
-      title: "Time's up!",
-      description: "-5 points",
-      variant: "destructive",
-    });
-  };
-  
-  const advanceToNextTurn = () => {
-    // No turn limit - game continues until board is full
-    // Generate new letters different from current set
-    setSelectedLetter(null);
-    setAvailableLetters(prev => generateLetterChoices(prev));
-    setTurnTimeRemaining(TURN_TIME_LIMIT);
-  };
-  
-  const placeLetter = (row: number, col: number) => {
-    if (!selectedLetter || gameEnded || !gameStarted) return;
-    
-    if (grid[row][col].letter !== null) {
-      playFeedback('invalid');
-      return;
-    }
-    
-    playFeedback('place');
-    
-    const newGrid = grid.map(r => r.map(c => ({ ...c })));
-    newGrid[row][col] = { letter: selectedLetter };
-    
-    // Calculate score
-    const gridForScoring = newGrid.map(row => row.map(cell => cell.letter || ''));
-    const result = calculateScore(gridForScoring, SCORE_OPTS());
-    
-    // Find new words
-    const existingWords = new Set(words);
-    const newWordsFound = result.words.filter(w => !existingWords.has(w.text));
-    const newScore = result.score;
-    
-    setScore(newScore);
-    setWords(result.words.map(w => w.text));
-    setGrid(newGrid);
-    
-    // Words are now shown in the WordsList component instead of toast
-    if (newWordsFound.length > 0) {
-      playFeedback('score');
-    }
-    
-    // No cooldowns in daily challenge mode
-    
-    // Update attempt in database (only for real challenges, not practice)
-    if (!isPracticeMode) {
-      updateAttempt(newScore, result.words.map(w => w.text));
-    }
-    
-    // Check if grid is full or advance
-    const isFull = newGrid.every(row => row.every(cell => cell.letter !== null));
-    if (isFull) {
-      // Pass current values to endGame since state hasn't updated yet
-      endGame(newScore, result.words.map(w => w.text));
-    } else {
-      advanceToNextTurn();
-    }
-  };
-  
-  const endGame = async (finalScore?: number, finalWords?: string[]) => {
-    // Use passed values if available (from last letter placement), otherwise use state
-    const scoreToSave = finalScore ?? score;
-    const wordsToSave = finalWords ?? words;
-    
-    setGameEnded(true);
-    setGameStarted(false);
-    playFeedback('gameEnd');
-    
-    // Update state with final values
-    if (finalScore !== undefined) setScore(finalScore);
-    if (finalWords !== undefined) setWords(finalWords);
-    
-    if (!isPracticeMode) {
-      await completeAttempt(scoreToSave, wordsToSave);
-    }
-    
-    const tier = challenge ? getTierFromScore(scoreToSave, {
-      bronze: challenge.bronze_target,
-      silver: challenge.silver_target,
-      gold: challenge.gold_target,
-    }) : 'none';
-    
-    if (tier === 'gold' || tier === 'diamond') {
-      celebrate();
-    }
-    
-    setTimeout(() => setShowResultDialog(true), 500);
-  };
-  
-  const handleShare = async () => {
     if (!challenge) return;
-    
-    const tier = getTierFromScore(score, {
-      bronze: challenge.bronze_target,
-      silver: challenge.silver_target,
-      gold: challenge.gold_target,
+    const ok = await startAttempt();
+    if (ok) beginRound(challenge.starting_grid.map(row => row.map(cell => ({ letter: cell }))), false);
+  };
+
+  const handleStartPractice = () => {
+    const vowels = ['A', 'E', 'I', 'O', 'U'];
+    const consonants = 'BCDFGHJKLMNPRSTVWY'.split('');
+    const g = emptyGrid();
+    const spots = new Set<string>();
+    while (spots.size < 5) spots.add(`${Math.floor(Math.random() * 5)}-${Math.floor(Math.random() * 5)}`);
+    [...spots].forEach((key, i) => {
+      const [r, c] = key.split('-').map(Number);
+      const pool = i < 2 ? vowels : consonants;
+      g[r][c] = { letter: pool[Math.floor(Math.random() * pool.length)] };
     });
-    
-    const shareText = generateShareText(score, tier);
-    
-    try {
-      if (navigator.share) {
-        await navigator.share({ text: shareText });
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        toast({
-          title: "Copied to clipboard!",
-          description: "Share your results with friends",
-        });
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
+    beginRound(g, true);
+  };
+
+  const placeLetter = (row: number, col: number) => {
+    if (!selectedLetter || !playing || grid[row][col].letter !== null) return;
+    playFeedback('place');
+
+    const after = cloneGrid(grid);
+    after[row][col] = { letter: selectedLetter };
+    const move = analyzeMove(grid, after);
+    setGrid(after);
+    setLastPlaced({ row, col });
+    setSelectedLetter(null);
+
+    if (move.newWords.length > 0) {
+      setFlash({ cells: move.highlightCells, key: Date.now() });
+      feedback.push({ who: 'You', player: 1, words: move.newWords, gained: move.gained, mine: true });
+      recordMove(move.gained, move.newWords.map(w => w.text));
+      if (move.newWords.length >= 2) playFeedback('combo', move.newWords.length);
+      else playFeedback('score', move.gained);
+    }
+
+    const newScore = Math.max(0, move.score - penalty);
+    if (!isPracticeMode) updateAttempt(newScore, move.words);
+
+    if (isGridFull(after)) {
+      endGame(after, penalty);
+    } else {
+      setAvailableLetters(prev => nextLetters(prev));
+      setTurnTimeRemaining(TURN_TIME_LIMIT);
     }
   };
 
-  const getShareContent = () => {
-    if (!challenge) return { text: '', url: 'https://lettus.fun' };
-    
-    const tier = getTierFromScore(score, {
-      bronze: challenge.bronze_target,
-      silver: challenge.silver_target,
-      gold: challenge.gold_target,
-    });
-    
-    const emoji = getTierEmoji(tier);
-    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const text = `${emoji} Lettus Daily Challenge - ${date}\n\nScore: ${score} pts (${tier.toUpperCase()})\nStreak: ${streak} days 🔥\n\nPlay now at lettus.fun`;
-    
-    return { text, url: 'https://lettus.fun' };
+  const shareText = () => {
+    if (!challenge) return '';
+    return generateShareText(score, currentTier);
   };
 
-  const handleShareToMessenger = () => {
-    const { text, url } = getShareContent();
-    const messengerUrl = `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=0&redirect_uri=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`;
-    window.open(messengerUrl, '_blank', 'width=600,height=400');
-    toast({
-      title: "Opening Messenger",
-      description: "Share your victory with friends!",
-    });
+  const handleShare = async () => {
+    const text = shareText();
+    try {
+      if (navigator.share) await navigator.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        toast({ title: 'Copied to clipboard!', description: 'Share your result with friends' });
+      }
+    } catch { /* cancelled */ }
   };
 
   const handleShareToTwitter = () => {
-    const { text, url } = getShareContent();
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-    window.open(twitterUrl, '_blank', 'width=600,height=400');
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText())}`;
+    window.open(url, '_blank', 'noopener,width=600,height=400');
   };
 
-
-  const handleCopyToClipboard = async () => {
-    const { text } = getShareContent();
-    try {
-      await navigator.clipboard.writeText(text);
-      toast({
-        title: "Copied to clipboard!",
-        description: "Share your results anywhere",
-      });
-    } catch (error) {
-      console.error('Error copying:', error);
-    }
-  };
-  
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-xl">Loading Daily Challenge...</div>
+      <div className="min-h-[100dvh] flex items-center justify-center">
+        <motion.div animate={{ rotate: [0, -10, 10, 0] }} transition={{ repeat: Infinity, duration: 1.2 }} className="text-5xl">🥬</motion.div>
       </div>
     );
   }
-  
-  if (!challenge) {
+
+  if (!challenge || !targets) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="p-6 text-center space-y-4">
-          <h2 className="text-xl font-bold">Unable to load challenge</h2>
-          <Button onClick={() => navigate('/')}>Back to Menu</Button>
-        </Card>
+      <div className="min-h-[100dvh] flex items-center justify-center p-4">
+        <div className="glass rounded-2xl p-6 text-center space-y-4">
+          <h2 className="text-xl font-bold">Couldn't load today's challenge</h2>
+          <p className="text-sm text-muted-foreground">Check your connection, or practise in the meantime.</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => navigate('/')} variant="outline">Back to menu</Button>
+          </div>
+        </div>
       </div>
     );
   }
-  
-  const currentTier = getTierFromScore(score, {
-    bronze: challenge.bronze_target,
-    silver: challenge.silver_target,
-    gold: challenge.gold_target,
-  });
+
+  const tiers = [
+    { emoji: '🥉', name: 'Bronze', color: 'text-orange-500', value: targets.bronze },
+    { emoji: '🥈', name: 'Silver', color: 'text-gray-300', value: targets.silver },
+    { emoji: '🥇', name: 'Gold', color: 'text-yellow-400', value: targets.gold },
+    { emoji: '💎', name: 'Diamond', color: 'text-cyan-400', value: targets.gold + 20 },
+  ];
 
   // Pre-game screen
   if (!gameStarted && !gameEnded) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}>
-        <div className="text-center space-y-6 max-w-md w-full animate-fade-in">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Target className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Daily Challenge</h1>
+      <div className="min-h-[100dvh] flex items-center justify-center p-4 pt-safe">
+        <FloatingTiles count={8} />
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="relative text-center space-y-5 max-w-md w-full">
+          <div>
+            <div className="flex items-center justify-center gap-2">
+              <Target className="w-8 h-8 text-amber-400" />
+              <h1 className="text-3xl font-bold">Daily Challenge</h1>
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </div>
           </div>
-          
-          <div className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-          </div>
-          
+
           {streak > 0 && (
-            <div className="flex items-center justify-center gap-2 text-xl font-bold text-orange-500">
-              <Flame className="w-6 h-6" />
-              {streak} Day Streak
-            </div>
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex items-center gap-2 text-lg font-bold text-orange-400 glass rounded-full px-4 py-1.5">
+              <Flame className="w-5 h-5" /> {streak} day streak
+            </motion.div>
           )}
-          
-          <Card className="p-4 bg-card/50">
-            <h3 className="font-semibold mb-3">Target Scores</h3>
-            <div className="flex justify-around text-sm">
-              <div className="text-center">
-                <div className="text-2xl">🥉</div>
-                <div className="text-orange-600">Bronze</div>
-                <div className="font-bold">{challenge.bronze_target}+</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl">🥈</div>
-                <div className="text-gray-300">Silver</div>
-                <div className="font-bold">{challenge.silver_target}+</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl">🥇</div>
-                <div className="text-yellow-400">Gold</div>
-                <div className="font-bold">{challenge.gold_target}+</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl">💎</div>
-                <div className="text-cyan-400">Diamond</div>
-                <div className="font-bold">{challenge.gold_target + 20}+</div>
-              </div>
-            </div>
-          </Card>
-          
-          {hasCompletedToday && attempt ? (
-            <div className="space-y-4">
-              <Card className="p-4 bg-primary/10 border-primary/30">
-                <div className="text-lg font-bold mb-2">Today's Result</div>
-                <div className="text-3xl font-bold">{attempt.score} pts</div>
-                <div className={`text-xl ${getTierColor(attempt.tier_achieved || 'none')}`}>
-                  {getTierEmoji(attempt.tier_achieved || 'none')} {(attempt.tier_achieved || 'none').toUpperCase()}
+
+          <div className="glass rounded-2xl p-4">
+            <div className="text-sm text-muted-foreground mb-3">Everyone gets the same board and the same letters today. Fill the grid and hit the targets:</div>
+            <div className="grid grid-cols-4 gap-2 text-sm">
+              {tiers.map(t => (
+                <div key={t.name} className="rounded-xl bg-white/5 py-2">
+                  <div className="text-2xl">{t.emoji}</div>
+                  <div className={t.color}>{t.name}</div>
+                  <div className="font-display font-bold">{t.value}+</div>
                 </div>
-              </Card>
-              <NextChallengeCountdown />
-              <Button onClick={handleShare} size="lg" className="w-full">
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Results
-              </Button>
-              <Button onClick={handleStartPractice} variant="secondary" className="w-full">
-                🎲 Practice Mode (doesn't count)
-              </Button>
+              ))}
             </div>
-          ) : (
-            <Button onClick={handleStartGame} size="lg" className="w-full h-14 text-lg">
-              Start Challenge
+          </div>
+
+          <div className="space-y-2">
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleStartGame}
+              className="btn-game w-full h-14 text-lg text-white bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 overflow-hidden shimmer"
+            >
+              Start today's challenge
+            </motion.button>
+            <Button onClick={handleStartPractice} variant="secondary" className="w-full">
+              <Dices className="w-4 h-4 mr-2" /> Practice (doesn't count)
             </Button>
-          )}
-          
-          <Button onClick={() => navigate('/')} variant="outline" className="w-full">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Menu
-          </Button>
-        </div>
+            <Button onClick={() => navigate('/')} variant="ghost" className="w-full">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to menu
+            </Button>
+          </div>
+        </motion.div>
       </div>
     );
   }
-  
+
+  const cell = isMobile ? 'min(15vw, 8dvh, 64px)' : 'min(7vw, 10dvh, 100px)';
+  const keySize = isMobile ? 'min(11.5vw, 50px)' : '52px';
+
   return (
-    <div className="h-[100dvh] p-1 sm:p-2 md:p-3 flex flex-col overflow-hidden" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
-      {/* Minimal Header - matches GameBoard */}
-      <div className="flex items-center justify-between mb-2 px-2">
-        {/* Home Button - Cabbage Logo */}
-        <button
-          onClick={() => navigate('/')}
-          className="w-10 h-10 md:w-12 md:h-12 rounded-full hover:scale-110 transition-transform"
-        >
-          <img src={lettusLogo} alt="Home" className="w-full h-full object-contain" />
-        </button>
+    <div className="h-[100dvh] p-1.5 sm:p-3 pt-safe flex flex-col overflow-hidden">
+      <MoveFeedbackLayer events={feedback.events} />
+      <GameHeader
+        title={isPracticeMode ? 'Practice' : 'Daily Challenge'}
+        onHome={() => navigate('/')}
+        center={
+          gameEnded
+            ? <div className="font-display font-bold text-lg text-gold">Complete!</div>
+            : <TurnTimer remaining={turnTimeRemaining} label={selectedLetter ? `Place ${selectedLetter}` : 'Pick a letter'} />
+        }
+      />
 
-        {/* Center: Timer and Progress Bar */}
-        <div className="flex flex-col items-center flex-1 mx-4">
-          <h1 className="text-sm md:text-base font-bold text-foreground mb-1">
-            {isPracticeMode ? 'Practice Mode' : 'Daily Challenge'}
-            {!isPracticeMode && streak > 0 && (
-              <span className="ml-2 text-orange-500">
-                <Flame className="w-4 h-4 inline" /> {streak}
-              </span>
-            )}
-          </h1>
-          {gameEnded ? (
-            <div className="text-lg md:text-xl font-bold text-primary">
-              Challenge Complete!
-            </div>
-          ) : (
-            <>
-              <div className={`text-3xl md:text-4xl font-bold tabular-nums transition-colors ${
-                turnTimeRemaining <= 5 ? 'text-red-500' : 
-                turnTimeRemaining <= 10 ? 'text-yellow-500' : 
-                'text-primary'
-              } ${turnTimeRemaining <= 5 ? 'animate-pulse' : ''}`}>
-                {turnTimeRemaining}
-              </div>
-              <Progress 
-                value={(turnTimeRemaining / TURN_TIME_LIMIT) * 100} 
-                className="w-48 md:w-64 h-3 mt-1"
-                indicatorClassName={
-                  turnTimeRemaining <= 5 ? 'bg-red-500' : 
-                  turnTimeRemaining <= 10 ? 'bg-yellow-500' : 
-                  'bg-primary'
-                }
-              />
-            </>
-          )}
-        </div>
-
-        {/* Score Display */}
-        <div className={`text-lg md:text-xl font-bold ${getTierColor(currentTier)}`}>
-          {score} pts
-        </div>
-      </div>
-      
-      {/* Tier Badge - positioned above board */}
-      <div className="flex justify-center mb-2">
-        <TierBadge 
-          currentTier={currentTier} 
-          score={score} 
-          targets={{
-            bronze: challenge.bronze_target,
-            silver: challenge.silver_target,
-            gold: challenge.gold_target,
-          }}
-        />
-      </div>
-      
-      {/* Grid with Word List side by side on desktop */}
-      <div className="flex-1 flex items-center justify-center gap-2 lg:gap-4 min-h-0">
-        <div 
-          className="inline-grid gap-0.5 sm:gap-1 p-1 sm:p-2 md:p-3 rounded-xl shadow-lg ring-4 ring-primary border-2 border-primary bg-card/80"
-          style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
-        >
-          {grid.map((row, rowIndex) =>
-            row.map((cell, colIndex) => {
-              const isLightSquare = (rowIndex + colIndex) % 2 === 0;
-              const canPlace = selectedLetter && !cell.letter && !gameEnded;
-              
-              return (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  onClick={() => canPlace && placeLetter(rowIndex, colIndex)}
-                  className={`
-                    w-[10vw] h-[10vw] max-w-12 max-h-12 md:w-[min(6vw,100px)] md:h-[min(6vw,100px)]
-                    cursor-pointer flex items-center justify-center transition-all duration-200 border border-border/40 rounded-lg
-                    ${isLightSquare ? 'bg-muted/60' : 'bg-muted-foreground/10'}
-                    ${cell.letter ? 'bg-gradient-player-1' : ''}
-                    ${canPlace ? 'hover:scale-110 hover:shadow-lg hover:bg-accent/20' : ''}
-                  `}
-                >
-                  {cell.letter && (
-                    <span className="font-bold text-sm sm:text-base md:text-lg lg:text-xl drop-shadow-lg text-white">
-                      {cell.letter}
-                    </span>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-        {/* Words list only visible on larger screens */}
-        <div className="hidden lg:block">
-          <WordsList words={words} playerName="You" colorClass="text-primary" />
-        </div>
-      </div>
-      
-      {/* Letter Choices - No cooldowns in daily challenge */}
-      <div className="flex flex-col items-center gap-1 py-1 pb-3 shrink-0">
-        <div className="text-[10px] text-muted-foreground">
-          Choose a letter
-        </div>
-        {isMobile ? (
-          // Mobile: Bigger buttons in 2 rows (4 + 3)
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2 justify-center">
-              {availableLetters.slice(0, 4).map((letter, index) => {
-                const isSelected = selectedLetter === letter;
-                return (
-                  <Button
-                    key={`${letter}-${index}`}
-                    onClick={() => {
-                      setSelectedLetter(letter);
-                      playFeedback('select');
-                    }}
-                    variant={isSelected ? 'default' : 'secondary'}
-                    className={`w-14 h-14 text-xl font-bold p-0 ${
-                      isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : ''
-                    }`}
-                  >
-                    {letter}
-                  </Button>
-                );
-              })}
-            </div>
-            <div className="flex gap-2 justify-center">
-              {availableLetters.slice(4).map((letter, index) => {
-                const isSelected = selectedLetter === letter;
-                return (
-                  <Button
-                    key={`${letter}-${index + 4}`}
-                    onClick={() => {
-                      setSelectedLetter(letter);
-                      playFeedback('select');
-                    }}
-                    variant={isSelected ? 'default' : 'secondary'}
-                    className={`w-14 h-14 text-xl font-bold p-0 ${
-                      isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105' : ''
-                    }`}
-                  >
-                    {letter}
-                  </Button>
-                );
-              })}
-            </div>
+      <div className="flex flex-col items-center gap-1.5 mb-2 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className={`font-display font-bold text-3xl tabular-nums ${getTierColor(currentTier)}`}>
+            <AnimatedNumber value={score} /> <span className="text-base text-muted-foreground font-sans">pts</span>
           </div>
-        ) : (
-          // Desktop: Single row
-          <div className="flex gap-1">
-            {availableLetters.map((letter, index) => {
+          {!isPracticeMode && streak > 0 && (
+            <span className="text-orange-400 text-sm font-bold flex items-center gap-1"><Flame className="w-4 h-4" />{streak}</span>
+          )}
+        </div>
+        <TierBadge currentTier={currentTier} score={score} targets={targets} />
+      </div>
+
+      <div className="flex-1 flex items-center justify-center gap-3 lg:gap-6 min-h-0">
+        <GameGrid
+          grid={grid}
+          player={1}
+          interactive={playing}
+          active={playing}
+          selectedLetter={selectedLetter}
+          onCellClick={placeLetter}
+          flashCells={flash?.cells}
+          flashKey={flash?.key}
+          scoredCells={scored}
+          lastPlaced={lastPlaced}
+          cellSize={cell}
+        />
+        <WordsList words={words} playerName="You" colorClass="text-primary" />
+      </div>
+
+      {playing && (
+        <div className="flex flex-col items-center gap-1.5 py-2 pb-safe shrink-0">
+          <div className="text-[11px] text-muted-foreground uppercase tracking-wider">Choose a letter</div>
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-center max-w-[22rem] sm:max-w-none">
+            {availableLetters.map((letter, i) => {
               const isSelected = selectedLetter === letter;
               return (
-                <Button
-                  key={`${letter}-${index}`}
-                  onClick={() => {
-                    setSelectedLetter(letter);
-                    playFeedback('select');
-                  }}
-                  variant={isSelected ? 'default' : 'secondary'}
-                  className={`w-11 h-11 text-lg font-bold p-0 ${
-                    isSelected ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''
-                  }`}
+                <motion.button
+                  key={`${turnRef.current}-${letter}`}
+                  initial={{ y: 30, opacity: 0, rotate: -10 }}
+                  animate={{ y: isSelected ? -6 : 0, opacity: 1, rotate: 0, scale: isSelected ? 1.12 : 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 22, delay: isSelected ? 0 : i * 0.03 }}
+                  whileTap={{ scale: 0.88 }}
+                  onClick={() => { setSelectedLetter(isSelected ? null : letter); playFeedback('select'); }}
+                  aria-pressed={isSelected}
+                  className={`tile ${isSelected ? 'tile-gold text-amber-950 [text-shadow:none]' : 'tile-p1'} flex items-center justify-center`}
+                  style={{ width: keySize, height: keySize, fontSize: `calc(${keySize} * 0.52)` }}
                 >
                   {letter}
-                </Button>
+                </motion.button>
               );
             })}
           </div>
-        )}
-      </div>
-      
-      {/* Result Dialog */}
+        </div>
+      )}
+      {gameEnded && !showResultDialog && (
+        <div className="flex justify-center gap-2 pb-safe mt-2">
+          <Button onClick={() => setShowResultDialog(true)} size="lg">See result</Button>
+          <Button onClick={handleStartPractice} variant="secondary" size="lg"><Dices className="w-4 h-4 mr-2" />Practice</Button>
+        </div>
+      )}
+
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[92dvh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-center text-2xl">
-              {isPracticeMode ? 'Practice Complete!' : 'Daily Challenge Complete!'}
+            <DialogTitle className="text-center text-2xl font-display">
+              {isPracticeMode ? 'Practice complete!' : 'Daily Challenge complete!'}
             </DialogTitle>
             <DialogDescription className="text-center">
-              {isPracticeMode ? 'This was just for fun - no stats recorded' : new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {isPracticeMode ? 'Just for fun. Nothing recorded.' : new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 py-4">
+
+          <div className="space-y-4">
             <div className="text-center">
-              <div className="text-5xl mb-2">{getTierEmoji(currentTier)}</div>
-              <div className={`text-3xl font-bold ${getTierColor(currentTier)}`}>
-                {currentTier.toUpperCase()}
-              </div>
-              <div className="text-4xl font-bold mt-2">{score} pts</div>
+              <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 12 }} className="text-6xl mb-1">
+                {getTierEmoji(currentTier)}
+              </motion.div>
+              <div className={`text-2xl font-display font-bold ${getTierColor(currentTier)}`}>{currentTier.toUpperCase()}</div>
+              <div className="text-4xl font-display font-bold mt-1"><AnimatedNumber value={showResultDialog ? score : 0} /> pts</div>
+              {currentTier !== 'diamond' && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  {(() => {
+                    const next = tiers.find(t => score < t.value);
+                    return next ? `${next.value - score} more for ${next.emoji} ${next.name}` : null;
+                  })()}
+                </div>
+              )}
             </div>
-            
+
             {!isPracticeMode && streak > 0 && (
-              <div className="flex items-center justify-center gap-2 text-xl font-bold text-orange-500">
-                <Flame className="w-6 h-6" />
-                {streak} Day Streak!
+              <div className="flex items-center justify-center gap-2 text-lg font-bold text-orange-400">
+                <Flame className="w-5 h-5" /> {streak} day streak!
               </div>
             )}
-            
+
+            {!isPracticeMode && <NextChallengeCountdown />}
+
             {words.length > 0 && (
-              <div className="bg-secondary/30 rounded-lg p-3">
-                <h4 className="font-semibold mb-2">Words Found ({words.length})</h4>
-                <div className="text-sm text-muted-foreground flex flex-wrap gap-1">
-                  {words.map((word, i) => (
-                    <span key={i} className="bg-primary/20 px-2 py-0.5 rounded">
-                      {word}
-                    </span>
+              <div className="rounded-xl bg-black/20 p-3">
+                <h4 className="font-semibold mb-2 text-sm">Words found ({words.length})</h4>
+                <div className="flex flex-wrap gap-1">
+                  {words.map((w, i) => (
+                    <span key={i} className="text-xs bg-primary/15 px-2 py-0.5 rounded">{w} <span className="text-muted-foreground">+{wordPoints(w)}</span></span>
                   ))}
                 </div>
               </div>
             )}
-            
+
             <div className="flex flex-col gap-2">
-              {isPracticeMode ? (
-                <>
-                  <Button onClick={handleStartPractice} size="lg" className="w-full">
-                    🎲 Try Another Practice
+              {!isPracticeMode && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button onClick={handleShare} className="w-full"><Share2 className="w-4 h-4 mr-2" />Share</Button>
+                  <Button onClick={handleShareToTwitter} variant="outline" className="w-full">
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                    Post on X
                   </Button>
-                  <Button onClick={() => navigate('/')} variant="outline" className="w-full">
-                    Back to Home
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {/* Share Options */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button
-                      onClick={() => handleShareToMessenger()}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.19 5.44 3.14 7.17.16.13.26.35.27.57l.05 1.78c.04.57.61.94 1.13.71l1.98-.87c.17-.08.36-.1.53-.06.91.25 1.88.38 2.9.38 5.64 0 10-4.13 10-9.7C22 6.13 17.64 2 12 2zm5.89 7.58l-2.91 4.65c-.47.75-1.49.94-2.19.42l-2.31-1.74c-.18-.13-.42-.13-.6 0l-3.12 2.38c-.42.32-.96-.17-.68-.61l2.91-4.65c.47-.75 1.49-.94 2.19-.42l2.31 1.74c.18.13.42.13.6 0l3.12-2.38c.42-.32.96.17.68.61z"/>
-                      </svg>
-                      Messenger
-                    </Button>
-                    <Button
-                      onClick={() => handleShareToTwitter()}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                      </svg>
-                      X / Twitter
-                    </Button>
-                    <Button
-                      onClick={() => handleCopyToClipboard()}
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
-                      Copy
-                    </Button>
-                  </div>
-                  
-                  <Button 
-                    onClick={() => {
-                      setShowResultDialog(false);
-                      handleStartPractice();
-                    }} 
-                    variant="secondary" 
-                    className="w-full mt-2"
-                  >
-                    🎲 Practice Mode (doesn't count)
-                  </Button>
-                  
-                  <Button onClick={() => navigate('/')} size="lg" className="w-full">
-                    Back to Home
-                  </Button>
-                </>
+                </div>
               )}
+              <Button onClick={handleStartPractice} variant="secondary" className="w-full">
+                <Dices className="w-4 h-4 mr-2" /> {isPracticeMode ? 'Another practice round' : 'Practice (doesn\'t count)'}
+              </Button>
+              <Button onClick={() => navigate('/')} variant="outline" className="w-full">Back to home</Button>
             </div>
           </div>
         </DialogContent>

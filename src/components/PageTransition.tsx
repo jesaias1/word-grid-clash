@@ -1,38 +1,17 @@
-import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 interface PageTransitionProps {
   children: React.ReactNode;
 }
 
-const PageTransition = ({ children }: PageTransitionProps) => {
-  const location = useLocation();
-  const [displayLocation, setDisplayLocation] = useState(location);
-  const [transitionStage, setTransitionStage] = useState<'fade-in' | 'fade-out'>('fade-in');
-
-  useEffect(() => {
-    if (location !== displayLocation) {
-      setTransitionStage('fade-out');
-    }
-  }, [location, displayLocation]);
-
-  const onAnimationEnd = () => {
-    if (transitionStage === 'fade-out') {
-      setTransitionStage('fade-in');
-      setDisplayLocation(location);
-    }
-  };
-
-  return (
-    <div
-      className={`${
-        transitionStage === 'fade-in' ? 'animate-fade-in' : 'animate-fade-out'
-      }`}
-      onAnimationEnd={onAnimationEnd}
-    >
-      {children}
-    </div>
-  );
-};
+const PageTransition = ({ children }: PageTransitionProps) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.3, ease: 'easeOut' }}
+  >
+    {children}
+  </motion.div>
+);
 
 export default PageTransition;

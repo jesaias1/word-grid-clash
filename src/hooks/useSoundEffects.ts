@@ -1,174 +1,153 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
-type SoundType = 'select' | 'place' | 'score' | 'turnChange' | 'timerWarning' | 'gameEnd' | 'click' | 'invalid';
+export type SoundType =
+  | 'select' | 'place' | 'score' | 'turnChange' | 'timerWarning' | 'gameEnd' | 'click' | 'invalid'
+  | 'combo' | 'bigScore' | 'achievement' | 'levelUp' | 'tick' | 'defeat';
+
+// --- Global sound settings (shared by every component, saved in this browser)
+const SOUND_KEY = 'lettus_sound_on';
+const HAPTIC_KEY = 'lettus_haptics_on';
+
+const readFlag = (key: string) => {
+  try { return localStorage.getItem(key) !== 'false'; } catch { return true; }
+};
+
+let settings = { sound: readFlag(SOUND_KEY), haptics: readFlag(HAPTIC_KEY) };
+const listeners = new Set<() => void>();
+
+export const setSoundEnabled = (on: boolean) => {
+  settings = { ...settings, sound: on };
+  try { localStorage.setItem(SOUND_KEY, String(on)); } catch { /* ignore */ }
+  listeners.forEach(l => l());
+};
+
+export const setHapticsEnabled = (on: boolean) => {
+  settings = { ...settings, haptics: on };
+  try { localStorage.setItem(HAPTIC_KEY, String(on)); } catch { /* ignore */ }
+  listeners.forEach(l => l());
+};
+
+export const useSoundSettings = () =>
+  useSyncExternalStore(fn => { listeners.add(fn); return () => { listeners.delete(fn); }; }, () => settings);
+
+// --- One audio context for the whole app
+let ctx: AudioContext | null = null;
+const audio = () => {
+  if (!ctx) {
+    const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    ctx = new Ctor();
+  }
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  return ctx;
+};
+
+type ToneOpts = { type?: OscillatorType; volume?: number; slideTo?: number; attack?: number };
+
+// A single soft tone with a quick attack and a smooth decay
+function tone(freq: number, start: number, duration: number, opts: ToneOpts = {}) {
+  const ac = audio();
+  const { type = 'sine', volume = 0.05, slideTo, attack = 0.008 } = opts;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, start + duration);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
+// Notes of a C major pentatonic scale, so any run of them sounds pleasant
+const SCALE = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760];
+
+function play(type: SoundType, intensity: number) {
+  const now = audio().currentTime;
+  switch (type) {
+    case 'select':
+      tone(660, now, 0.07, { type: 'triangle', volume: 0.035 });
+      break;
+    case 'place':
+      tone(300, now, 0.09, { type: 'triangle', volume: 0.07, slideTo: 180 });
+      tone(1200, now, 0.03, { volume: 0.015 });
+      break;
+    case 'score': {
+      // Rising notes, one per point band
+      const steps = Math.min(5, Math.max(2, intensity));
+      for (let i = 0; i < steps; i++) tone(SCALE[i], now + i * 0.06, 0.18, { type: 'triangle', volume: 0.045 });
+      break;
+    }
+    case 'combo': {
+      const steps = Math.min(SCALE.length, 3 + intensity * 2);
+      for (let i = 0; i < steps; i++) tone(SCALE[i], now + i * 0.045, 0.22, { type: 'triangle', volume: 0.05 });
+      tone(SCALE[Math.min(SCALE.length - 1, steps)], now + steps * 0.045, 0.45, { volume: 0.05 });
+      break;
+    }
+    case 'bigScore':
+      [0, 2, 4, 7].forEach((n, i) => tone(SCALE[n % SCALE.length] / 2, now + i * 0.08, 0.5, { type: 'sawtooth', volume: 0.018 }));
+      [0, 2, 4, 5].forEach((n, i) => tone(SCALE[n + 3], now + i * 0.08, 0.4, { type: 'triangle', volume: 0.045 }));
+      break;
+    case 'turnChange':
+      tone(392, now, 0.09, { volume: 0.03 });
+      tone(523, now + 0.07, 0.12, { volume: 0.03 });
+      break;
+    case 'tick':
+      tone(1000, now, 0.04, { type: 'square', volume: 0.012 });
+      break;
+    case 'timerWarning':
+      tone(880, now, 0.1, { type: 'square', volume: 0.025 });
+      tone(880, now + 0.15, 0.1, { type: 'square', volume: 0.025 });
+      break;
+    case 'gameEnd':
+      [0, 2, 4, 5, 7].forEach((n, i) => tone(SCALE[n], now + i * 0.11, 0.5, { type: 'triangle', volume: 0.05 }));
+      tone(SCALE[5] / 2, now + 0.55, 0.9, { volume: 0.04 });
+      break;
+    case 'defeat':
+      [392, 349.23, 311.13, 261.63].forEach((f, i) => tone(f, now + i * 0.16, 0.4, { type: 'triangle', volume: 0.04 }));
+      break;
+    case 'achievement':
+      [4, 7, 9].forEach((n, i) => tone(SCALE[n], now + i * 0.09, 0.35, { volume: 0.045 }));
+      tone(SCALE[9] * 1.5, now + 0.3, 0.6, { volume: 0.02 });
+      break;
+    case 'levelUp':
+      [0, 2, 4, 5, 7, 9].forEach((n, i) => tone(SCALE[n], now + i * 0.07, 0.3, { type: 'triangle', volume: 0.05 }));
+      [5, 7, 9].forEach(n => tone(SCALE[n], now + 0.5, 0.8, { volume: 0.03 }));
+      break;
+    case 'click':
+      tone(520, now, 0.04, { type: 'triangle', volume: 0.025 });
+      break;
+    case 'invalid':
+      tone(200, now, 0.12, { type: 'square', volume: 0.025, slideTo: 150 });
+      break;
+  }
+}
+
+const HAPTICS: Partial<Record<SoundType, number | number[]>> = {
+  select: 8, place: 15, score: [20, 40, 20], combo: [25, 40, 25, 40, 40], bigScore: [40, 40, 60],
+  turnChange: [20, 40, 20], timerWarning: 40, gameEnd: [50, 100, 50, 100, 100], defeat: 80,
+  click: 6, invalid: [30, 30, 30], achievement: [30, 50, 30], levelUp: [40, 60, 40, 60, 80],
+};
 
 export const useSoundEffects = (enabled: boolean = true, hapticsEnabled: boolean = true) => {
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const { sound, haptics } = useSoundSettings();
 
-  const getAudioContext = useCallback(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    return audioContextRef.current;
-  }, []);
-
-  const playSound = useCallback((type: SoundType) => {
-    if (!enabled) return;
-
-    try {
-      const ctx = getAudioContext();
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      const now = ctx.currentTime;
-
-      switch (type) {
-        case 'select':
-          // Subtle beep for letter selection
-          oscillator.frequency.setValueAtTime(500, now);
-          gainNode.gain.setValueAtTime(0.03, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-          oscillator.start(now);
-          oscillator.stop(now + 0.06);
-          break;
-
-        case 'place':
-          // Soft click for placing letter
-          oscillator.frequency.setValueAtTime(380, now);
-          oscillator.frequency.exponentialRampToValueAtTime(220, now + 0.04);
-          gainNode.gain.setValueAtTime(0.05, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-          oscillator.start(now);
-          oscillator.stop(now + 0.05);
-          break;
-
-        case 'score':
-          // Gentle success chime
-          oscillator.frequency.setValueAtTime(523, now); // C5
-          oscillator.frequency.setValueAtTime(659, now + 0.08); // E5
-          gainNode.gain.setValueAtTime(0.04, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-          oscillator.start(now);
-          oscillator.stop(now + 0.2);
-          break;
-
-        case 'turnChange':
-          // Subtle transition
-          oscillator.frequency.setValueAtTime(320, now);
-          oscillator.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-          gainNode.gain.setValueAtTime(0.035, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-          oscillator.start(now);
-          oscillator.stop(now + 0.1);
-          break;
-
-        case 'timerWarning':
-          // Gentle alert
-          oscillator.frequency.setValueAtTime(650, now);
-          gainNode.gain.setValueAtTime(0.05, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-          oscillator.start(now);
-          oscillator.stop(now + 0.08);
-          break;
-
-        case 'gameEnd':
-          // Soft victory sound
-          const osc2 = ctx.createOscillator();
-          const gain2 = ctx.createGain();
-          osc2.connect(gain2);
-          gain2.connect(ctx.destination);
-
-          oscillator.frequency.setValueAtTime(523, now); // C5
-          osc2.frequency.setValueAtTime(659, now); // E5
-          gainNode.gain.setValueAtTime(0.04, now);
-          gain2.gain.setValueAtTime(0.04, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-          gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-          
-          oscillator.start(now);
-          osc2.start(now);
-          oscillator.stop(now + 0.35);
-          osc2.stop(now + 0.35);
-          break;
-
-        case 'click':
-          // Very soft click for buttons
-          oscillator.frequency.setValueAtTime(340, now);
-          gainNode.gain.setValueAtTime(0.025, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-          oscillator.start(now);
-          oscillator.stop(now + 0.04);
-          break;
-
-        case 'invalid':
-          // Gentle error sound
-          oscillator.frequency.setValueAtTime(220, now);
-          gainNode.gain.setValueAtTime(0.04, now);
-          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-          oscillator.start(now);
-          oscillator.stop(now + 0.1);
-          break;
-      }
-    } catch (error) {
-      console.warn('Sound effect failed:', error);
-    }
-  }, [enabled, getAudioContext]);
+  const playSound = useCallback((type: SoundType, intensity: number = 1) => {
+    if (!enabled || !sound) return;
+    try { play(type, intensity); } catch (error) { console.warn('Sound effect failed:', error); }
+  }, [enabled, sound]);
 
   const playHaptic = useCallback((type: SoundType) => {
-    if (!hapticsEnabled || !navigator.vibrate) return;
+    if (!hapticsEnabled || !haptics || !navigator.vibrate) return;
+    const pattern = HAPTICS[type];
+    if (pattern === undefined) return;
+    try { navigator.vibrate(pattern); } catch { /* not supported */ }
+  }, [hapticsEnabled, haptics]);
 
-    try {
-      switch (type) {
-        case 'select':
-          // Light tap for selection
-          navigator.vibrate(10);
-          break;
-
-        case 'place':
-          // Slightly stronger tap for placement
-          navigator.vibrate(15);
-          break;
-
-        case 'score':
-          // Triple pulse for scoring
-          navigator.vibrate([20, 50, 20, 50, 20]);
-          break;
-
-        case 'turnChange':
-          // Double pulse for turn change
-          navigator.vibrate([30, 50, 30]);
-          break;
-
-        case 'timerWarning':
-          // Quick alert pulse
-          navigator.vibrate(40);
-          break;
-
-        case 'gameEnd':
-          // Victory pattern
-          navigator.vibrate([50, 100, 50, 100, 100]);
-          break;
-
-        case 'click':
-          // Subtle tap for UI interactions
-          navigator.vibrate(8);
-          break;
-
-        case 'invalid':
-          // Short buzz for error
-          navigator.vibrate([30, 30, 30]);
-          break;
-      }
-    } catch (error) {
-      console.warn('Haptic feedback failed:', error);
-    }
-  }, [hapticsEnabled]);
-
-  const playFeedback = useCallback((type: SoundType) => {
-    playSound(type);
+  const playFeedback = useCallback((type: SoundType, intensity: number = 1) => {
+    playSound(type, intensity);
     playHaptic(type);
   }, [playSound, playHaptic]);
 

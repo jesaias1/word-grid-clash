@@ -26,11 +26,17 @@ Lettus is a strategic word-building game. You and your opponent each build on a 
 
 ## Modes
 
-- **Daily Challenge.**
-- **Solo Game:** play against an AI opponent.
+- **Daily Challenge:** everyone gets the same board and the same letters each day; chase Bronze, Silver, Gold and Diamond.
+- **Solo Game:** play an AI on Easy, Medium or Hard.
 - **Online 1v1:** play another person online.
 - **Local Multiplayer:** 2 to 4 players on one screen.
 - **Game History** and a seven-step **Tutorial**.
+
+## Progression
+
+- XP and levels for every game, with bonuses for wins, streaks and your first game of the day.
+- 21 achievements, from your first word to beating the Hard AI.
+- Combo popups when one letter makes several words, with sound and haptics (mute from any screen).
 
 ## Built with
 

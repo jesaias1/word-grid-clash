@@ -15,26 +15,26 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['lettuce-favicon.png', 'robots.txt'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'robots.txt'],
       manifest: {
         name: 'Lettus - Strategic Word Game',
         short_name: 'Lettus',
         description: 'Challenge friends in this strategic word-building game!',
-        theme_color: '#1f1f1f',
-        background_color: '#1f1f1f',
+        theme_color: '#121410',
+        background_color: '#121410',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
         icons: [
           {
-            src: '/lettuce-favicon.png',
+            src: '/icon-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/lettuce-favicon.png',
+            src: '/icon-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -44,6 +44,12 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
+          {
+            // Word lists, so the installed app can score words offline
+            urlPattern: ({ url }) => /^\/words[\w-]*\.txt$/.test(url.pathname),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'lettus-words', expiration: { maxEntries: 10 } }
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',

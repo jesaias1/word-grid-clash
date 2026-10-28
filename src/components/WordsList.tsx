@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { wordPoints } from '@/game/constants';
 
 interface WordsListProps {
   words: string[];
@@ -43,11 +44,11 @@ const WordsList = ({ words, playerName, colorClass = 'text-primary' }: WordsList
   return (
     <div className="hidden lg:flex flex-col w-[100px] xl:w-[120px] shrink-0">
       <div className={`text-xs font-semibold mb-1 text-center ${colorClass}`}>
-        {playerName}'s Words
+        {playerName === 'You' ? 'Your' : `${playerName}'s`} words
       </div>
       <div 
         ref={listRef}
-        className="flex-1 bg-card/50 border border-border/50 rounded-lg p-1.5 overflow-y-auto max-h-[30vh]"
+        className="flex-1 glass rounded-xl p-1.5 overflow-y-auto max-h-[40vh]"
       >
         {words.length === 0 ? (
           <div className="text-[10px] text-muted-foreground/50 text-center italic">
@@ -62,11 +63,11 @@ const WordsList = ({ words, playerName, colorClass = 'text-primary' }: WordsList
                   key={`${word}-${index}`}
                   className={`text-[10px] md:text-xs px-1.5 py-0.5 rounded font-medium transition-all ${
                     isRecent 
-                      ? 'bg-primary/30 text-primary animate-pulse ring-1 ring-primary/50' 
-                      : `${colorClass} bg-current/10`
+                      ? 'bg-gold/20 text-gold ring-1 ring-gold/50 animate-fade-in' 
+                      : `${colorClass} bg-white/5`
                   }`}
                 >
-                  {word} <span className="opacity-60">+{word.length}</span>
+                  {word} <span className="opacity-60">+{wordPoints(word)}</span>
                 </div>
               );
             })}

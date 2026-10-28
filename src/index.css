@@ -2,116 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Lettus design system. All colors are HSL triplets so Tailwind can add alpha. */
 
 @layer base {
   :root {
-    /* Lime-Green Lettuce Theme (matching logo) */
-    --background: 0 0% 12%;
-    --foreground: 0 0% 98%;
+    --background: 90 8% 8%;
+    --foreground: 60 30% 97%;
 
-    --card: 0 0% 16%;
-    --card-foreground: 0 0% 98%;
+    --card: 90 7% 12%;
+    --card-foreground: 60 30% 97%;
 
-    --popover: 0 0% 16%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 90 7% 12%;
+    --popover-foreground: 60 30% 97%;
 
-    --primary: 95 65% 55%;
-    --primary-foreground: 0 0% 12%;
+    /* Logo greens: light lime tiles and deep leaf tiles */
+    --primary: 92 58% 52%;
+    --primary-foreground: 90 30% 8%;
 
-    --secondary: 105 60% 50%;
-    --secondary-foreground: 0 0% 12%;
+    --secondary: 150 34% 32%;
+    --secondary-foreground: 60 30% 97%;
 
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 90 6% 17%;
+    --muted-foreground: 80 6% 62%;
 
-    --accent: 100 70% 58%;
-    --accent-foreground: 0 0% 12%;
+    --accent: 88 70% 60%;
+    --accent-foreground: 90 30% 8%;
 
-    --destructive: 0 75% 58%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 2 78% 60%;
+    --destructive-foreground: 60 30% 97%;
 
-    --border: 0 0% 25%;
-    --input: 0 0% 20%;
-    --ring: 95 65% 55%;
+    --border: 90 6% 22%;
+    --input: 90 6% 18%;
+    --ring: 92 58% 52%;
 
-    /* Enhanced Game-specific colors */
-    --grid-cell: 0 0% 18%;
-    --grid-border: 95 20% 35%;
-    --letter-tile: 95 65% 55%;
+    --cream: 42 80% 96%;
+    --gold: 44 96% 58%;
+
+    --grid-cell: 90 6% 14%;
+    --grid-border: 92 20% 30%;
+    --letter-tile: 92 58% 52%;
     --letter-cooldown: 0 5% 45%;
-    --player-1: 95 70% 40%;
-    --player-2: 30 90% 45%;
-    --player-3: 200 85% 45%;
-    --player-4: 280 75% 50%;
-    --player-5: 0 80% 45%;
-    --player-1-secondary: 105 65% 35%;
-    --player-2-secondary: 35 85% 40%;
-    --player-3-secondary: 220 80% 40%;
-    --player-4-secondary: 290 70% 45%;
-    --player-5-secondary: 10 75% 40%;
-    --score-glow: 95 70% 75%;
-    --highlight-cell: 95 50% 45%;
+    --player-1: 92 58% 48%;
+    --player-2: 30 92% 54%;
+    --player-3: 205 85% 55%;
+    --player-4: 280 70% 62%;
+    --player-5: 350 80% 60%;
+    --player-1-secondary: 100 55% 34%;
+    --player-2-secondary: 22 85% 42%;
+    --player-3-secondary: 215 75% 42%;
+    --player-4-secondary: 285 55% 45%;
+    --player-5-secondary: 350 65% 45%;
+    --score-glow: 92 70% 72%;
+    --highlight-cell: 92 50% 45%;
 
-    /* Enhanced Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(95 70% 40%) 0%, hsl(105 65% 35%) 100%);
-    --gradient-player-1: linear-gradient(135deg, hsl(95 70% 40%) 0%, hsl(105 65% 35%) 100%);
-    --gradient-player-2: linear-gradient(135deg, hsl(30 90% 45%) 0%, hsl(35 85% 40%) 100%);
-    --gradient-player-3: linear-gradient(135deg, hsl(200 85% 45%) 0%, hsl(220 80% 40%) 100%);
-    --gradient-player-4: linear-gradient(135deg, hsl(280 75% 50%) 0%, hsl(290 70% 45%) 100%);
-    --gradient-player-5: linear-gradient(135deg, hsl(0 80% 45%) 0%, hsl(10 75% 40%) 100%);
-    --gradient-accent: linear-gradient(45deg, hsl(100 70% 58%) 0%, hsl(95 65% 55%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 16%) 0%, hsl(0 0% 18%) 100%);
-    --gradient-background: radial-gradient(ellipse at top, hsl(95 15% 18%) 0%, hsl(0 0% 12%) 50%);
+    --gradient-primary: linear-gradient(180deg, hsl(92 62% 58%) 0%, hsl(98 56% 42%) 100%);
+    --gradient-player-1: linear-gradient(180deg, hsl(90 62% 58%) 0%, hsl(98 56% 40%) 100%);
+    --gradient-player-2: linear-gradient(180deg, hsl(36 95% 60%) 0%, hsl(24 88% 46%) 100%);
+    --gradient-player-3: linear-gradient(180deg, hsl(200 88% 62%) 0%, hsl(215 78% 46%) 100%);
+    --gradient-player-4: linear-gradient(180deg, hsl(278 72% 68%) 0%, hsl(285 56% 48%) 100%);
+    --gradient-player-5: linear-gradient(180deg, hsl(352 84% 66%) 0%, hsl(348 66% 48%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(88 70% 60%) 0%, hsl(150 40% 38%) 100%);
+    --gradient-card: linear-gradient(160deg, hsl(90 8% 14%) 0%, hsl(90 7% 11%) 100%);
+    --gradient-background:
+      radial-gradient(1200px 600px at 50% -10%, hsl(95 35% 16% / 0.9) 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 100%, hsl(150 35% 12% / 0.6) 0%, transparent 60%),
+      hsl(90 8% 7%);
 
-    /* Shadows */
-    --shadow-sm: 0 2px 8px hsl(0 0% 5% / 0.3);
-    --shadow-md: 0 4px 16px hsl(0 0% 5% / 0.4);
-    --shadow-lg: 0 8px 24px hsl(0 0% 5% / 0.5);
-    --shadow-glow-primary: 0 0 20px hsl(95 65% 55% / 0.3);
+    --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 6px 18px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 12px 32px hsl(0 0% 0% / 0.5);
+    --shadow-glow-primary: 0 0 24px hsl(92 58% 52% / 0.35);
 
-    --radius: 0.875rem;
+    --radius: 0.9rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    /* Dark mode uses same lime-green lettuce theme */
-    --background: 0 0% 10%;
-    --foreground: 0 0% 99%;
-    --card: 0 0% 14%;
-    --card-foreground: 0 0% 99%;
-    --popover: 0 0% 14%;
-    --popover-foreground: 0 0% 99%;
-    --primary: 95 65% 50%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 105 60% 45%;
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 100 70% 55%;
-    --accent-foreground: 0 0% 10%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 99%;
-    --border: 0 0% 22%;
-    --input: 0 0% 18%;
-    --ring: 95 65% 50%;
   }
 }
 
@@ -120,74 +91,157 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-    background: var(--gradient-background);
-    min-height: 100vh;
-    background-size: 400% 400%;
-    animation: gradient-shift 20s ease infinite;
+  html {
+    -webkit-tap-highlight-color: transparent;
+    background: hsl(90 8% 7%);
   }
-}
 
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
+  body {
+    @apply text-foreground font-sans antialiased;
+    min-height: 100dvh;
+    overscroll-behavior: none;
+    background: transparent;
+  }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
+  body::before {
+    /* the glow behind everything, pinned to the viewport */
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--gradient-background);
+    pointer-events: none;
+  }
 
-@keyframes glow-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 20px hsl(var(--primary) / 0.4); }
-  50% { opacity: 0.8; box-shadow: 0 0 30px hsl(var(--primary) / 0.6); }
-}
+  h1, h2, h3, .font-display {
+    font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+    letter-spacing: 0.01em;
+  }
 
-@keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  button {
+    touch-action: manipulation;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
-  .grid-cell {
-    @apply bg-card border border-border transition-all duration-300 ease-out;
-    background: hsl(var(--grid-cell) / 0.8);
-    backdrop-filter: blur(8px);
-    border-color: hsl(var(--grid-border));
-    box-shadow: var(--shadow-sm);
+  /* Glossy tile in the style of the logo */
+  .tile {
+    position: relative;
+    border-radius: 22%;
+    font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+    font-weight: 600;
+    color: hsl(var(--cream));
+    text-shadow: 0 2px 0 hsl(0 0% 0% / 0.22);
+    box-shadow:
+      inset 0 2px 0 hsl(0 0% 100% / 0.35),
+      inset 0 -4px 0 hsl(0 0% 0% / 0.22),
+      0 3px 8px hsl(0 0% 0% / 0.35);
   }
 
-  .grid-cell:hover {
-    @apply scale-105;
-    transform: translateY(-2px) scale(1.05);
-    border-color: hsl(var(--primary) / 0.5);
-    box-shadow: var(--shadow-glow-primary);
+  .tile::after {
+    /* little shine in the top-right corner, like the logo tiles */
+    content: '';
+    position: absolute;
+    top: 9%;
+    right: 10%;
+    width: 18%;
+    height: 12%;
+    border-radius: 999px;
+    background: hsl(0 0% 100% / 0.45);
+    transform: rotate(35deg);
+    pointer-events: none;
   }
 
-  .letter-tile {
-    @apply font-bold text-lg text-center transition-all duration-300 ease-out;
-    background: var(--gradient-primary);
-    color: hsl(var(--primary-foreground));
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    animation: scale-in 0.3s ease-out;
-  }
-  
-  .letter-tile:hover {
-    transform: scale(1.05) rotate(2deg);
+
+  /* Empty board slot: a soft recess */
+  .slot {
+    border-radius: 22%;
+    background: hsl(0 0% 100% / 0.035);
+    box-shadow: inset 0 2px 4px hsl(0 0% 0% / 0.45), inset 0 -1px 0 hsl(0 0% 100% / 0.04);
   }
 
-  .cooldown-indicator {
-    @apply text-xs opacity-70;
-    color: hsl(var(--letter-cooldown));
+  .board {
+    border-radius: 1.1rem;
+    background: linear-gradient(160deg, hsl(90 8% 13% / 0.92), hsl(90 8% 9% / 0.92));
+    box-shadow: 0 10px 30px hsl(0 0% 0% / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.05);
+    border: 1px solid hsl(0 0% 100% / 0.06);
+  }
+
+  .glass {
+    background: hsl(90 8% 12% / 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid hsl(0 0% 100% / 0.07);
   }
 
   .score-glow {
     text-shadow: 0 0 12px hsl(var(--score-glow) / 0.6), 0 0 24px hsl(var(--score-glow) / 0.3);
   }
 
-  /* Grid for 26 letters (13 columns) */
+  .text-gradient-lettus {
+    background: linear-gradient(180deg, hsl(88 75% 70%), hsl(100 55% 45%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   .grid-cols-13 {
     grid-template-columns: repeat(13, minmax(0, 1fr));
   }
+
+  /* Big chunky game buttons */
+  .btn-game {
+    @apply relative font-display font-semibold rounded-2xl transition-all duration-150 active:translate-y-[2px];
+    box-shadow: inset 0 2px 0 hsl(0 0% 100% / 0.25), inset 0 -4px 0 hsl(0 0% 0% / 0.2), 0 6px 16px hsl(0 0% 0% / 0.35);
+  }
+  .btn-game:active {
+    box-shadow: inset 0 2px 0 hsl(0 0% 100% / 0.2), inset 0 -2px 0 hsl(0 0% 0% / 0.2), 0 3px 8px hsl(0 0% 0% / 0.3);
+  }
+}
+
+@layer utilities {
+  .pt-safe { padding-top: max(env(safe-area-inset-top), 0.5rem); }
+  .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.25rem); }
+}
+
+/* Tile colours live outside @layer so class names built at runtime (tile-p2...) are never purged */
+.tile-p1 { background: var(--gradient-player-1); }
+.tile-p2 { background: var(--gradient-player-2); }
+.tile-p3 { background: var(--gradient-player-3); }
+.tile-p4 { background: var(--gradient-player-4); }
+.tile-p5 { background: var(--gradient-player-5); }
+.tile-leaf { background: linear-gradient(180deg, hsl(150 38% 38%) 0%, hsl(152 40% 26%) 100%); }
+.tile-gold { background: linear-gradient(180deg, hsl(46 98% 64%) 0%, hsl(36 92% 48%) 100%); }
+
+@keyframes word-flash {
+  0% { transform: scale(1); filter: brightness(1); }
+  30% { transform: scale(1.14); filter: brightness(1.45) saturate(1.2); box-shadow: 0 0 0 3px hsl(var(--gold) / 0.9), 0 0 24px hsl(var(--gold) / 0.7); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.animate-word-flash {
+  animation: word-flash 0.75s cubic-bezier(.2,.9,.3,1.3) both;
+}
+
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+.shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.25), transparent);
+  animation: shimmer-sweep 2.8s ease-in-out infinite;
+  pointer-events: none;
 }

@@ -33,8 +33,6 @@ export function calculateScore(
   function accept(word: string): boolean {
     if (word.length < minLen) return false;
     if (!useDictionary) return true;
-    // autoguard: if list is tiny/unloaded, accept everything
-    if (dict.size <= 5000) return true;
     return dict.has(word);
   }
 
