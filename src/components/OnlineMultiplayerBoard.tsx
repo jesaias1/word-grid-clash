@@ -4,8 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { calculateScore } from '@/game/calculateScore';
-import { SCORE_OPTS } from '@/game/scoreConfig';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useVictoryCelebration } from '@/hooks/useVictoryCelebration';
 import WordsList from '@/components/WordsList';
@@ -17,7 +15,7 @@ import LetterKeyboard from '@/components/game/LetterKeyboard';
 import { GameHeader, ScorePill, TurnTimer } from '@/components/game/GameChrome';
 import { MoveFeedbackLayer, useMoveFeedback } from '@/components/game/MoveFeedback';
 import { wordPoints } from '@/game/constants';
-import { scoredCells } from '@/game/moveAnalysis';
+import { analyzeMove, scoredCells } from '@/game/moveAnalysis';
 import { useDictionaryReady } from '@/hooks/useDictionaryReady';
 import { recordGame, recordMove } from '@/lib/progress';
 
@@ -231,7 +229,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
     timedOutTurnRef.current = session.turn_started_at;
 
     const pointDeduction = 5;
-    const newScore = myState.score - pointDeduction;
+    const newScore = Math.max(0, myState.score - pointDeduction);
 
     // Update database
     await supabase
@@ -369,6 +367,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
   }, [session?.status, session?.winner_index, myPlayerIndex, myState]);
 
   const placeLetter = async (row: number, col: number) => {
+    if (!dictReady) return;
     if (!isMyTurn || !selectedLetter || !myState) {
       if (!isMyTurn) {
         playFeedback('invalid');
@@ -406,26 +405,11 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       )
     );
 
-    // Convert grid to string format for calculateScore
-    const gridForScoring = newGrid.map(row => 
-      row.map(cell => cell.letter)
-    );
-
-    const result = calculateScore(gridForScoring, SCORE_OPTS());
-    
-    // Track words found and only score new words
-    const existingWords = new Set(myState.words_found || []);
-    const newWordsFound = result.words.filter(w => !existingWords.has(w.text));
-    
-    // Apply bonus scoring: Z, X, Q = 2 points each, others = 1 point
-    const BONUS_LETTERS = new Set(['Z', 'X', 'Q']);
-    const newScore = newWordsFound.reduce((s, w) => {
-      let wordScore = 0;
-      for (const letter of w.text) {
-        wordScore += BONUS_LETTERS.has(letter.toUpperCase()) ? 2 : 1;
-      }
-      return s + wordScore;
-    }, 0);
+    // Same rules as every other mode: each word on the board counts every time it appears,
+    // so the points for this move are whatever the board gained
+    const move = analyzeMove(grid, newGrid);
+    const newWordsFound = move.newWords;
+    const newScore = move.gained;
 
     // Play sound effects and show what the move made
     playFeedback('place');
@@ -434,8 +418,7 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
       const cells = new Set<string>();
       newWordsFound.forEach(w => w.path.forEach(p => cells.add(`${p.r}-${p.c}`)));
       setFlash({ who: 'me', cells, key: Date.now() });
-      const scoredWords = newWordsFound.map(w => ({ ...w, points: wordPoints(w.text) }));
-      feedback.push({ who: 'You', player: 1, words: scoredWords, gained: newScore, mine: true });
+      feedback.push({ who: 'You', player: 1, words: newWordsFound, gained: newScore, mine: true });
       recordMove(newScore, newWordsFound.map(w => w.text));
       playFeedback(newWordsFound.length >= 2 ? 'combo' : 'score', newWordsFound.length >= 2 ? newWordsFound.length : newScore);
     }
@@ -905,10 +888,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="font-semibold mb-2 text-center">{myName}'s Words</h3>
-                <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                <div className="max-h-48 overflow-y-auto rounded-xl bg-black/20 p-2 space-y-1">
                   {(myState?.words_found || []).length > 0 ? (
                     (myState.words_found || []).map((word: string, idx: number) => (
-                      <div key={idx} className="text-sm bg-accent/50 rounded px-2 py-1">
+                      <div key={idx} className="text-sm bg-white/5 rounded-md px-2 py-1">
                         {word} <span className="text-muted-foreground">+{wordPoints(word)}</span>
                       </div>
                     ))
@@ -919,10 +902,10 @@ const OnlineMultiplayerBoard: React.FC<OnlineMultiplayerBoardProps> = ({ session
               </div>
               <div>
                 <h3 className="font-semibold mb-2 text-center">{opponentName}'s Words</h3>
-                <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                <div className="max-h-48 overflow-y-auto rounded-xl bg-black/20 p-2 space-y-1">
                   {(opponentState?.words_found || []).length > 0 ? (
                     (opponentState.words_found || []).map((word: string, idx: number) => (
-                      <div key={idx} className="text-sm bg-accent/50 rounded px-2 py-1">
+                      <div key={idx} className="text-sm bg-white/5 rounded-md px-2 py-1">
                         {word} <span className="text-muted-foreground">+{wordPoints(word)}</span>
                       </div>
                     ))
