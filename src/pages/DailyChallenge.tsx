@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ArrowLeft, Share2, Flame, Target, Clock, Dices } from 'lucide-react';
 import WordsList from '@/components/WordsList';
 import TierBadge from '@/components/TierBadge';
+import DailyLeaderboard from '@/components/daily/DailyLeaderboard';
 import GameGrid from '@/components/game/GameGrid';
 import FloatingTiles from '@/components/home/FloatingTiles';
 import { GameHeader, TurnTimer, AnimatedNumber } from '@/components/game/GameChrome';
@@ -95,7 +96,7 @@ const DailyChallengePage = () => {
   const dictReady = useDictionaryReady();
   const feedback = useMoveFeedback();
 
-  const { challenge, attempt, streak, loading, startAttempt, updateAttempt, completeAttempt, generateShareText, hasCompletedToday } = useDailyChallenge();
+  const { challenge, attempt, streak, loading, userId, startAttempt, updateAttempt, completeAttempt, generateShareText, hasCompletedToday } = useDailyChallenge();
 
   const [grid, setGrid] = useState<Grid>(() => emptyGrid());
   const [penalty, setPenalty] = useState(0);
@@ -354,6 +355,8 @@ const DailyChallengePage = () => {
             </div>
           </div>
 
+          <DailyLeaderboard date={challenge.challenge_date} userId={userId} completed={hasCompletedToday} limit={5} />
+
           <div className="space-y-2">
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -489,6 +492,8 @@ const DailyChallengePage = () => {
             )}
 
             {!isPracticeMode && <NextChallengeCountdown />}
+
+            <DailyLeaderboard date={challenge.challenge_date} userId={userId} completed={hasCompletedToday} />
 
             {words.length > 0 && (
               <div className="rounded-xl bg-black/20 p-3">

@@ -20,6 +20,7 @@ export type Database = {
           completed: boolean
           completed_at: string | null
           created_at: string
+          display_name: string | null
           id: string
           score: number
           tier_achieved: string | null
@@ -31,6 +32,7 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
           score?: number
           tier_achieved?: string | null
@@ -42,6 +44,7 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
           score?: number
           tier_achieved?: string | null
@@ -296,6 +299,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_daily_leaderboard: {
+        Args: { p_date?: string; p_limit?: number }
+        Returns: Json
+      }
       get_or_create_daily_challenge:
         | {
             Args: never
