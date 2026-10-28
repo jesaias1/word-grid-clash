@@ -22,7 +22,12 @@ const LetterKeyboard = ({ cooldowns, selected, enabled, onSelect, allowed, coold
   const keySize = isMobile ? 'min(9.6vw, 44px)' : 'clamp(30px, 3.4vw, 46px)';
 
   return (
-    <div className={`flex flex-col items-center gap-1.5 ${enabled ? '' : 'opacity-60'} transition-opacity`}>
+    <motion.div
+      className="flex flex-col items-center gap-1.5"
+      initial={false}
+      animate={{ opacity: enabled ? 1 : 0.6, y: enabled ? 0 : 3, scale: enabled ? 1 : 0.985 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+    >
       {rows.map((row, i) => (
         <div key={i} className="flex gap-1 sm:gap-1.5 justify-center">
           {row.map(letter => {
@@ -40,6 +45,7 @@ const LetterKeyboard = ({ cooldowns, selected, enabled, onSelect, allowed, coold
                 disabled={!canSelect}
                 onClick={() => canSelect && onSelect(letter)}
                 whileTap={canSelect ? { scale: 0.88 } : undefined}
+                whileHover={canSelect && !isSelected ? { y: -2 } : undefined}
                 animate={{ y: isSelected ? -5 : 0, scale: isSelected ? 1.12 : 1 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 22 }}
                 aria-label={cooldown > 0 ? `${letter}, cooling down for ${cooldown} turns` : letter}
@@ -80,7 +86,7 @@ const LetterKeyboard = ({ cooldowns, selected, enabled, onSelect, allowed, coold
           })}
         </div>
       ))}
-    </div>
+    </motion.div>
   );
 };
 

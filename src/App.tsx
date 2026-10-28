@@ -8,6 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import PageTransition from "./components/PageTransition";
 import AchievementToaster from "./components/game/AchievementToaster";
+import SplashScreen from "./components/SplashScreen";
 import Index from "./pages/Index";
 // Secondary screens load on demand so the menu opens fast
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -57,6 +58,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <AchievementToaster />
+        <SplashScreen />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AppRoutes />
         </BrowserRouter>

@@ -2,7 +2,8 @@
 // Curates + merges word sources into a strict, playable dictionary.
 //
 // Sources (all optional; small local text files):
-//  - /words-popular.txt    : the main list (e.g., top 50k/100k popular words; UPPERCASE)
+//  - /words-game.txt       : the main list, real 3-5 letter English words from SCOWL (UPPERCASE)
+//  - /words-popular.txt    : last-resort fallback
 //  - /words-allow.txt      : your manual always-allow (UPPERCASE; one per line)
 //  - /words-block.txt      : your manual blocklist (UPPERCASE; one per line)
 //
@@ -178,7 +179,7 @@ function curate(raw: Set<string>, allow: Set<string>, block: Set<string>): Set<s
 
 export async function loadCuratedDictionary(): Promise<CuratedDict> {
   // Try local files first (commit these to /public)
-  const popular = (await fetchList('/words.txt'))           // full dictionary (370k+ words)
+  const popular = (await fetchList('/words-game.txt'))      // real 3-5 letter words from SCOWL (size 70)
                 || (await fetchList('/words-en.txt'))       // fallback
                 || (await fetchList('/words-popular.txt'))  // last resort
                 || new Set<string>();

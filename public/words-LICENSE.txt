@@ -1,4 +1,4 @@
-public/words-common.txt is built from SCOWL (http://wordlist.aspell.net/), sizes 10-50, via the wordlist-english npm package. It is only used to steer the AI towards everyday words.
+public/words-game.txt (the game dictionary, SCOWL sizes 10-70, words of 3-5 letters) and public/words-common.txt (sizes 10-50, used to steer the AI towards everyday words) are built from SCOWL (http://wordlist.aspell.net/) via the wordlist-english npm package.
 
 The collective work is Copyright 2000-2016 by Kevin Atkinson as well
 as any of the copyrights mentioned below:

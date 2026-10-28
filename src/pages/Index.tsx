@@ -8,7 +8,7 @@ import InstallInstructionsDialog from '@/components/InstallInstructionsDialog';
 import FloatingTiles from '@/components/home/FloatingTiles';
 import ProgressCard from '@/components/home/ProgressCard';
 import { SoundToggle } from '@/components/game/GameChrome';
-import lettusLogo from '@/assets/lettus-logo.png';
+import lettusLogo from '@/assets/lettus-logo.webp';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useDailyChallenge } from '@/hooks/useDailyChallenge';

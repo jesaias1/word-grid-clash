@@ -404,6 +404,8 @@ const DailyChallengePage = () => {
       </div>
 
       <div className="flex-1 flex items-center justify-center gap-3 lg:gap-6 min-h-0">
+        {/* Same width as the words list, so the board stays centred */}
+        <div className="hidden lg:block w-[100px] xl:w-[120px] shrink-0" aria-hidden />
         <GameGrid
           grid={grid}
           player={1}

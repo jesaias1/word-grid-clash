@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import lettusLogo from '@/assets/lettus-logo.png';
+import lettusLogo from '@/assets/lettus-logo.webp';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 
 const STORED_USERNAME_KEY = 'lettus_online_username';

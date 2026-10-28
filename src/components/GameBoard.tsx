@@ -70,6 +70,7 @@ const GameBoard = ({ boardSize = BOARD_SIZE, difficulty: difficultyProp = 'mediu
   const [flash, setFlash] = useState<{ player: Player; cells: Set<string>; key: number } | null>(null);
   const [shake, setShake] = useState(0);
   const [reward, setReward] = useState<GameReward | null>(null);
+  const [turnPing, setTurnPing] = useState(0);
 
   // Scores always come from the boards, minus any timeout penalties
   const playerResult = useMemo(() => (dictReady ? scoreGrid(playerGrid) : null), [playerGrid, dictReady]);
@@ -138,6 +139,7 @@ const GameBoard = ({ boardSize = BOARD_SIZE, difficulty: difficultyProp = 'mediu
     setCurrentPlayer(next);
     setTurnTimeRemaining(TURN_TIME_LIMIT);
     if (next !== from) playFeedback('turnChange');
+    if (next === 1 && from === 2) setTurnPing(p => p + 1);
   }, [endGame, playFeedback]);
 
   // Apply one placement for either side
@@ -340,6 +342,17 @@ const GameBoard = ({ boardSize = BOARD_SIZE, difficulty: difficultyProp = 'mediu
         />
       )}
       <MoveFeedbackLayer events={feedback.events} />
+      {turnPing > 0 && playing && isMyTurn && (
+        <motion.div
+          key={turnPing}
+          className="pointer-events-none fixed inset-x-0 bottom-[clamp(150px,24dvh,200px)] z-30 flex justify-center"
+          initial={{ opacity: 0, y: 12, scale: 0.8 }}
+          animate={{ opacity: [0, 1, 1, 0], y: [12, 0, 0, -8], scale: [0.8, 1.05, 1, 1] }}
+          transition={{ duration: 1.5, times: [0, 0.15, 0.75, 1] }}
+        >
+          <span className="glass rounded-full px-4 py-1.5 font-display font-semibold text-primary ring-1 ring-primary/50">Your turn!</span>
+        </motion.div>
+      )}
 
       <div className="h-[100dvh] p-1.5 sm:p-3 pt-safe mx-auto flex flex-col overflow-hidden">
         <GameHeader

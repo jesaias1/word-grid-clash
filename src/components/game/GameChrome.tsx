@@ -5,7 +5,7 @@ import { useFullscreen } from '@/hooks/useFullscreen';
 import { setSoundEnabled, useSoundSettings } from '@/hooks/useSoundEffects';
 import { TURN_TIME_LIMIT } from '@/game/constants';
 import { playerColor } from './MoveFeedback';
-import lettusIcon from '@/assets/lettus-icon.png';
+import lettusIcon from '@/assets/lettus-icon.webp';
 
 /** Number that counts smoothly to its new value */
 export const AnimatedNumber = ({ value, className }: { value: number; className?: string }) => {
@@ -54,7 +54,7 @@ export const TurnTimer = ({ remaining, limit = TURN_TIME_LIMIT, label }: { remai
   const C = 2 * Math.PI * R;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="relative flex items-center">
       <motion.div
         className="relative w-12 h-12 sm:w-14 sm:h-14"
         animate={danger ? { scale: [1, 1.08, 1] } : { scale: 1 }}
@@ -72,7 +72,8 @@ export const TurnTimer = ({ remaining, limit = TURN_TIME_LIMIT, label }: { remai
           {remaining}
         </span>
       </motion.div>
-      {label && <span className="text-xs sm:text-sm font-semibold text-muted-foreground hidden sm:inline">{label}</span>}
+      {/* Hangs off the right so the ring itself stays centred */}
+      {label && <span className="absolute left-full ml-2 whitespace-nowrap text-xs sm:text-sm font-semibold text-muted-foreground hidden sm:inline">{label}</span>}
     </div>
   );
 };
@@ -102,7 +103,7 @@ export const SoundToggle = () => {
 export const GameHeader = ({ title, onHome, center }: { title: string; onHome: () => void; center: React.ReactNode }) => {
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   return (
-    <div className="flex items-center justify-between gap-2 px-1 sm:px-2 mb-1 sm:mb-2 shrink-0">
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-1 sm:px-2 mb-1 sm:mb-2 shrink-0">
       <div className="flex items-center gap-2 min-w-0">
         <button
           type="button"
@@ -115,8 +116,8 @@ export const GameHeader = ({ title, onHome, center }: { title: string; onHome: (
         </button>
         <h1 className="font-display font-semibold text-sm sm:text-base truncate hidden xs:block sm:block">{title}</h1>
       </div>
-      <div className="flex-1 flex justify-center min-w-0">{center}</div>
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex justify-center min-w-0">{center}</div>
+      <div className="flex items-center justify-end gap-1.5">
         <SoundToggle />
         <IconButton onClick={toggleFullscreen} label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
           {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
